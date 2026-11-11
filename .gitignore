@@ -1,0 +1,12 @@
+build/
+.dart_tool/
+.flutter-plugins-dependencies
+.idea/
+*.iml
+flutter_*.log
+android/local.properties
+android/.gradle/
+
+backend/serviceAccountKey.json
+
+node_modules/

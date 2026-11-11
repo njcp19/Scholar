@@ -29,6 +29,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color brandTint; // tinted backgrounds for brand icon tiles
   final Color header; // home header bar
   final Color onHeader; // content displayed on the header
+  final Color scanGradientStart; // scan screen background
   final Color onGold; // content displayed on gold surfaces
   final Color avatarBackground; // cream avatar background
   final Color goldTint; // pale gold panel
@@ -62,6 +63,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.brandTint,
     required this.header,
     required this.onHeader,
+    required this.scanGradientStart,
     required this.onGold,
     required this.avatarBackground,
     required this.goldTint,
@@ -96,6 +98,7 @@ class AppColors extends ThemeExtension<AppColors> {
     brandTint: Color(0xFFEAF2FE),
     header: Color(0xFF1E5AA8),
     onHeader: Color(0xFFFFFFFF),
+    scanGradientStart: Color(0xFF0B1D3A),
     onGold: Color(0xFF342507),
     avatarBackground: Color(0xFFFFF4D8),
     goldTint: Color(0xFFFCF7EA),
@@ -130,6 +133,7 @@ class AppColors extends ThemeExtension<AppColors> {
     brandTint: Color(0xFF1D3554),
     header: Color(0xFF14467F),
     onHeader: Color(0xFFFFFFFF),
+    scanGradientStart: Color(0xFF08162D),
     onGold: Color(0xFF342507),
     avatarBackground: Color(0xFF453719),
     goldTint: Color(0xFF2A2415),
@@ -165,6 +169,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? brandTint,
     Color? header,
     Color? onHeader,
+    Color? scanGradientStart,
     Color? onGold,
     Color? avatarBackground,
     Color? goldTint,
@@ -198,6 +203,7 @@ class AppColors extends ThemeExtension<AppColors> {
         brandTint: brandTint ?? this.brandTint,
         header: header ?? this.header,
         onHeader: onHeader ?? this.onHeader,
+        scanGradientStart: scanGradientStart ?? this.scanGradientStart,
         onGold: onGold ?? this.onGold,
         avatarBackground: avatarBackground ?? this.avatarBackground,
         goldTint: goldTint ?? this.goldTint,
@@ -236,6 +242,7 @@ class AppColors extends ThemeExtension<AppColors> {
       brandTint: l(brandTint, other.brandTint),
       header: l(header, other.header),
       onHeader: l(onHeader, other.onHeader),
+      scanGradientStart: l(scanGradientStart, other.scanGradientStart),
       onGold: l(onGold, other.onGold),
       avatarBackground: l(avatarBackground, other.avatarBackground),
       goldTint: l(goldTint, other.goldTint),

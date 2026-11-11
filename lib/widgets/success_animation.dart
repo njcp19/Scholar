@@ -5,17 +5,26 @@ import '../theme/app_theme.dart';
 import 'app_icons.dart';
 
 class SuccessAnimation extends StatelessWidget {
-  const SuccessAnimation({super.key});
+  final double size;
+  final IconData fallbackIcon;
+  final Color? fallbackColor;
+
+  const SuccessAnimation({
+    super.key,
+    this.size = 120,
+    this.fallbackIcon = AppIcons.checkCircle,
+    this.fallbackColor,
+  });
 
   Widget _fallback(BuildContext context) {
     return SizedBox(
-      width: 120,
-      height: 120,
+      width: size,
+      height: size,
       child: Center(
         child: Icon(
-          AppIcons.checkCircle,
-          size: 54,
-          color: context.colors.brand,
+          fallbackIcon,
+          size: size * .5,
+          color: fallbackColor ?? context.colors.brand,
         ),
       ),
     );
@@ -27,8 +36,8 @@ class SuccessAnimation extends StatelessWidget {
 
     return Lottie.asset(
       'assets/animations/success.json',
-      width: 120,
-      height: 120,
+      width: size,
+      height: size,
       fit: BoxFit.contain,
       repeat: false,
       errorBuilder: (context, error, stackTrace) => _fallback(context),

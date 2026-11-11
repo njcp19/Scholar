@@ -67,4 +67,8 @@ abstract final class AppIcons {
   static const IconData send = LucideIcons500.send;
   static const IconData userCheck = LucideIcons500.userCheck2;
   static const IconData arrowUpRight = LucideIcons500.arrowUpRight;
+  static const IconData flashlight = LucideIcons500.flashlight;
+  static const IconData flashlightOff = LucideIcons500.flashlightOff;
+  static const IconData creditCard = LucideIcons500.creditCard;
+  static const IconData arrowDown = LucideIcons500.arrowDown;
 }

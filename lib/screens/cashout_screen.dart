@@ -2,23 +2,24 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../models/models.dart';
 import '../providers/app_state.dart';
 import '../services/wallet_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/success_animation.dart';
+import '../widgets/widgets.dart';
 import 'fingerprint_screen.dart';
 import 'linked_accounts_screen.dart';
 
 /// Scholar: Cash Out.
-/// MOCKUP / DEMO: pick a linked account, enter the amount, review, confirm
-/// with device biometrics. The transfer is simulated: the balance is reduced
-/// and a simulated reference is shown. No real money moves.
+/// The transfer is simulated: the balance is reduced and a reference is shown.
 class CashoutScreen extends StatefulWidget {
   const CashoutScreen({super.key});
+
   @override
   State<CashoutScreen> createState() => _CashoutScreenState();
 }
@@ -81,9 +82,39 @@ class _CashoutScreenState extends State<CashoutScreen> {
   }
 
   Future<void> _manageAccounts() async {
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => const LinkedAccountsScreen()));
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LinkedAccountsScreen()),
+    );
     _load();
+  }
+
+  Future<void> _selectAccount() async {
+    if (_accounts.length < 2) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => AppBottomSheet(
+        title: 'Choose an account',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final account in _accounts) ...[
+              if (account != _accounts.first) const SizedBox(height: 10),
+              _accountCard(
+                account,
+                selected: account.id == _selected,
+                onTap: () {
+                  setState(() => _selected = account.id);
+                  Navigator.pop(sheetContext);
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _submit() async {
@@ -95,9 +126,11 @@ class _CashoutScreenState extends State<CashoutScreen> {
       return;
     }
     if (amount == null || amount < WalletService.minCashout) {
-      showMsg(context,
-          'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.',
-          error: true);
+      showMsg(
+        context,
+        'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.',
+        error: true,
+      );
       return;
     }
     if (amount > state.balance) {
@@ -105,39 +138,66 @@ class _CashoutScreenState extends State<CashoutScreen> {
       return;
     }
 
-    // Review screen: amount comes from the field, destination from the record.
-    final ok = await showDialog<bool>(
+    FocusManager.instance.primaryFocus?.unfocus();
+    final ok = await showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Review cash-out'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => AppBottomSheet(
+        title: 'Review Cash Out',
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('PHP ${fmtPhp(amount)}',
-                style:
-                    const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+            Text(
+              'PHP ${fmtPhp(amount)}',
+              style: TextStyle(
+                color: context.colors.textPrimary,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
             const SizedBox(height: 12),
-            Text('To: ${acc.providerLabel} ${acc.masked}'),
-            Text('Name: ${acc.accountName}'),
-            const SizedBox(height: 12),
-            const Text(
-                'DEMO ONLY: this is a simulation. The amount is deducted from '
-                'your wallet balance, but no real money is sent to the account.'),
+            Text(
+              'To: ${acc.providerLabel} ${acc.masked}',
+              style: TextStyle(color: context.colors.textPrimary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Name: ${acc.accountName}',
+              style: TextStyle(color: context.colors.textBody),
+            ),
+            const SizedBox(height: 14),
+            InfoBanner(
+              icon: AppIcons.demo,
+              message:
+                  'Demo mode: The amount is deducted from your balance, but no real money is sent to the account.',
+              emphasizedPrefix: 'Demo mode:',
+              backgroundColor: context.colors.warningBg,
+              iconColor: context.colors.warningText,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: SecondaryButton(
+                    label: 'Back',
+                    onPressed: () => Navigator.pop(sheetContext, false),
+                    minHeight: 50,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: PrimaryButton(
+                    label: 'Confirm',
+                    icon: AppIcons.fingerprint,
+                    onPressed: () => Navigator.pop(sheetContext, true),
+                    minHeight: 50,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Back')),
-          FilledButton.icon(
-              onPressed: () => Navigator.pop(ctx, true),
-              icon: Icon(
-                AppIcons.fingerprint,
-                color: context.colors.onHeader,
-              ),
-              label: const Text('Confirm')),
-        ],
       ),
     );
     if (ok != true || !mounted) return;
@@ -146,9 +206,11 @@ class _CashoutScreenState extends State<CashoutScreen> {
     try {
       if (!state.fingerprintRegistered) {
         await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-                builder: (_) => const FingerprintScreen(required: true)));
+          context,
+          MaterialPageRoute(
+            builder: (_) => const FingerprintScreen(required: true),
+          ),
+        );
         if (!mounted || !state.fingerprintRegistered) return;
       }
       final verified = await state
@@ -175,78 +237,675 @@ class _CashoutScreenState extends State<CashoutScreen> {
     }
   }
 
-  Color _statusColor(WithdrawalStatus s) => switch (s) {
-        WithdrawalStatus.completed => AppTheme.successGreen,
-        WithdrawalStatus.pending => AppTheme.warningAmber,
-        _ => AppTheme.dangerRed,
+  Widget _roundBackButton() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Material(
+        color: context.colors.surface,
+        shape: CircleBorder(
+          side: BorderSide(color: context.colors.borderSoft),
+        ),
+        child: IconButton(
+          onPressed: () => Navigator.maybePop(context),
+          tooltip: 'Back',
+          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+          padding: EdgeInsets.zero,
+          icon: Icon(AppIcons.back, color: context.colors.textPrimary),
+        ),
+      ),
+    );
+  }
+
+  Widget _balanceHero(double balance) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(26),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              context.colors.balanceHeroStart,
+              context.colors.balanceHeroEnd,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              top: -116,
+              right: -42,
+              child: _circle(
+                context.colors.onGold.withValues(alpha: .1),
+                230,
+              ),
+            ),
+            Positioned(
+              right: -115,
+              bottom: -132,
+              child: _circle(
+                context.colors.onGold.withValues(alpha: .08),
+                250,
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AVAILABLE BALANCE',
+                  style: TextStyle(
+                    color: context.colors.balanceHeroText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          color: context.colors.balanceHeroText,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        children: [
+                          const TextSpan(
+                            text: 'PHP ',
+                            style: TextStyle(fontSize: 24),
+                          ),
+                          TextSpan(
+                            text: fmtPhp(balance),
+                            style: const TextStyle(fontSize: 46),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _circle(Color color, double size) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      );
+
+  Widget _accountCard(
+    LinkedAccount account, {
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final icon = account.provider == PayoutProvider.bank
+        ? AppIcons.bankAccount
+        : AppIcons.phone;
+    final subtitle = '${account.accountName} · ${account.masked}';
+    return Material(
+      color: context.colors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color:
+                  selected ? context.colors.brand : context.colors.borderSoft,
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: context.colors.brandTint,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(icon, color: context.colors.brand, size: 23),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      account.providerLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (selected)
+                Icon(
+                  AppIcons.checkCircle,
+                  color: context.colors.brand,
+                  size: 26,
+                )
+              else
+                Icon(AppIcons.chevronRight, color: context.colors.hint),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _linkAccountCard() {
+    return Material(
+      color: context.colors.surface,
+      borderRadius: BorderRadius.circular(22),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: _manageAccounts,
+        child: CustomPaint(
+          foregroundPainter: _DashedBorderPainter(
+            color: context.colors.brand.withValues(alpha: .58),
+            radius: 22,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: context.colors.brandTint,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(AppIcons.plus, color: context.colors.brand),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Link an account',
+                        style: TextStyle(
+                          color: context.colors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        'GCash, Maya or bank',
+                        style: TextStyle(
+                          color: context.colors.textBody,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(AppIcons.chevronRight, color: context.colors.textBody),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _amountCard({
+    required double? amount,
+    required String? error,
+    required double balance,
+  }) {
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'PHP',
+                style: TextStyle(
+                  color: context.colors.textBody,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: TextField(
+                  controller: _amount,
+                  onChanged: (_) => setState(() {}),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'^\d*\.?\d{0,2}'),
+                    ),
+                  ],
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: _amount.text.trim().isEmpty
+                        ? context.colors.hint
+                        : context.colors.textPrimary,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: TextStyle(color: context.colors.hint),
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Available PHP ${fmtPhp(balance)} · Minimum PHP ${fmtPhp(WalletService.minCashout)}',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: context.colors.textBody, fontSize: 13),
+          ),
+          if (error != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              error,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.dangerText,
+                fontSize: 12,
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _amountChip(
+                  label: '500',
+                  selected: amount == 500,
+                  onPressed: () => _setAmount(500),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _amountChip(
+                  label: '1,000',
+                  selected: amount == 1000,
+                  onPressed: () => _setAmount(1000),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _amountChip(
+                  label: 'Max',
+                  selected: amount != null && amount == balance,
+                  onPressed: balance > 0 ? () => _setAmount(balance) : null,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _setAmount(double value) {
+    final text = value.toStringAsFixed(2);
+    setState(() {
+      _amount.value = TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: text.length),
+      );
+    });
+  }
+
+  Widget _amountChip({
+    required String label,
+    required bool selected,
+    required VoidCallback? onPressed,
+  }) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          foregroundColor:
+              selected ? context.colors.brand : context.colors.textBody,
+          backgroundColor:
+              selected ? context.colors.brandTint : context.colors.background,
+          side: BorderSide(
+            color: selected ? context.colors.brand : context.colors.borderSoft,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          shape: const StadiumBorder(),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        child: Text(label, maxLines: 1),
+      ),
+    );
+  }
+
+  String? _amountError(double? amount, double balance) {
+    if (_amount.text.trim().isEmpty) return null;
+    if (amount == null || amount < WalletService.minCashout) {
+      return 'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.';
+    }
+    if (amount > balance) return 'Amount is more than your balance.';
+    return null;
+  }
+
+  String _disabledHint({
+    required double balance,
+    required double? amount,
+    required String? error,
+  }) {
+    if (_accounts.isEmpty) {
+      return 'Link an account and receive an allowance to cash out.';
+    }
+    if (balance < WalletService.minCashout) {
+      return 'Receive an allowance of at least PHP ${fmtPhp(WalletService.minCashout)} to cash out.';
+    }
+    if (amount == null) {
+      return 'Enter an amount of at least PHP ${fmtPhp(WalletService.minCashout)} to continue.';
+    }
+    if (error != null) return 'Enter an amount within your available balance.';
+    return '';
+  }
+
+  Widget _emptyHistoryCard() {
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.all(18),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: context.colors.brandTint,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(AppIcons.receipt, color: context.colors.brand),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'No cash-outs yet',
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Your cash-outs will show up here',
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(WithdrawalStatus status) => switch (status) {
+        WithdrawalStatus.completed => context.colors.successText,
+        WithdrawalStatus.pending => context.colors.warningText,
+        _ => context.colors.dangerText,
       };
+
+  Color _statusBackground(WithdrawalStatus status) => switch (status) {
+        WithdrawalStatus.completed => context.colors.successBg,
+        WithdrawalStatus.pending => context.colors.warningBg,
+        _ => context.colors.dangerBg,
+      };
+
+  Widget _withdrawalCard(Withdrawal withdrawal) {
+    final statusColor = _statusColor(withdrawal.status);
+    final lastFour = withdrawal.accountNumber.length > 4
+        ? '•••• ${withdrawal.accountNumber.substring(withdrawal.accountNumber.length - 4)}'
+        : withdrawal.accountNumber;
+    final date = DateFormat('MMM d, yyyy · h:mm a')
+        .format(withdrawal.createdAt.toLocal());
+    final statusLabel = switch (withdrawal.status) {
+      WithdrawalStatus.completed => 'Completed',
+      WithdrawalStatus.pending => 'Pending',
+      _ => 'Failed',
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ListRowCard(
+        minHeight: 86,
+        padding: const EdgeInsets.all(16),
+        radius: 22,
+        shadow: true,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.colors.dangerBg,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                AppIcons.arrowUpRight,
+                color: context.colors.dangerText,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'To ${withdrawal.providerLabel}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$date · $lastFour',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (withdrawal.reference.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      'Simulated reference: ${withdrawal.reference}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 7),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      StatusChip(
+                        'Simulated',
+                        color: context.colors.brand,
+                        bg: context.colors.brandTint,
+                      ),
+                      StatusChip(
+                        statusLabel,
+                        color: statusColor,
+                        bg: _statusBackground(withdrawal.status),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 102,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '-${fmtPhp(withdrawal.amount)}',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: context.colors.dangerText,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _loadingSkeleton() {
+    return AppSkeletonizer(
+      enabled: true,
+      child: Column(
+        children: [
+          AppCard(
+            radius: 26,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(width: 150, height: 14, color: Colors.white),
+                const SizedBox(height: 12),
+                Container(width: 230, height: 42, color: Colors.white),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            radius: 16,
+            child: Container(height: 52, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            radius: 22,
+            child: Container(height: 58, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            radius: 22,
+            child: Container(height: 120, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          AppCard(
+            radius: 22,
+            child: Container(height: 52, color: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final amount = double.tryParse(_amount.text.trim());
-    final amountError = _amount.text.trim().isEmpty
-        ? null
-        : amount == null || amount < WalletService.minCashout
-            ? 'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.'
-            : amount > state.balance
-                ? 'Amount is more than your balance.'
-                : null;
-    final canSubmit = !_busy && amount != null && amountError == null;
-    final displayedAccounts = _loading
-        ? [
-            LinkedAccount(
-              id: -1,
-              provider: PayoutProvider.gcash,
-              bankName: '',
-              accountName: 'Account holder',
-              accountNumber: '1234567890',
-            ),
-          ]
-        : _accounts;
-    final displayedHistory = _loading
-        ? [
-            Withdrawal(
-              id: -1,
-              scholarId: '',
-              amount: 12345,
-              provider: PayoutProvider.gcash,
-              bankName: '',
-              accountName: 'Account holder',
-              accountNumber: '1234567890',
-              status: WithdrawalStatus.pending,
-              reference: 'ABC12345',
-              adminNote: '',
-              createdAt: DateTime(2026, 11, 8),
-            ),
-          ]
-        : _history;
-
-    void setAmount(double value) {
-      final text = value.toStringAsFixed(2);
-      setState(() {
-        _amount.value = TextEditingValue(
-          text: text,
-          selection: TextSelection.collapsed(offset: text.length),
-        );
-      });
-    }
+    final amountError = _amountError(amount, state.balance);
+    final selectedAccount =
+        _accounts.where((account) => account.id == _selected).firstOrNull;
+    final accountAvailable = selectedAccount != null;
+    final canSubmit = !_loading &&
+        !_busy &&
+        accountAvailable &&
+        state.balance >= WalletService.minCashout &&
+        amount != null &&
+        amountError == null;
+    final disabledHint = _disabledHint(
+      balance: state.balance,
+      amount: amount,
+      error: amountError,
+    );
 
     return Scaffold(
       backgroundColor: context.colors.background,
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.maybePop(context),
-          icon: Icon(
-            AppIcons.back,
-            color: context.colors.textPrimary,
-          ),
-        ),
-        title: const Text('Cash Out'),
         backgroundColor: context.colors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        centerTitle: true,
+        leadingWidth: 60,
+        leading: _roundBackButton(),
+        title: Text(
+          'Cash Out',
+          style: TextStyle(
+            color: context.colors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -258,377 +917,81 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 physics: const ClampingScrollPhysics(
                   parent: AlwaysScrollableScrollPhysics(),
                 ),
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
                 children: [
-                  AppSkeletonizer(
-                    enabled: _loading,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        BalanceCard(
-                          balance: _loading ? 12345.67 : state.balance,
-                        ),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: context.colors.warningBg,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: context.colors.surface.withValues(
-                                    alpha: .75,
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  AppIcons.demo,
-                                  color: context.colors.textLabel,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  'Demo mode: Cash Out is a simulation. No real money is sent to GCash, Maya or a bank.',
-                                  style: TextStyle(
-                                    color: context.colors.textBody,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        SectionLabel(
-                          'CASH OUT TO',
-                          trailing: TextButton(
-                            onPressed: _manageAccounts,
-                            style: TextButton.styleFrom(
-                              foregroundColor: context.colors.brand,
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 8),
-                            ),
-                            child: const Text('Manage'),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        if (displayedAccounts.isEmpty)
-                          _accountCard(
-                            context,
-                            icon: AppIcons.link,
-                            title: 'Link an account',
-                            subtitle: 'GCash, Maya or bank',
-                            onTap: _manageAccounts,
-                          )
-                        else
-                          ...displayedAccounts.map((account) {
-                            final selected = account.id == _selected;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: _accountCard(
-                                context,
-                                icon: account.provider == PayoutProvider.bank
-                                    ? AppIcons.bankAccount
-                                    : AppIcons.phone,
-                                title: account.accountName,
-                                subtitle: account.masked,
-                                selected: selected,
-                                onTap: () =>
-                                    setState(() => _selected = account.id),
-                              ),
-                            );
-                          }),
-                        const SizedBox(height: 8),
-                        const SectionLabel('AMOUNT (PHP)'),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: context.colors.surface,
-                            borderRadius: BorderRadius.circular(16),
-                            border:
-                                Border.all(color: context.colors.borderSoft),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TextField(
-                                controller: _amount,
-                                onChanged: (_) => setState(() {}),
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                  decimal: true,
-                                ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'^\d*\.?\d{0,2}'),
-                                  ),
-                                ],
-                                style: TextStyle(
-                                  color: context.colors.textPrimary,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  filled: true,
-                                  fillColor: context.colors.surface,
-                                  prefixText: 'PHP ',
-                                  prefixStyle: TextStyle(
-                                    color: context.colors.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 16,
-                                  ),
-                                  hintText:
-                                      'Minimum ${fmtPhp(WalletService.minCashout)}',
-                                  hintStyle: TextStyle(
-                                    color: context.colors.hint,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 14,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(
-                                      color: context.colors.borderSoft,
-                                    ),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                    borderSide: BorderSide(
-                                      color: context.colors.brand,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Available: PHP ${fmtPhp(state.balance)}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: context.colors.textBody,
-                                ),
-                              ),
-                              if (amountError != null) ...[
-                                const SizedBox(height: 4),
-                                Text(
-                                  amountError,
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.error,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  _amountChip(
-                                    context,
-                                    '500',
-                                    () => setAmount(500),
-                                  ),
-                                  _amountChip(
-                                    context,
-                                    '1,000',
-                                    () => setAmount(1000),
-                                  ),
-                                  _amountChip(
-                                    context,
-                                    'Max',
-                                    state.balance > 0
-                                        ? () => setAmount(state.balance)
-                                        : null,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: canSubmit ? _submit : null,
-                            icon: _busy
-                                ? SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: context.colors.onHeader,
-                                    ),
-                                  )
-                                : Icon(
-                                    AppIcons.fingerprint,
-                                    color: context.colors.onHeader,
-                                  ),
-                            label: const Text(
-                              'Review and Cash Out',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: context.colors.brand,
-                              foregroundColor: context.colors.onHeader,
-                              disabledBackgroundColor:
-                                  context.colors.borderSoft,
-                              disabledForegroundColor: context.colors.hint,
-                              minimumSize: const Size.fromHeight(52),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              textStyle: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        SectionLabel(
-                          'MY CASH-OUTS (${displayedHistory.length})',
-                        ),
-                        const SizedBox(height: 8),
-                        if (displayedHistory.isEmpty)
-                          _emptyHistoryCard(context)
-                        else
-                          ...displayedHistory.map((withdrawal) {
-                            final statusColor = _statusColor(withdrawal.status);
-                            final statusBackground =
-                                switch (withdrawal.status) {
-                              WithdrawalStatus.completed =>
-                                context.colors.successBg,
-                              WithdrawalStatus.pending =>
-                                context.colors.warningBg,
-                              _ => context.colors.dangerBg,
-                            };
-                            final statusLabel = switch (withdrawal.status) {
-                              WithdrawalStatus.completed => 'Completed',
-                              WithdrawalStatus.pending => 'Pending',
-                              _ => 'Failed',
-                            };
-                            final lastFour = withdrawal.accountNumber.length > 4
-                                ? '•••• ${withdrawal.accountNumber.substring(withdrawal.accountNumber.length - 4)}'
-                                : withdrawal.accountNumber;
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: context.colors.surface,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                      color: context.colors.borderSoft),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 36,
-                                          height: 36,
-                                          decoration: BoxDecoration(
-                                            color: context.colors.brandTint,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            withdrawal.provider ==
-                                                    PayoutProvider.bank
-                                                ? AppIcons.bankAccount
-                                                : AppIcons.phone,
-                                            color: context.colors.brand,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                '${withdrawal.providerLabel} $lastFour',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: context
-                                                      .colors.textPrimary,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 3),
-                                              Text(
-                                                _fmtDate(withdrawal.createdAt),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color:
-                                                      context.colors.textBody,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                              if (withdrawal
-                                                  .reference.isNotEmpty)
-                                                Text(
-                                                  'Simulated reference: ${withdrawal.reference}',
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color: context.colors.hint,
-                                                    fontSize: 11,
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            'PHP ${fmtPhp(withdrawal.amount)}',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.end,
-                                            style: TextStyle(
-                                              color: context.colors.textPrimary,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        StatusChip(
-                                          statusLabel,
-                                          color: statusColor,
-                                          bg: statusBackground,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }),
-                      ],
+                  if (_loading)
+                    _loadingSkeleton()
+                  else ...[
+                    _balanceHero(state.balance),
+                    const SizedBox(height: 16),
+                    InfoBanner(
+                      icon: AppIcons.demo,
+                      message:
+                          'Demo mode: Cash Out is a simulation. No real money is sent to GCash, Maya or a bank.',
+                      emphasizedPrefix: 'Demo mode:',
+                      backgroundColor: context.colors.warningBg,
+                      iconColor: context.colors.warningText,
                     ),
-                  ),
+                    const SizedBox(height: 22),
+                    SectionLabel(
+                      'CASH OUT TO',
+                      trailing: TextButton(
+                        onPressed: _manageAccounts,
+                        style: TextButton.styleFrom(
+                          foregroundColor: context.colors.brand,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                        child: const Text('Manage'),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (_accounts.isEmpty)
+                      _linkAccountCard()
+                    else if (selectedAccount != null)
+                      _accountCard(
+                        selectedAccount,
+                        selected: true,
+                        onTap: _accounts.length > 1 ? _selectAccount : () {},
+                      ),
+                    const SizedBox(height: 22),
+                    const SectionLabel('AMOUNT (PHP)'),
+                    const SizedBox(height: 10),
+                    _amountCard(
+                      amount: amount,
+                      error: amountError,
+                      balance: state.balance,
+                    ),
+                    const SizedBox(height: 16),
+                    PrimaryButton(
+                      label: 'Review and Cash Out',
+                      icon: AppIcons.arrowUpRight,
+                      onPressed: canSubmit ? _submit : null,
+                      loading: _busy,
+                      minHeight: 56,
+                      borderRadius: 18,
+                      backgroundColor: context.colors.brand,
+                      disabledBackgroundColor: context.colors.borderSoft,
+                      disabledForegroundColor: context.colors.textBody,
+                    ),
+                    if (!canSubmit && disabledHint.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        disabledHint,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.colors.textBody,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    SectionLabel('MY CASH-OUTS (${_history.length})'),
+                    const SizedBox(height: 10),
+                    if (_history.isEmpty)
+                      _emptyHistoryCard()
+                    else
+                      ..._history.map(_withdrawalCard),
+                  ],
                 ],
               ),
             ),
@@ -643,155 +1006,41 @@ class _CashoutScreenState extends State<CashoutScreen> {
       ),
     );
   }
+}
 
-  Widget _accountCard(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-    bool selected = false,
-  }) {
-    return Material(
-      color: context.colors.surface,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color:
-                  selected ? context.colors.brand : context.colors.borderSoft,
-              width: selected ? 1.5 : 1,
-            ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: context.colors.brandTint,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: context.colors.brand),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textBody,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(
-                AppIcons.chevronRight,
-                color: selected ? context.colors.brand : context.colors.hint,
-              ),
-            ],
-          ),
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double radius;
+
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(radius),
         ),
-      ),
-    );
+      );
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = (distance + 7).clamp(0, metric.length).toDouble();
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance = end + 5;
+      }
+    }
   }
 
-  Widget _amountChip(
-    BuildContext context,
-    String label,
-    VoidCallback? onPressed,
-  ) {
-    return SizedBox(
-      height: 36,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: context.colors.textPrimary,
-          side: BorderSide(color: context.colors.borderSoft),
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          shape: const StadiumBorder(),
-        ),
-        child: Text(label),
-      ),
-    );
-  }
-
-  Widget _emptyHistoryCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.borderSoft),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: context.colors.brandTint,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.receipt,
-              color: context.colors.brand,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'No cash-outs yet',
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Your cash-outs will show up here',
-                  style: TextStyle(
-                    color: context.colors.textBody,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _fmtDate(DateTime d) {
-    String two(int v) => v.toString().padLeft(2, '0');
-    return '${d.year}-${two(d.month)}-${two(d.day)} ${two(d.hour)}:${two(d.minute)}';
-  }
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
+      color != oldDelegate.color || radius != oldDelegate.radius;
 }
 
 class _CashoutScrollBehavior extends MaterialScrollBehavior {

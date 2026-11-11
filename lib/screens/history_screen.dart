@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../theme/app_theme.dart';
-import '../providers/app_state.dart';
+
 import '../models/models.dart';
-import '../widgets/widgets.dart';
+import '../providers/app_state.dart';
+import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/widgets.dart';
+import 'scan_claim_screen.dart';
 
 /// FR-12/FR-13/FR-14 — full transaction history, grouped by month, with
 /// search and a credit/debit filter.
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
@@ -61,6 +64,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  Future<void> _retry() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    await _load();
+  }
+
+  Future<void> _openScanner() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const ScanClaimScreen()),
+    );
+    if (result == true) _load();
+  }
+
   String _amountSearchText(WalletTransaction transaction) {
     final formatted = fmtPhp(transaction.amount.abs());
     final sign = transaction.type == TxType.credit ? '+' : '-';
@@ -89,223 +108,95 @@ class _HistoryScreenState extends State<HistoryScreen> {
         TxStatus.rejected => 'Rejected',
       };
 
+  DateTime _localDate(DateTime date) => date.toLocal();
+
   String _friendlyDate(DateTime date) =>
-      DateFormat('MMM d, h:mm a').format(date.toLocal());
+      DateFormat('MMM d, yyyy · h:mm a').format(_localDate(date));
+
+  bool _isCashOut(WalletTransaction transaction) {
+    final description = '${transaction.title} ${transaction.subtitle}'
+        .toLowerCase()
+        .replaceAll('-', ' ');
+    return description.contains('cash out') || description.contains('cashout');
+  }
 
   List<Widget> _grouped(List<WalletTransaction> transactions) {
-    final widgets = <Widget>[];
-    String? lastKey;
+    final groups = <String, List<WalletTransaction>>{};
     for (final transaction in transactions) {
       final key =
-          DateFormat('MMMM yyyy').format(transaction.createdAt.toLocal());
-      if (key != lastKey) {
-        lastKey = key;
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(top: 24, bottom: 8),
-            child: Text(
-              key.toUpperCase(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.1,
-                color: context.colors.hint,
-              ),
-            ),
-          ),
-        );
-      }
-      widgets.add(_transactionRow(transaction));
-      widgets.add(const SizedBox(height: 8));
+          DateFormat('MMMM yyyy').format(_localDate(transaction.createdAt));
+      groups.putIfAbsent(key, () => []).add(transaction);
     }
-    return widgets;
+
+    return [
+      for (final entry in groups.entries) ...[
+        Padding(
+          padding: const EdgeInsets.only(top: 24, bottom: 10),
+          child: SectionLabel(entry.key.toUpperCase()),
+        ),
+        _monthCard(entry.value),
+      ],
+    ];
   }
 
-  Widget _transactionRow(WalletTransaction transaction) {
-    final isCredit = transaction.type == TxType.credit;
-    final isPending = transaction.status == TxStatus.pending;
-    final isReceipt =
-        '${transaction.title} ${transaction.subtitle}'.toLowerCase().contains(
-              'receipt',
-            );
-    final iconColor = isPending
-        ? context.colors.hint
-        : isReceipt
-            ? context.colors.brand
-            : context.colors.textLabel;
-    final iconBackground = isPending
-        ? context.colors.warningBg
-        : isReceipt
-            ? context.colors.brandTint
-            : isCredit
-                ? context.colors.successBg
-                : context.colors.dangerBg;
-    final amount = isPending
-        ? 'Pending'
-        : '${isCredit ? '+' : '-'}${fmtPhp(transaction.amount.abs())}';
-    final amountColor = isPending
-        ? context.colors.hint
-        : isCredit
-            ? AppTheme.successGreen
-            : context.colors.textPrimary;
-    final subtitle = [
-      _statusLabel(transaction.status),
-      _friendlyDate(transaction.createdAt),
-      if (transaction.subtitle.trim().isNotEmpty) transaction.subtitle.trim(),
-    ].join(' - ');
-
-    return Container(
-      constraints: const BoxConstraints(minHeight: 68),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.borderSoft),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: iconBackground,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              isPending
-                  ? AppIcons.clock
-                  : isReceipt
-                      ? AppIcons.receipt
-                      : isCredit
-                          ? AppIcons.plus
-                          : AppIcons.minus,
-              color: iconColor,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  transaction.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.hint,
-                    fontSize: 11,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 104,
-            child: Text(
-              amount,
-              maxLines: 1,
-              softWrap: false,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                color: amountColor,
-                fontSize: isPending ? 12 : 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _emptyState({
-    required String title,
-    required String message,
-    bool showClear = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 12),
+  Widget _monthCard(List<WalletTransaction> transactions) {
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: context.colors.brandTint,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.receipt,
-              color: context.colors.brand,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: TextStyle(color: context.colors.textBody, fontSize: 14),
-          ),
-          if (showClear) ...[
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: _clearFilters,
-              child: const Text('Clear filters'),
-            ),
+          for (var index = 0; index < transactions.length; index++) ...[
+            if (index > 0) Divider(height: 1, color: context.colors.borderSoft),
+            _transactionRow(transactions[index]),
           ],
         ],
       ),
     );
   }
 
-  Widget _errorCard() {
-    return Container(
-      margin: const EdgeInsets.only(top: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.borderSoft),
-      ),
+  Widget _transactionRow(WalletTransaction transaction) {
+    final isCredit = transaction.type == TxType.credit;
+    final isPending = transaction.status == TxStatus.pending;
+    final isCashOut = !isCredit && _isCashOut(transaction);
+    final statusColor = isPending
+        ? context.colors.warningText
+        : transaction.status == TxStatus.rejected
+            ? context.colors.dangerText
+            : isCredit
+                ? context.colors.successText
+                : context.colors.brand;
+    final statusBackground = isPending
+        ? context.colors.warningBg
+        : transaction.status == TxStatus.rejected
+            ? context.colors.dangerBg
+            : isCredit
+                ? context.colors.successBg
+                : context.colors.brandTint;
+    final chipLabel =
+        isCashOut ? 'Simulated' : _statusLabel(transaction.status);
+    final amount = '${isCredit ? '+' : '-'}${fmtPhp(transaction.amount.abs())}';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: context.colors.dangerBg,
+              color:
+                  isCredit ? context.colors.successBg : context.colors.dangerBg,
               shape: BoxShape.circle,
             ),
+            alignment: Alignment.center,
             child: Icon(
-              AppIcons.error,
-              color: context.colors.textLabel,
+              isCredit ? AppIcons.arrowDown : AppIcons.arrowUpRight,
+              color: isCredit
+                  ? context.colors.successText
+                  : context.colors.dangerText,
+              size: 23,
             ),
           ),
           const SizedBox(width: 12),
@@ -314,20 +205,265 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _error ?? 'Could not load transactions.',
+                  transaction.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: context.colors.textBody,
-                    fontSize: 14,
+                    color: context.colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _load,
-                  child: const Text('Try again'),
+                const SizedBox(height: 4),
+                Text(
+                  _friendlyDate(transaction.createdAt),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 12,
+                  ),
+                ),
+                if (transaction.subtitle.trim().isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    transaction.subtitle.trim(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 112,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      isPending ? 'Pending' : amount,
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: isPending
+                            ? context.colors.textBody
+                            : isCredit
+                                ? context.colors.successText
+                                : context.colors.dangerText,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                StatusChip(
+                  chipLabel,
+                  color: statusColor,
+                  bg: statusBackground,
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryHalf({
+    required String label,
+    required double total,
+    required bool credit,
+  }) {
+    final color =
+        credit ? context.colors.successText : context.colors.dangerText;
+    final tileColor =
+        credit ? context.colors.successBg : context.colors.dangerBg;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: tileColor,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              credit ? AppIcons.arrowDown : AppIcons.arrowUpRight,
+              color: color,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'PHP ${fmtPhp(total)}',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryCard(List<WalletTransaction> transactions) {
+    final credits = transactions
+        .where((transaction) => transaction.type == TxType.credit)
+        .fold<double>(0, (sum, transaction) => sum + transaction.amount.abs());
+    final debits = transactions
+        .where((transaction) => transaction.type == TxType.debit)
+        .fold<double>(0, (sum, transaction) => sum + transaction.amount.abs());
+
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: EdgeInsets.zero,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _summaryHalf(
+                label: 'Received',
+                total: credits,
+                credit: true,
+              ),
+            ),
+            VerticalDivider(width: 1, color: context.colors.borderSoft),
+            Expanded(
+              child: _summaryHalf(
+                label: 'Cashed out',
+                total: debits,
+                credit: false,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyCard({
+    required String title,
+    required String message,
+    bool noTransactions = false,
+    bool showClear = false,
+  }) {
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  color: context.colors.brandTint,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  AppIcons.receipt,
+                  color: context.colors.brand,
+                  size: 38,
+                ),
+              ),
+              Positioned(
+                top: 0,
+                right: 2,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: context.colors.avatarBackground,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: context.colors.surface, width: 3),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.colors.textPrimary,
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: context.colors.textBody,
+              fontSize: 14,
+            ),
+          ),
+          if (noTransactions) ...[
+            const SizedBox(height: 22),
+            PrimaryButton(
+              label: 'Scan payout QR',
+              icon: AppIcons.qrScan,
+              onPressed: _openScanner,
+              minHeight: 54,
+              borderRadius: 18,
+            ),
+          ],
+          if (showClear) ...[
+            const SizedBox(height: 14),
+            SecondaryButton(
+              label: 'Clear filters',
+              onPressed: _clearFilters,
+              minHeight: 48,
+            ),
+          ],
         ],
       ),
     );
@@ -343,11 +479,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _filterChip(String label, _Filter filter) {
     final selected = _filter == filter;
-    return Expanded(
-      child: SizedBox(
-        height: 36,
-        child: ChoiceChip(
-          label: Center(
+    return SizedBox(
+      height: 42,
+      child: ChoiceChip(
+        label: SizedBox(
+          width: double.infinity,
+          child: Center(
             child: Text(
               label,
               maxLines: 1,
@@ -356,22 +493,91 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 color: selected
                     ? context.colors.onHeader
                     : context.colors.textBody,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          selected: selected,
-          showCheckmark: false,
-          onSelected: (_) => setState(() => _filter = filter),
-          padding: EdgeInsets.zero,
-          labelPadding: const EdgeInsets.symmetric(horizontal: 6),
-          shape: const StadiumBorder(),
-          side: BorderSide(
-            color: selected ? context.colors.brand : context.colors.borderSoft,
+        ),
+        selected: selected,
+        showCheckmark: false,
+        onSelected: (_) => setState(() => _filter = filter),
+        padding: EdgeInsets.zero,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+        shape: const StadiumBorder(),
+        side: BorderSide(
+          color: selected ? context.colors.brand : context.colors.borderSoft,
+        ),
+        backgroundColor: context.colors.surface,
+        selectedColor: context.colors.brand,
+      ),
+    );
+  }
+
+  Widget _loadingSkeleton() {
+    return AppSkeletonizer(
+      enabled: true,
+      child: Column(
+        children: [
+          AppCard(
+            radius: 22,
+            child: Container(height: 80, color: Colors.white),
           ),
-          backgroundColor: context.colors.surface,
-          selectedColor: context.colors.brand,
+          const SizedBox(height: 22),
+          AppCard(
+            radius: 22,
+            child: Column(
+              children: [
+                for (var index = 0; index < 3; index++) ...[
+                  if (index > 0)
+                    Divider(height: 1, color: context.colors.borderSoft),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            height: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 18),
+                        Container(width: 80, height: 16, color: Colors.white),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _roundBackButton() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 8),
+      child: Material(
+        color: context.colors.surface,
+        shape: CircleBorder(
+          side: BorderSide(color: context.colors.borderSoft),
+        ),
+        child: IconButton(
+          onPressed: () => Navigator.maybePop(context),
+          tooltip: 'Back',
+          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+          padding: EdgeInsets.zero,
+          icon: Icon(AppIcons.back, color: context.colors.textPrimary),
         ),
       ),
     );
@@ -381,19 +587,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final filtered = _filtered;
     final hasFilters = _query.trim().isNotEmpty || _filter != _Filter.all;
+
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.maybePop(context),
-          icon: Icon(
-            AppIcons.back,
+        leadingWidth: 60,
+        leading: _roundBackButton(),
+        centerTitle: true,
+        title: Text(
+          'Transaction History',
+          style: TextStyle(
             color: context.colors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
         ),
-        title: const Text('Transaction History'),
         backgroundColor: context.colors.background,
-        foregroundColor: context.colors.textPrimary,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -402,70 +611,41 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SizedBox(
-              height: 48,
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) => setState(() => _query = value),
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: 14,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search transactions',
-                  hintStyle: TextStyle(color: context.colors.hint),
-                  prefixIcon: Icon(
-                    AppIcons.search,
-                    size: 18,
-                    color: context.colors.hint,
-                  ),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
-                          icon: Icon(
-                            AppIcons.close,
-                            size: 18,
-                            color: context.colors.textBody,
-                          ),
-                        ),
-                  filled: true,
-                  fillColor: context.colors.surface,
-                  isDense: true,
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: context.colors.borderSoft),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(
-                      color: context.colors.brand,
-                      width: 1.5,
+            child: SearchField(
+              controller: _searchController,
+              hintText: 'Search transactions',
+              radius: 18,
+              minHeight: 52,
+              onChanged: (value) => setState(() => _query = value),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: 'Clear search',
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                      icon: Icon(
+                        AppIcons.close,
+                        size: 18,
+                        color: context.colors.textBody,
+                      ),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
             child: Row(
               children: [
-                _filterChip('All', _Filter.all),
-                const SizedBox(width: 8),
-                _filterChip('Credits', _Filter.credit),
-                const SizedBox(width: 8),
-                _filterChip('Debits', _Filter.debit),
+                Expanded(child: _filterChip('All', _Filter.all)),
+                const SizedBox(width: 10),
+                Expanded(child: _filterChip('Credits', _Filter.credit)),
+                const SizedBox(width: 10),
+                Expanded(child: _filterChip('Debits', _Filter.debit)),
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Expanded(
             child: ClipRect(
               child: ScrollConfiguration(
@@ -477,64 +657,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     physics: const ClampingScrollPhysics(
                       parent: AlwaysScrollableScrollPhysics(),
                     ),
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                    children: _loading
-                        ? [
-                            AppSkeletonizer(
-                              enabled: true,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: _grouped([
-                                  WalletTransaction(
-                                    id: 'loading-1',
-                                    title: 'Allowance received',
-                                    subtitle: 'Payout Event',
-                                    amount: 12345,
-                                    type: TxType.credit,
-                                    status: TxStatus.completed,
-                                    createdAt: DateTime(2026, 11, 8),
-                                  ),
-                                  WalletTransaction(
-                                    id: 'loading-2',
-                                    title: 'Cash Out',
-                                    subtitle: 'Linked Account',
-                                    amount: 2450,
-                                    type: TxType.debit,
-                                    status: TxStatus.completed,
-                                    createdAt: DateTime(2026, 11, 7),
-                                  ),
-                                  WalletTransaction(
-                                    id: 'loading-3',
-                                    title: 'Allowance received',
-                                    subtitle: 'Payout Event',
-                                    amount: 12345,
-                                    type: TxType.credit,
-                                    status: TxStatus.completed,
-                                    createdAt: DateTime(2026, 11, 1),
-                                  ),
-                                ]),
-                              ),
-                            ),
-                          ]
-                        : [
-                            if (_error != null)
-                              _errorCard()
-                            else if (_all.isEmpty)
-                              _emptyState(
-                                title: 'No transactions yet',
-                                message:
-                                    'Your allowance and cash-outs will appear here',
-                              )
-                            else if (filtered.isEmpty)
-                              _emptyState(
-                                title: 'No matching transactions',
-                                message:
-                                    'Try a different search or transaction type.',
-                                showClear: hasFilters,
-                              )
-                            else
-                              ..._grouped(filtered),
-                          ],
+                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                    children: [
+                      if (_loading)
+                        _loadingSkeleton()
+                      else if (_error != null)
+                        ErrorCard(
+                          message: _error!,
+                          onRetry: _retry,
+                        )
+                      else if (_all.isEmpty)
+                        _emptyCard(
+                          title: 'No transactions yet',
+                          message:
+                              'Your allowance and cash-outs will appear here.',
+                          noTransactions: true,
+                        )
+                      else if (filtered.isEmpty)
+                        _emptyCard(
+                          title: 'No matching transactions',
+                          message:
+                              'Try a different search or transaction type.',
+                          showClear: hasFilters,
+                        )
+                      else ...[
+                        _summaryCard(filtered),
+                        ..._grouped(filtered),
+                      ],
+                    ],
                   ),
                 ),
               ),

@@ -62,6 +62,8 @@ class AppCard extends StatelessWidget {
   final double radius;
   final bool shadow;
   final Color? backgroundColor;
+  final Color? borderColor;
+  final double borderWidth;
 
   const AppCard({
     super.key,
@@ -70,6 +72,8 @@ class AppCard extends StatelessWidget {
     this.radius = 16,
     this.shadow = false,
     this.backgroundColor,
+    this.borderColor,
+    this.borderWidth = 1,
   });
 
   @override
@@ -80,7 +84,10 @@ class AppCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? context.colors.surface,
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: context.colors.borderSoft),
+        border: Border.all(
+          color: borderColor ?? context.colors.borderSoft,
+          width: borderWidth,
+        ),
         boxShadow: shadow
             ? [
                 BoxShadow(
@@ -153,12 +160,20 @@ class InfoBanner extends StatelessWidget {
   final IconData icon;
   final String message;
   final int maxLines;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final Color? textColor;
+  final String? emphasizedPrefix;
 
   const InfoBanner({
     super.key,
     required this.icon,
     required this.message,
     this.maxLines = 2,
+    this.backgroundColor,
+    this.iconColor,
+    this.textColor,
+    this.emphasizedPrefix,
   });
 
   @override
@@ -167,23 +182,35 @@ class InfoBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: context.colors.brandTint,
+        color: backgroundColor ?? context.colors.brandTint,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: context.colors.brand, size: 20),
+          Icon(icon, color: iconColor ?? context.colors.brand, size: 20),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              message,
+            child: Text.rich(
+              TextSpan(
+                style: TextStyle(
+                  color: textColor ?? context.colors.textPrimary,
+                  fontSize: 13,
+                ),
+                children: emphasizedPrefix != null &&
+                        message.startsWith(emphasizedPrefix!)
+                    ? [
+                        TextSpan(
+                          text: emphasizedPrefix,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        TextSpan(
+                            text: message.substring(emphasizedPrefix!.length)),
+                      ]
+                    : [TextSpan(text: message)],
+              ),
               maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: context.colors.textPrimary,
-                fontSize: 13,
-              ),
             ),
           ),
         ],
@@ -196,18 +223,24 @@ class SearchField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final ValueChanged<String>? onChanged;
+  final Widget? suffixIcon;
+  final double radius;
+  final double minHeight;
 
   const SearchField({
     super.key,
     required this.controller,
     required this.hintText,
     this.onChanged,
+    this.suffixIcon,
+    this.radius = 14,
+    this.minHeight = 48,
   });
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 48),
+      constraints: BoxConstraints(minHeight: minHeight),
       child: TextField(
         controller: controller,
         onChanged: onChanged,
@@ -215,23 +248,26 @@ class SearchField extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           hintText: hintText,
+          suffixIcon: suffixIcon,
           prefixIcon: Icon(AppIcons.search, color: context.colors.hint),
-          prefixIconConstraints:
-              const BoxConstraints(minWidth: 48, minHeight: 48),
+          prefixIconConstraints: BoxConstraints(
+            minWidth: minHeight,
+            minHeight: minHeight,
+          ),
           filled: true,
           fillColor: context.colors.surface,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(radius),
             borderSide: BorderSide(color: context.colors.borderSoft),
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(radius),
             borderSide: BorderSide(color: context.colors.borderSoft),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(radius),
             borderSide: BorderSide(color: context.colors.brand),
           ),
         ),
@@ -470,6 +506,7 @@ class ConfirmDialog extends StatelessWidget {
   final String title;
   final String message;
   final String confirmLabel;
+  final String cancelLabel;
   final bool danger;
   final bool loading;
 
@@ -478,6 +515,7 @@ class ConfirmDialog extends StatelessWidget {
     required this.title,
     required this.message,
     this.confirmLabel = 'Confirm',
+    this.cancelLabel = 'Cancel',
     this.danger = false,
     this.loading = false,
   });
@@ -487,6 +525,7 @@ class ConfirmDialog extends StatelessWidget {
     required String title,
     required String message,
     required String confirmLabel,
+    String cancelLabel = 'Cancel',
     bool danger = false,
   }) {
     return showDialog<bool>(
@@ -495,6 +534,7 @@ class ConfirmDialog extends StatelessWidget {
         title: title,
         message: message,
         confirmLabel: confirmLabel,
+        cancelLabel: cancelLabel,
         danger: danger,
       ),
     );
@@ -515,7 +555,7 @@ class ConfirmDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: loading ? null : () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
+          child: Text(cancelLabel),
         ),
         FilledButton(
           onPressed: loading ? null : () => Navigator.pop(context, true),
@@ -536,6 +576,60 @@ class ConfirmDialog extends StatelessWidget {
               : Text(confirmLabel),
         ),
       ],
+    );
+  }
+}
+
+class AppBottomSheet extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const AppBottomSheet({
+    super.key,
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    return AnimatedPadding(
+      duration:
+          reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .85,
+        ),
+        decoration: BoxDecoration(
+          color: context.colors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
+          border: Border.all(color: context.colors.borderSoft),
+        ),
+        child: SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                child,
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1556,6 +1650,10 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
   final bool loading;
   final Color? backgroundColor;
+  final Color? disabledBackgroundColor;
+  final Color? disabledForegroundColor;
+  final double minHeight;
+  final double borderRadius;
 
   const PrimaryButton({
     super.key,
@@ -1564,6 +1662,10 @@ class PrimaryButton extends StatelessWidget {
     this.icon,
     this.loading = false,
     this.backgroundColor,
+    this.disabledBackgroundColor,
+    this.disabledForegroundColor,
+    this.minHeight = 52,
+    this.borderRadius = 14,
   });
 
   @override
@@ -1573,9 +1675,13 @@ class PrimaryButton extends StatelessWidget {
       backgroundColor: backgroundColor ??
           (isDark ? context.colors.header : context.colors.brand),
       foregroundColor: context.colors.onHeader,
-      minimumSize: const Size.fromHeight(52),
+      disabledBackgroundColor: disabledBackgroundColor,
+      disabledForegroundColor: disabledForegroundColor,
+      minimumSize: Size.fromHeight(minHeight),
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
     );
     final child = loading
         ? SizedBox(
@@ -1597,7 +1703,7 @@ class PrimaryButton extends StatelessWidget {
           );
     if (icon == null) {
       return ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 52),
+        constraints: BoxConstraints(minHeight: minHeight),
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
@@ -1609,7 +1715,7 @@ class PrimaryButton extends StatelessWidget {
       );
     }
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 52),
+      constraints: BoxConstraints(minHeight: minHeight),
       child: SizedBox(
         width: double.infinity,
         child: ElevatedButton(
@@ -1637,6 +1743,8 @@ class SecondaryButton extends StatelessWidget {
   final IconData? icon;
   final bool loading;
   final bool danger;
+  final double minHeight;
+  final double borderRadius;
 
   const SecondaryButton({
     super.key,
@@ -1645,13 +1753,15 @@ class SecondaryButton extends StatelessWidget {
     this.icon,
     this.loading = false,
     this.danger = false,
+    this.minHeight = 52,
+    this.borderRadius = 14,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = danger ? context.colors.danger : context.colors.textPrimary;
     return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: 52),
+      constraints: BoxConstraints(minHeight: minHeight),
       child: SizedBox(
         width: double.infinity,
         child: OutlinedButton(
@@ -1662,7 +1772,7 @@ class SecondaryButton extends StatelessWidget {
               color: danger ? context.colors.danger : context.colors.border,
             ),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(borderRadius),
             ),
           ),
           child: loading

@@ -110,7 +110,7 @@ class BiometricService {
     if (!hasSensor) return false;
 
     final ok = await verify(
-      reason: 'Register your fingerprint for Scholar Wallet',
+      reason: 'Enable device biometrics for Scholar Wallet',
     );
     if (!ok) return false;
 

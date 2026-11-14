@@ -147,49 +147,198 @@ class _HomeScreenState extends State<HomeScreen> {
       : DateFormat('MMM d, yyyy').format(date.toLocal());
 
   void _showNotifications() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: .64),
+      builder: (sheetContext) {
+        final colors = sheetContext.colors;
+        final cardBackground =
+            Theme.of(sheetContext).brightness == Brightness.dark
+                ? colors.surface
+                : colors.background;
+
+        void openPayout(AllowanceClaim claim) {
+          Navigator.pop(sheetContext);
+          showPayoutQrSheet(context, claim, onScan: _openScanner);
+        }
+
+        return AppBottomSheet(
+          title: 'Notifications',
+          header: Row(
             children: [
-              const Text('Notifications',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              if (_pending.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                      child: Text('No new notifications.',
-                          style: TextStyle(color: context.colors.textBody))),
-                )
-              else
-                ..._pending.map((c) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: context.colors.brandTint,
-                        child: Icon(
-                          AppIcons.qrCode,
-                          color: context.colors.brand,
-                        ),
-                      ),
-                      title: Text('Allowance ready: PHP ${fmtPhp(c.amount)}'),
-                      subtitle: Text(
-                          '${c.batchTitle}\nTap to see your QR, then scan it to receive.'),
-                      isThreeLine: true,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        showPayoutQrSheet(context, c, onScan: _openScanner);
-                      },
-                    )),
+              Expanded(
+                child: Text(
+                  'Notifications',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Material(
+                color: cardBackground,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Close notifications',
+                  onPressed: () => Navigator.pop(sheetContext),
+                  constraints:
+                      const BoxConstraints.tightFor(width: 44, height: 44),
+                  padding: EdgeInsets.zero,
+                  icon: Icon(AppIcons.close, color: colors.textBody, size: 22),
+                ),
+              ),
             ],
           ),
-        ),
-      ),
+          maxHeightFactor: .8,
+          radius: 32,
+          contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          showDragHandle: true,
+          child: _pending.isEmpty
+              ? AppCard(
+                  radius: 28,
+                  padding: const EdgeInsets.all(32),
+                  backgroundColor: cardBackground,
+                  borderColor: colors.borderSoft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 96,
+                        height: 96,
+                        decoration: BoxDecoration(
+                          color: colors.goldTint,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          AppIcons.bell,
+                          color: colors.onGold,
+                          size: 36,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        'Nothing new',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No new notifications.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textBody,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "We'll tell you when an allowance is released.",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textBody,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : AppCard(
+                  radius: 24,
+                  padding: EdgeInsets.zero,
+                  backgroundColor: cardBackground,
+                  borderColor: colors.borderSoft,
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var index = 0; index < _pending.length; index++) ...[
+                        if (index > 0)
+                          Divider(
+                            height: 1,
+                            indent: 70,
+                            endIndent: 12,
+                            color: colors.borderSoft,
+                          ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => openPayout(_pending[index]),
+                            child: Padding(
+                              padding: const EdgeInsets.all(14),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: colors.goldTint,
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: Icon(
+                                      AppIcons.qrCode,
+                                      color: colors.onGold,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Allowance ready: PHP '
+                                          '${fmtPhp(_pending[index].amount)}',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: colors.textPrimary,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _pending[index].issuedAt == null
+                                              ? _pending[index].batchTitle
+                                              : '${_pending[index].batchTitle} · '
+                                                  'Released ${_friendlyDate(_pending[index].issuedAt)}',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: colors.textBody,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    AppIcons.chevronRight,
+                                    color: colors.textBody,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+        );
+      },
     );
   }
 
@@ -240,135 +389,155 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _balanceHero(BuildContext context, double balance) {
     final balanceText = 'PHP ${fmtPhp(balance)}';
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              context.colors.balanceHeroStart,
-              context.colors.balanceHeroEnd,
-            ],
+    final heroTextColor = context.colors.balanceHeroText;
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      radius: 28,
+      shadow: true,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          context.colors.balanceHeroStart,
+          context.colors.balanceHeroEnd,
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -82,
+            right: -44,
+            child: _balanceHeroCircle(
+              heroTextColor.withValues(alpha: .08),
+              208,
+            ),
           ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -70,
-              right: 12,
-              child: _balanceHeroCircle(
-                context.colors.onHeader.withValues(alpha: .13),
-                164,
-              ),
+          Positioned(
+            bottom: -126,
+            right: -84,
+            child: _balanceHeroCircle(
+              heroTextColor.withValues(alpha: .07),
+              256,
             ),
-            Positioned(
-              bottom: -96,
-              right: -72,
-              child: _balanceHeroCircle(
-                context.colors.onHeader.withValues(alpha: .12),
-                224,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'CURRENT BALANCE',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: context.colors.balanceHeroText,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Material(
-                      color:
-                          context.colors.balanceHeroText.withValues(alpha: .12),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: () async {
-                          await Clipboard.setData(
-                            ClipboardData(text: balanceText),
-                          );
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Balance copied'),
-                              ),
-                            );
-                          }
-                        },
-                        customBorder: const CircleBorder(),
-                        child: SizedBox(
-                          width: 44,
-                          height: 44,
-                          child: Icon(
-                            AppIcons.copy,
-                            color: context.colors.balanceHeroText,
-                            size: 21,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
                     child: Text(
-                      balanceText,
+                      'CURRENT BALANCE',
                       maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: context.colors.balanceHeroText,
-                        fontSize: 34,
+                        color: heroTextColor,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Container(
-                      width: 8,
-                      height: 8,
-                      decoration: BoxDecoration(
-                        color: context.colors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Money received and verified by QR',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: context.colors.balanceHeroText,
-                          fontSize: 13,
+                  const SizedBox(width: 8),
+                  Material(
+                    color: heroTextColor.withValues(alpha: .12),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: balanceText),
+                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Balance copied')),
+                          );
+                        }
+                      },
+                      customBorder: const CircleBorder(),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Icon(
+                          AppIcons.copy,
+                          color: heroTextColor,
+                          size: 21,
                         ),
                       ),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(
+                    TextSpan(
+                      style: TextStyle(
+                        color: heroTextColor,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: 'PHP ',
+                          style: TextStyle(fontSize: 28),
+                        ),
+                        TextSpan(
+                          text: fmtPhp(balance),
+                          style: const TextStyle(fontSize: 48),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
                 ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: heroTextColor.withValues(alpha: .1),
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: context.colors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Money received and verified by QR',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: heroTextColor,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -382,98 +551,42 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _homeActionButtons(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
     final buttonHeight =
-        (textScaler.scale(18) + 22).clamp(54.0, 100.0).toDouble();
+        (textScaler.scale(18) + 22).clamp(56.0, 100.0).toDouble();
+    final cashOutColor = Theme.of(context).brightness == Brightness.dark
+        ? context.colors.header
+        : context.colors.brand;
     return Row(
       children: [
         Expanded(
-          child: _homeActionButton(
-            context,
+          child: PrimaryButton(
             label: 'Cash Out',
+            onPressed: _openCashOut,
             icon: AppIcons.arrowUpRight,
-            primary: true,
-            height: buttonHeight,
-            onTap: _openCashOut,
+            backgroundColor: cashOutColor,
+            foregroundColor: context.colors.onHeader,
+            minHeight: buttonHeight,
+            borderRadius: 20,
+            shadow: true,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _homeActionButton(
-            context,
-            label: 'Scan QR',
-            icon: AppIcons.qrScan,
-            primary: false,
-            height: buttonHeight,
-            showNotificationDot: _pending.isNotEmpty,
-            onTap: _openScanner,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _homeActionButton(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required bool primary,
-    required double height,
-    required VoidCallback onTap,
-    bool showNotificationDot = false,
-  }) {
-    final background = primary ? context.colors.brand : context.colors.surface;
-    final foreground = primary ? context.colors.onHeader : context.colors.brand;
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(18),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          constraints: BoxConstraints(minHeight: height),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: primary ? context.colors.brand : context.colors.border,
-            ),
-            boxShadow: primary
-                ? [
-                    BoxShadow(
-                      color: context.colors.cardShadow,
-                      blurRadius: 16,
-                      offset: const Offset(0, 7),
-                    ),
-                  ]
-                : null,
-          ),
           child: Stack(
-            alignment: Alignment.center,
+            alignment: Alignment.topRight,
             children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, color: foreground, size: 22),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: foreground,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              SecondaryButton(
+                label: 'Scan QR',
+                onPressed: _openScanner,
+                icon: AppIcons.qrScan,
+                iconColor: context.colors.brand,
+                foregroundColor: context.colors.brand,
+                minHeight: buttonHeight,
+                borderRadius: 20,
               ),
-              if (showNotificationDot)
+              if (_pending.isNotEmpty)
                 Positioned(
-                  top: 9,
-                  right: 10,
+                  top: 10,
+                  right: 12,
                   child: Container(
                     width: 8,
                     height: 8,
@@ -486,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -497,26 +610,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final latestPayout = _latestPayout;
     final displayedPayout = _pending.isNotEmpty ? _pending.first : latestPayout;
     final demoData = DemoAllowanceRepository.instance;
-    final activity = _loading
-        ? [
-            for (final item in [
-              (title: 'Allowance received', amount: 12345.0, day: 8),
-              (title: 'Cash Out', amount: 2450.0, day: 7),
-              (title: 'Allowance received', amount: 12345.0, day: 1),
-            ])
-              WalletTransaction(
-                id: 'loading-${item.day}',
-                title: item.title,
-                subtitle: item.title == 'Cash Out'
-                    ? 'Linked Account'
-                    : 'Payout Event',
-                amount: item.amount,
-                type: item.title == 'Cash Out' ? TxType.debit : TxType.credit,
-                status: TxStatus.completed,
-                createdAt: DateTime(2026, 11, item.day),
-              ),
-          ]
-        : _recent.take(3).toList();
+    final activity = _recent.take(3).toList();
     final expectedReleaseDate =
         displayedPayout == null ? demoData.expectedReleaseDate : null;
     final academicPeriod = demoData.academicPeriodFor(
@@ -540,6 +634,14 @@ class _HomeScreenState extends State<HomeScreen> {
             showLogout: false,
             softBackground: true,
             scaleHeightForText: true,
+            avatarSize: 52,
+            avatarRingColor: context.colors.accentGold,
+            avatarRingWidth: 2,
+            nameFontSize: 20,
+            subtitleFontSize: 12,
+            roundActionButtons: true,
+            actionButtonSize: 44,
+            dayNightIcons: true,
           ),
           Expanded(
             child: ClipRect(
@@ -593,6 +695,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             waitingCount: _pending.length,
                             waitingTotal: waitingTotal,
                             statusOnRight: true,
+                            radius: 26,
+                            iconTileSize: 48,
+                            amountFontSize: 36,
                           ),
                         ),
                         if (!state.fingerprintRegistered) ...[
@@ -601,6 +706,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             enabled: _loading,
                             child: BiometricStatusCard(
                               highlighted: true,
+                              radius: 22,
+                              iconTileSize: 52,
                               onTap: () async {
                                 await Navigator.push(
                                   context,
@@ -619,18 +726,34 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: _payoutEventsRow(context),
                         ),
                         const SizedBox(height: 26),
-                        SectionLabel(
-                          'RECENT ACTIVITY',
-                          labelColor: context.colors.textBody,
-                          trailing: TextButton(
-                            onPressed: _openTransactions,
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(48, 32),
-                              padding: EdgeInsets.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Recent activity',
+                                style: TextStyle(
+                                  color: context.colors.textPrimary,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
-                            child: const Text('View all'),
-                          ),
+                            TextButton(
+                              onPressed: _openTransactions,
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(48, 32),
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                'View all',
+                                style: TextStyle(
+                                  color: context.colors.brand,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
                         AppSkeletonizer(
@@ -683,7 +806,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     if (transactions.isEmpty) {
       return AppCard(
-        radius: 21,
+        radius: 24,
         shadow: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -712,7 +835,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return AppCard(
-      radius: 21,
+      radius: 24,
       shadow: true,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -724,6 +847,10 @@ class _HomeScreenState extends State<HomeScreen> {
               friendlyDate: _friendlyDate(transactions[index].createdAt),
               statusLabel: _activityStatus(transactions[index]),
               inCard: true,
+              financialPresentation: true,
+              showCurrencyCode: false,
+              iconSize: 48,
+              statusSeparator: '·',
             ),
           ],
         ],
@@ -732,7 +859,10 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _activityStatus(WalletTransaction transaction) {
-    if (transaction.title.toLowerCase().contains('cash out')) {
+    final description = '${transaction.title} ${transaction.subtitle}'
+        .toLowerCase()
+        .replaceAll('-', ' ');
+    if (description.contains('cash out') || description.contains('cashout')) {
       return 'Simulated';
     }
     return switch (transaction.status) {
@@ -744,8 +874,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _payoutEventsRow(BuildContext context) {
     return ListRowCard(
-      minHeight: 76,
-      radius: 20,
+      minHeight: 92,
+      padding: const EdgeInsets.all(16),
+      radius: 24,
       shadow: true,
       onTap: () => Navigator.push(
         context,
@@ -754,15 +885,15 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
               color: context.colors.brandTint,
               borderRadius: BorderRadius.circular(12),
             ),
             alignment: Alignment.center,
             child:
-                Icon(AppIcons.calendar, color: context.colors.brand, size: 22),
+                Icon(AppIcons.calendar, color: context.colors.brand, size: 26),
           ),
           const SizedBox(width: 12),
           Expanded(

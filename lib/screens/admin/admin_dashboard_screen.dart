@@ -99,60 +99,246 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   void _showNotifications() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      barrierColor: Theme.of(context).colorScheme.scrim.withValues(alpha: .64),
+      builder: (sheetContext) {
+        final colors = context.colors;
+        final cardBackground = Theme.of(context).brightness == Brightness.dark
+            ? colors.surface
+            : colors.background;
+
+        void openRegistrations() {
+          Navigator.pop(sheetContext);
+          _openRegistrations();
+        }
+
+        return AppBottomSheet(
+          title: 'Notifications',
+          header: Row(
             children: [
-              const Text('Notifications',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              if (_pendingRegs.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Text(
-                      'No registrations waiting.',
-                      style: TextStyle(color: context.colors.textBody),
-                    ),
-                  ),
-                )
-              else
-                Flexible(
-                  child: ListView(
-                    shrinkWrap: true,
-                    children: _pendingRegs
-                        .map((u) => ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: CircleAvatar(
-                                backgroundColor: context.colors.brandTint,
-                                child: Icon(
-                                  AppIcons.userPlus,
-                                  color: context.colors.brand,
-                                  size: 20,
-                                ),
-                              ),
-                              title: Text('${u.fullName} registered'),
-                              subtitle: Text(
-                                  '${u.studentNumber ?? '—'} • ${u.university ?? '—'}\nWaiting for verification'),
-                              isThreeLine: true,
-                              onTap: () {
-                                Navigator.pop(ctx);
-                                _openRegistrations();
-                              },
-                            ))
-                        .toList(),
+              Expanded(
+                child: Text(
+                  'Notifications',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
+              ),
+              Material(
+                color: cardBackground,
+                shape: const CircleBorder(),
+                child: IconButton(
+                  tooltip: 'Close notifications',
+                  onPressed: () => Navigator.pop(sheetContext),
+                  constraints:
+                      const BoxConstraints.tightFor(width: 44, height: 44),
+                  padding: EdgeInsets.zero,
+                  icon: Icon(AppIcons.close, color: colors.textBody, size: 22),
+                ),
+              ),
             ],
           ),
-        ),
-      ),
+          maxHeightFactor: .8,
+          radius: 32,
+          contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          showDragHandle: true,
+          child: _pendingRegs.isEmpty
+              ? AppCard(
+                  radius: 28,
+                  padding: const EdgeInsets.all(32),
+                  backgroundColor: cardBackground,
+                  borderColor: colors.borderSoft,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            width: 96,
+                            height: 96,
+                            decoration: BoxDecoration(
+                              color: colors.brandTint,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              AppIcons.bell,
+                              color: colors.brand,
+                              size: 36,
+                            ),
+                          ),
+                          Positioned(
+                            right: -2,
+                            bottom: -2,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: colors.success,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: cardBackground,
+                                  width: 3,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: Icon(
+                                AppIcons.check,
+                                color: colors.onHeader,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        "You're all caught up",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'No registrations waiting.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colors.textBody,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${_pendingRegs.length} '
+                      '${_pendingRegs.length == 1 ? 'registration' : 'registrations'} '
+                      'waiting for verification',
+                      style: TextStyle(
+                        color: colors.textBody,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    AppCard(
+                      radius: 24,
+                      padding: EdgeInsets.zero,
+                      backgroundColor: cardBackground,
+                      borderColor: colors.borderSoft,
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (var index = 0;
+                              index < _pendingRegs.length;
+                              index++) ...[
+                            if (index > 0)
+                              Divider(
+                                height: 1,
+                                indent: 68,
+                                endIndent: 12,
+                                color: colors.borderSoft,
+                              ),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: openRegistrations,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(14),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 22,
+                                        backgroundColor: colors.brandTint,
+                                        child: Text(
+                                          _pendingRegs[index].initials,
+                                          style: TextStyle(
+                                            color: colors.brand,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '${_pendingRegs[index].fullName} registered',
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: colors.textPrimary,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              '${_pendingRegs[index].studentNumber ?? '—'} · '
+                                              '${_pendingRegs[index].university ?? '—'}',
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                color: colors.textBody,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            StatusChip(
+                                              'Waiting for verification',
+                                              color: colors.warningText,
+                                              bg: colors.warningBg,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 10),
+                                        child: Icon(
+                                          AppIcons.chevronRight,
+                                          color: colors.textBody,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SecondaryButton(
+                      label: 'Open Registration Verification',
+                      onPressed: openRegistrations,
+                      minHeight: 52,
+                      borderRadius: 18,
+                    ),
+                  ],
+                ),
+        );
+      },
     );
   }
 
@@ -249,9 +435,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final sorted = [..._claims]..sort((a, b) =>
         (b.issuedAt ?? DateTime.fromMillisecondsSinceEpoch(0))
             .compareTo(a.issuedAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
-    final batchId = sorted.first.batchId;
-    return _claims.where((claim) => claim.batchId == batchId).toList()
-      ..sort((a, b) => a.id.compareTo(b.id));
+    final latest = sorted.first;
+    final batchClaims = latest.batchId.isNotEmpty
+        ? _claims.where((claim) => claim.batchId == latest.batchId)
+        : _claims.where((claim) => claim.batchTitle == latest.batchTitle);
+    return batchClaims.toList()..sort((a, b) => a.id.compareTo(b.id));
   }
 
   List<AllowanceClaim> get _recentReceived {
@@ -273,118 +461,82 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _load();
   }
 
-  Widget _allowanceHero(BuildContext context, double amount) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [context.colors.header, context.colors.heroGradientEnd],
+  Widget _disbursementHero(BuildContext context) {
+    final colors = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      radius: 28,
+      shadow: true,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [colors.header, colors.heroGradientEnd],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -72,
+            right: -42,
+            child: _heroCircle(colors.onHeader.withValues(alpha: .1), 200),
           ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -66,
-              right: 12,
-              child: _heroCircle(
-                context.colors.avatarBackground.withValues(alpha: .18),
-                164,
-              ),
-            ),
-            Positioned(
-              bottom: -96,
-              right: -68,
-              child: _heroCircle(
-                context.colors.onHeader.withValues(alpha: .12),
-                224,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'STANDARD ALLOWANCE',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: context.colors.onHeader.withValues(alpha: .9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Material(
-                      color: context.colors.onHeader.withValues(alpha: .18),
-                      borderRadius: BorderRadius.circular(22),
-                      child: InkWell(
-                        onTap: _setAllowance,
-                        borderRadius: BorderRadius.circular(22),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(AppIcons.edit,
-                                  color: context.colors.onHeader, size: 17),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Edit',
-                                style: TextStyle(
-                                  color: context.colors.onHeader,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+          Positioned(
+            bottom: -124,
+            right: -86,
+            child: _heroCircle(colors.onHeader.withValues(alpha: .08), 260),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'DISBURSE ALLOWANCE',
+                style: TextStyle(
+                  color: colors.onHeader.withValues(alpha: .9),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
                 ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'PHP ${fmtPhp(amount)}',
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: context.colors.onHeader,
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Release the allowance by QR',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.onHeader,
+                  fontSize: 28,
+                  height: 1.15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Generate a payout batch and scholars scan their QR to receive it.',
+                style: TextStyle(
+                  color: colors.onHeader.withValues(alpha: .88),
+                  fontSize: 14,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 18),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 300),
+                  child: PrimaryButton(
+                    label: 'Start disbursement',
+                    onPressed: _openDisbursement,
+                    icon: AppIcons.send,
+                    backgroundColor: colors.onHeader,
+                    foregroundColor: colors.brand,
+                    minHeight: 52,
+                    borderRadius: 18,
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  'Same amount for every scholar',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.onHeader.withValues(alpha: .84),
-                    fontSize: 14,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -395,53 +547,107 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       );
 
-  Widget _statisticsCard(BuildContext context) {
+  Widget _overviewCard(BuildContext context, double allowanceAmount) {
+    final colors = context.colors;
     return AppCard(
-      radius: 22,
+      radius: 24,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: _statColumn(
-                context,
-                icon: AppIcons.users,
-                tileColor: context.colors.goldTint,
-                iconColor: context.colors.accentGold,
-                value: '$_scholars',
-                label: 'Active scholars',
-                onTap: _openManageScholars,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Standard allowance',
+                      style: TextStyle(
+                        color: colors.textBody,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'PHP ${fmtPhp(allowanceAmount)}',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            _statDivider(context),
-            Expanded(
-              child: _statColumn(
-                context,
-                icon: AppIcons.clock,
-                tileColor: context.colors.warningBg,
-                iconColor: context.colors.warning,
-                value: '$_waiting',
-                label: 'Waiting for scan',
-                detail: 'Reserved PHP ${fmtPhp(_reserved)}',
-                onTap: _openPayoutMonitor,
+              const SizedBox(width: 12),
+              Tooltip(
+                message: 'Edit allowance',
+                child: Material(
+                  color: colors.brandTint,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    onTap: _setAllowance,
+                    customBorder: const CircleBorder(),
+                    child: SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Icon(
+                        AppIcons.edit,
+                        color: colors.brand,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Divider(height: 1, color: colors.borderSoft),
+          const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _statColumn(
+                    context,
+                    value: '$_scholars',
+                    label: 'Active scholars',
+                    onTap: _openManageScholars,
+                  ),
+                ),
+                _statDivider(context),
+                Expanded(
+                  child: _statColumn(
+                    context,
+                    value: '$_waiting',
+                    label: 'Waiting for scan',
+                    detail: 'PHP ${fmtPhp(_reserved)} reserved',
+                    onTap: _openPayoutMonitor,
+                  ),
+                ),
+                _statDivider(context),
+                Expanded(
+                  child: _statColumn(
+                    context,
+                    value: '$_received',
+                    label: 'Received',
+                    onTap: _openPayoutMonitor,
+                  ),
+                ),
+              ],
             ),
-            _statDivider(context),
-            Expanded(
-              child: _statColumn(
-                context,
-                icon: AppIcons.checkCircle,
-                tileColor: context.colors.successBg,
-                iconColor: context.colors.success,
-                value: '$_received',
-                label: 'Received',
-                onTap: _openPayoutMonitor,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -451,9 +657,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   Widget _statColumn(
     BuildContext context, {
-    required IconData icon,
-    required Color tileColor,
-    required Color iconColor,
     required String value,
     required String label,
     required VoidCallback onTap,
@@ -463,23 +666,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: tileColor,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: iconColor, size: 23),
-              ),
-              const SizedBox(height: 8),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
@@ -519,34 +711,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _registrationsCard(BuildContext context) {
-    final pending = _pendingRegs.isNotEmpty;
     return ListRowCard(
       minHeight: 88,
       padding: const EdgeInsets.all(14),
       radius: 20,
       shadow: true,
-      backgroundColor:
-          pending ? context.colors.warningBg : context.colors.surface,
-      borderColor: pending
-          ? context.colors.warning.withValues(alpha: .38)
-          : context.colors.borderSoft,
-      onTap: pending ? _openRegistrations : null,
+      backgroundColor: context.colors.warningBg,
+      borderColor: context.colors.warning.withValues(alpha: .38),
+      onTap: _openRegistrations,
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: pending
-                  ? context.colors.warning.withValues(alpha: .22)
-                  : context.colors.successBg,
+              color: context.colors.warning.withValues(alpha: .2),
               borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
             child: Icon(
-              pending ? AppIcons.userCheck : AppIcons.checkCircle,
-              color:
-                  pending ? context.colors.textPrimary : context.colors.success,
+              AppIcons.userCheck,
+              color: context.colors.warningText,
               size: 24,
             ),
           ),
@@ -557,9 +742,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  pending
-                      ? 'Registrations to verify'
-                      : 'No registrations waiting',
+                  'Registrations to verify',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -568,112 +751,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     fontSize: 15,
                   ),
                 ),
-                if (pending) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    '${_pendingRegs.length} scholars are waiting for review',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: context.colors.textBody,
-                      fontSize: 12,
-                    ),
+                const SizedBox(height: 2),
+                Text(
+                  '${_pendingRegs.length} scholars are waiting for review',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 12,
                   ),
-                ],
+                ),
               ],
             ),
           ),
-          if (pending) ...[
-            const SizedBox(width: 8),
-            Icon(AppIcons.chevronRight, color: context.colors.textPrimary),
-          ],
+          const SizedBox(width: 8),
+          Icon(AppIcons.chevronRight, color: context.colors.textPrimary),
         ],
       ),
     );
   }
 
-  Widget _disbursementAction(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final background = dark ? context.colors.header : context.colors.brand;
-    return Material(
-      color: background,
-      borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        onTap: _openDisbursement,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 66),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: context.colors.cardShadow,
-                blurRadius: 16,
-                offset: const Offset(0, 7),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: context.colors.onHeader.withValues(alpha: .2),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Icon(AppIcons.send,
-                    color: context.colors.onHeader, size: 23),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Disburse Allowance',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.onHeader,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      'Release the allowance by QR',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.onHeader.withValues(alpha: .88),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(AppIcons.chevronRight, color: context.colors.onHeader),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _quickActionsCard(BuildContext context) {
-    return AppCard(
-      radius: 21,
-      shadow: true,
-      padding: EdgeInsets.zero,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(21),
-        child: Column(
-          children: [
-            _quickActionRow(
+  Widget _quickActionTiles(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _quickActionTile(
               context,
               icon: AppIcons.calendar,
               tileColor: context.colors.brandTint,
@@ -682,23 +786,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               subtitle: 'Allowance batches',
               onTap: _openPayoutEvents,
             ),
-            Divider(height: 1, indent: 66, color: context.colors.borderSoft),
-            _quickActionRow(
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: _quickActionTile(
               context,
               icon: AppIcons.chart,
               tileColor: context.colors.successBg,
-              iconColor: context.colors.success,
-              title: 'Disbursement Reports',
-              subtitle: 'Totals, history and exports',
+              iconColor: context.colors.successText,
+              title: 'Reports',
+              subtitle: 'Totals, history, exports',
               onTap: _openReports,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _quickActionRow(
+  Widget _quickActionTile(
     BuildContext context, {
     required IconData icon,
     required Color tileColor,
@@ -707,56 +813,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: tileColor,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                alignment: Alignment.center,
-                child: Icon(icon, color: iconColor, size: 23),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          color: context.colors.textBody, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(AppIcons.chevronRight,
-                  color: context.colors.textBody, size: 22),
-            ],
+    return ListRowCard(
+      minHeight: 160,
+      padding: const EdgeInsets.all(16),
+      radius: 24,
+      shadow: true,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: tileColor,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            alignment: Alignment.center,
+            child: Icon(icon, color: iconColor, size: 24),
           ),
-        ),
+          const Spacer(),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.colors.textPrimary,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: context.colors.textBody,
+              fontSize: 13,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -780,7 +877,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Disburse Allowance to create one.',
+              'Start a disbursement to create one.',
               style: TextStyle(color: context.colors.textBody, fontSize: 13),
             ),
           ],
@@ -804,8 +901,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       statusBackground = context.colors.warningBg;
     } else if (cancelled == batchClaims.length) {
       status = 'Cancelled';
-      statusColor = context.colors.textBody;
-      statusBackground = context.colors.borderSoft;
+      statusColor = context.colors.danger;
+      statusBackground = context.colors.dangerBg;
     }
 
     final first = batchClaims.first;
@@ -835,7 +932,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               if (status != null)
                 StatusChip(
-                  status,
+                  status.toUpperCase(),
                   color: statusColor!,
                   bg: statusBackground,
                 ),
@@ -843,8 +940,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'PHP ${fmtPhp(first.amount)} per scholar - ${batchClaims.length} recipient(s)',
-            maxLines: 2,
+            'PHP ${fmtPhp(first.amount)} per scholar · ${batchClaims.length} '
+            '${batchClaims.length == 1 ? 'recipient' : 'recipients'}',
+            maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(color: context.colors.textBody, fontSize: 13),
           ),
@@ -859,9 +957,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            '$received of ${batchClaims.length} received',
-            style: TextStyle(color: context.colors.textBody, fontSize: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$received of ${batchClaims.length} received',
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              Text(
+                '${(received / batchClaims.length * 100).round()}%',
+                style: TextStyle(
+                  color: context.colors.success,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -921,8 +1036,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: context.colors.successBg,
               shape: BoxShape.circle,
@@ -996,6 +1111,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             showLogout: false,
             softBackground: true,
             scaleHeightForText: true,
+            avatarSize: 52,
+            avatarRingColor: context.colors.accentGold,
+            avatarRingWidth: 2,
+            nameFontSize: 20,
+            subtitleFontSize: 12,
+            roundActionButtons: true,
+            actionButtonSize: 44,
+            dayNightIcons: true,
           ),
           Expanded(
             child: ClipRect(
@@ -1012,10 +1135,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       children: [
                         AppSkeletonizer(
                           enabled: !_hasLoaded,
-                          child: _allowanceHero(
-                            context,
-                            state.allowance.allowanceAmount,
-                          ),
+                          child: _disbursementHero(context),
                         ),
                         if (_loadError != null) ...[
                           const SizedBox(height: 16),
@@ -1024,28 +1144,20 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         const SizedBox(height: 16),
                         AppSkeletonizer(
                           enabled: !_hasLoaded,
-                          child: _statisticsCard(context),
+                          child: _quickActionTiles(context),
                         ),
                         const SizedBox(height: 16),
                         AppSkeletonizer(
                           enabled: !_hasLoaded,
-                          child: _registrationsCard(context),
+                          child: _overviewCard(
+                            context,
+                            state.allowance.allowanceAmount,
+                          ),
                         ),
-                        const SizedBox(height: 26),
-                        SectionLabel(
-                          'QUICK ACTIONS',
-                          labelColor: context.colors.textBody,
-                        ),
-                        const SizedBox(height: 10),
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _disbursementAction(context),
-                        ),
-                        const SizedBox(height: 12),
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _quickActionsCard(context),
-                        ),
+                        if (_pendingRegs.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          _registrationsCard(context),
+                        ],
                         const SizedBox(height: 26),
                         SectionLabel(
                           'LATEST PAYOUT EVENT',
@@ -1057,18 +1169,34 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           child: _latestPayoutEventCard(context),
                         ),
                         const SizedBox(height: 26),
-                        SectionLabel(
-                          'RECENT PAYOUTS',
-                          labelColor: context.colors.textBody,
-                          trailing: TextButton(
-                            onPressed: _openPayoutMonitor,
-                            style: TextButton.styleFrom(
-                              minimumSize: const Size(48, 32),
-                              padding: EdgeInsets.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Recent payouts',
+                                style: TextStyle(
+                                  color: context.colors.textPrimary,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
                             ),
-                            child: const Text('View all'),
-                          ),
+                            TextButton(
+                              onPressed: _openPayoutMonitor,
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(48, 32),
+                                padding: EdgeInsets.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                              child: Text(
+                                'View all',
+                                style: TextStyle(
+                                  color: context.colors.brand,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 10),
                         AppSkeletonizer(

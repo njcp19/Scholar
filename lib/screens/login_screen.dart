@@ -1,10 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
+import '../theme/app_theme.dart';
 import '../widgets/widgets.dart';
-import '../widgets/animated_logo.dart';
 import '../widgets/app_icons.dart';
 import 'signup_screen.dart';
 
@@ -136,170 +138,463 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
+  TextStyle _fieldLabelStyle(BuildContext context) => TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w700,
+        color: context.colors.textLabel,
+      );
+
+  InputDecoration _fieldDecoration(
+    BuildContext context, {
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+  }) {
+    final colors = context.colors;
+    OutlineInputBorder border(Color color, {double width = 1}) =>
+        OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: color, width: width),
+        );
+
+    return InputDecoration(
+      filled: true,
+      fillColor: colors.background,
+      hintText: hint,
+      hintStyle: TextStyle(fontSize: 14, color: colors.textBody),
+      prefixIcon: Icon(icon, size: 20, color: colors.textBody),
+      prefixIconConstraints: const BoxConstraints(minWidth: 48),
+      suffixIcon: suffix,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      border: border(colors.borderSoft),
+      enabledBorder: border(colors.borderSoft),
+      focusedBorder: border(colors.brand, width: 2),
+    );
+  }
+
+  Widget _field(BuildContext context, String label, Widget input) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: _fieldLabelStyle(context)),
+          const SizedBox(height: 7),
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 52),
+            child: input,
+          ),
+        ],
+      );
+
+  Widget _heroPill(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+  }) {
+    final colors = context.colors;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: colors.onHeader.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.onHeader.withValues(alpha: .12)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: colors.onHeader),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: colors.onHeader,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _hero(BuildContext context, double height, double topInset) {
+    final colors = context.colors;
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(
+          bottom: Radius.circular(40),
+        ),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [colors.header, colors.heroGradientEnd],
+            ),
+          ),
+          child: Stack(
             children: [
-              const SizedBox(height: 48),
-              const AnimatedLogo(size: 140),
-              const SizedBox(height: 12),
-              const Text(
-                'Simplifying financial allowances and\nexpense tracking for your scholar life.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                height: 110,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: context.colors.brandTint,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  AppIcons.wallet,
-                  size: 24,
-                  color: context.colors.brand,
-                ),
-              ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _email,
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: 'Email address',
-                  prefixIcon: Icon(
-                    AppIcons.mail,
-                    size: 18,
-                    color: context.colors.hint,
+              Positioned(
+                top: -72,
+                right: -54,
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colors.onHeader.withValues(alpha: .08),
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _password,
-                obscureText: _obscure,
-                decoration: InputDecoration(
-                  hintText: 'Password',
-                  prefixIcon: Icon(
-                    AppIcons.lock,
-                    size: 18,
-                    color: context.colors.hint,
+              Positioned(
+                bottom: -96,
+                left: -76,
+                child: Container(
+                  width: 280,
+                  height: 280,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colors.onHeader.withValues(alpha: .07),
                   ),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscure ? AppIcons.eyeOff : AppIcons.eye,
-                      size: 18,
-                      color: context.colors.textBody,
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 12),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            color: colors.onHeader,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    colors.textPrimary.withValues(alpha: .12),
+                                blurRadius: 18,
+                                offset: const Offset(0, 7),
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 54,
+                            height: 54,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => Icon(
+                              AppIcons.wallet,
+                              size: 40,
+                              color: colors.brand,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Scholar ',
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    color: colors.onHeader,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Wallet',
+                                  style: TextStyle(
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    color: colors.accentGold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            maxLines: 1,
+                            softWrap: false,
+                          ),
+                        ),
+                        const SizedBox(height: 7),
+                        Text(
+                          'Simplifying financial allowances and expense tracking for your scholar life.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 14,
+                            height: 1.4,
+                            color: colors.onHeader.withValues(alpha: .88),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _heroPill(
+                              context,
+                              icon: AppIcons.qrCode,
+                              label: 'QR payouts',
+                            ),
+                            _heroPill(
+                              context,
+                              icon: AppIcons.fingerprint,
+                              label: 'Biometrics secured',
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    onPressed: () => setState(() => _obscure = !_obscure),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _loginCard(BuildContext context) {
+    final colors = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.all(24),
+      radius: 28,
+      shadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Welcome back',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Log in to see your allowance.',
+            style: TextStyle(fontSize: 14, color: colors.textBody),
+          ),
+          const SizedBox(height: 18),
+          _field(
+            context,
+            'Email address',
+            AppTextField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              style: TextStyle(fontSize: 14, color: colors.textPrimary),
+              decoration: _fieldDecoration(
+                context,
+                hint: 'you@example.com',
+                icon: AppIcons.mail,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _field(
+            context,
+            'Password',
+            AppTextField(
+              controller: _password,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _login(),
+              style: TextStyle(fontSize: 14, color: colors.textPrimary),
+              decoration: _fieldDecoration(
+                context,
+                hint: 'Password',
+                icon: AppIcons.lock,
+                suffix: IconButton(
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
+                  icon: Icon(
+                    _obscure ? AppIcons.eye : AppIcons.eyeOff,
+                    size: 20,
+                    color: colors.textBody,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 8,
+            children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(children: [
-                    SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: Checkbox(
-                        value: _remember,
-                        onChanged: (v) => setState(() => _remember = v ?? true),
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Checkbox(
+                      value: _remember,
+                      activeColor: colors.brand,
+                      checkColor: colors.onHeader,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(7),
                       ),
+                      side: BorderSide(color: colors.border),
+                      onChanged: (value) =>
+                          setState(() => _remember = value ?? true),
                     ),
-                    const SizedBox(width: 8),
-                    const Text('Remember me',
-                        style:
-                            TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                  ]),
-                  GestureDetector(
-                    onTap: _forgot,
-                    child: const Text('Forgot password?',
-                        style:
-                            TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Remember me',
+                    style: TextStyle(fontSize: 13, color: colors.textBody),
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _busy ? null : _login,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3B5BDB)),
-                child: _busy
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: Colors.white))
-                    : const Text('Login'),
+              InkWell(
+                onTap: _forgot,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    'Forgot password?',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: colors.brand,
+                    ),
+                  ),
+                ),
               ),
-              // ---- FR-26 biometric sign-in ---------------------------------
-              if (_bioAvailable) ...[
-                const SizedBox(height: 16),
-                const Row(children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text('or',
-                        style:
-                            TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                  ),
-                  Expanded(child: Divider()),
-                ]),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: _bioBusy ? null : _bioLogin,
-                  icon: _bioBusy
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : Icon(
-                          AppIcons.fingerprint,
-                          size: 20,
-                          color: context.colors.brand,
-                        ),
-                  label: const Text('Sign in with biometrics'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppTheme.primaryBlue,
-                    minimumSize: const Size.fromHeight(52),
-                    side: const BorderSide(color: AppTheme.primaryBlue),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: colors.brand.withValues(alpha: .22),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
                 ),
               ],
-              const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an account? ",
-                      style:
-                          TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => Theme(
-                                data: AppTheme.light,
-                                child: const SignupScreen()))),
-                    child: const Text('Sign up',
-                        style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primaryBlue)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-            ],
+            ),
+            child: PrimaryButton(
+              label: 'Login',
+              onPressed: _busy ? null : _login,
+              loading: _busy,
+              minHeight: 56,
+              borderRadius: 18,
+            ),
+          ),
+          if (_bioAvailable) ...[
+            const SizedBox(height: 12),
+            SecondaryButton(
+              label: 'Login with biometrics',
+              onPressed: _bioBusy ? null : _bioLogin,
+              icon: AppIcons.fingerprint,
+              iconColor: colors.brand,
+              loading: _bioBusy,
+              minHeight: 56,
+              borderRadius: 18,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _signupPrompt(BuildContext context) {
+    final colors = context.colors;
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          "Don't have an account? ",
+          style: TextStyle(fontSize: 13, color: colors.textBody),
+        ),
+        InkWell(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SignupScreen()),
+          ),
+          child: Text(
+            'Sign up',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: colors.brand,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        statusBarColor: colors.header,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+        systemNavigationBarColor: colors.background,
+        systemNavigationBarIconBrightness:
+            isDark ? Brightness.light : Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: colors.background,
+        body: SafeArea(
+          top: false,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final textScale = MediaQuery.textScalerOf(context).scale(1);
+              final topInset = MediaQuery.paddingOf(context).top;
+              final compact = constraints.maxWidth < 360;
+              final contentHeight = math.max(
+                constraints.maxHeight * .4,
+                (compact ? 320.0 : 280.0) * textScale,
+              );
+              final heroHeight = contentHeight + topInset;
+              return SingleChildScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.paddingOf(context).bottom + 20,
+                ),
+                child: Column(
+                  children: [
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        _hero(context, heroHeight, topInset),
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(
+                            20,
+                            heroHeight - 40,
+                            20,
+                            0,
+                          ),
+                          child: _loginCard(context),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
+                      child: _signupPrompt(context),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ),

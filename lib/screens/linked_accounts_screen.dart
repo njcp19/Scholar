@@ -139,8 +139,9 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
   Widget _infoCard() {
     return InfoBanner(
       icon: AppIcons.info,
-      message: 'Link the GCash, Maya or bank account that will receive your '
-          'cash-outs. It must be registered in your own name.',
+      message: 'DEMO ONLY: Linking an account only saves the details in this app. '
+          'No GCash, Maya or bank account is verified, and no real money is '
+          'sent. Do not enter real account details; use fictional test data.',
       maxLines: 8,
       backgroundColor: context.colors.brandTint,
       textColor: Theme.of(context).brightness == Brightness.dark
@@ -900,7 +901,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Your details are used only for cash-outs.',
+                  'Demo only: details are stored by this app and are not verified. Do not enter real account numbers.',
                   style: TextStyle(color: colors.textBody, fontSize: 13),
                 ),
               ),

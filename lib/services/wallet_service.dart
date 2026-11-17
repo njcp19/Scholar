@@ -105,14 +105,26 @@ class WalletService {
             !s.active || s.verificationStatus != VerificationStatus.approved)) {
       throw WalletException('Select only active, verified scholars.');
     }
-    final result = await _db.rpc('issue_verified_payout', params: {
-      'p_title': batchTitle.trim(),
-      'p_recipients': recipients.map((s) => s.id).toList(),
-      'p_distribution_date':
-          '${distributionDate.year.toString().padLeft(4, '0')}-'
-          '${distributionDate.month.toString().padLeft(2, '0')}-'
-          '${distributionDate.day.toString().padLeft(2, '0')}',
-    });
+    final dynamic result;
+    try {
+      result = await _db.rpc('issue_verified_payout', params: {
+        'p_title': batchTitle.trim(),
+        'p_recipients': recipients.map((s) => s.id).toList(),
+        'p_distribution_date':
+            '${distributionDate.year.toString().padLeft(4, '0')}-'
+                '${distributionDate.month.toString().padLeft(2, '0')}-'
+                '${distributionDate.day.toString().padLeft(2, '0')}',
+      });
+    } on PostgrestException catch (e) {
+      if (e.message.contains('FUNDING_ACCOUNT_REQUIRED')) {
+        throw WalletException('Link a funding account first.');
+      }
+      if (e.message.contains('INSUFFICIENT_FUNDS')) {
+        throw WalletException(
+            'Not enough funds for this payout. Top up the fund first.');
+      }
+      rethrow;
+    }
     return (result as List)
         .map((row) =>
             AllowanceClaim.fromMap(Map<String, dynamic>.from(row as Map)))
@@ -299,7 +311,6 @@ class WalletService {
         '${two(d.hour)}:${two(d.minute)}';
   }
 
-
   // ------------------------------------------------------------- cash-out
   static const double minCashout = 100;
 
@@ -386,6 +397,103 @@ class WalletService {
   }
 
   // ---------------------------------------------------------------- admin
+  Future<FundingAccount?> getFundingAccount() async {
+    try {
+      final result = await _db.rpc('get_funding_account');
+      if (result == null) return null;
+      if (result is! Map) {
+        throw const FormatException('Invalid funding account response.');
+      }
+      return FundingAccount.fromMap(Map<String, dynamic>.from(result));
+    } on PostgrestException catch (e) {
+      throw WalletException(_friendlyFundingError(
+        e.message,
+        fallback: 'Could not load the funding account. Try again.',
+      ));
+    }
+  }
+
+  Future<void> linkFundingAccount({
+    required String bank,
+    required String accountName,
+    required String accountNumber,
+  }) async {
+    try {
+      await _db.rpc('link_funding_account', params: {
+        'p_bank': bank,
+        'p_name': accountName,
+        'p_number': accountNumber,
+      });
+    } on PostgrestException catch (e) {
+      throw WalletException(_friendlyFundingError(
+        e.message,
+        fallback: 'Could not link the funding account. Try again.',
+      ));
+    }
+  }
+
+  Future<void> topUpFund(double amount) async {
+    try {
+      await _db.rpc('fund_topup', params: {'p_amount': amount});
+    } on PostgrestException catch (e) {
+      throw WalletException(_friendlyFundingError(
+        e.message,
+        fallback: 'Could not top up the fund. Try again.',
+      ));
+    }
+  }
+
+  Future<FundSummary> getFundSummary() async {
+    try {
+      final result = await _db.rpc('get_fund_summary');
+      if (result is! Map) {
+        throw const FormatException('Invalid fund summary response.');
+      }
+      return FundSummary.fromMap(Map<String, dynamic>.from(result));
+    } on PostgrestException catch (e) {
+      throw WalletException(_friendlyFundingError(
+        e.message,
+        fallback: 'Could not load the fund summary. Try again.',
+      ));
+    }
+  }
+
+  Future<List<FundEntry>> getFundActivity({int limit = 30}) async {
+    try {
+      final result =
+          await _db.rpc('get_fund_activity', params: {'p_limit': limit});
+      if (result is! List) {
+        throw const FormatException('Invalid fund activity response.');
+      }
+      return result
+          .map(
+              (row) => FundEntry.fromMap(Map<String, dynamic>.from(row as Map)))
+          .toList();
+    } on PostgrestException catch (e) {
+      throw WalletException(_friendlyFundingError(
+        e.message,
+        fallback: 'Could not load fund activity. Try again.',
+      ));
+    }
+  }
+
+  String _friendlyFundingError(String raw, {required String fallback}) {
+    if (raw.contains('FUNDING_ACCOUNT_REQUIRED')) {
+      return 'Link a funding account first.';
+    }
+    if (raw.contains('INSUFFICIENT_FUNDS')) {
+      return 'Not enough funds for this payout. Top up the fund first.';
+    }
+    if (raw.contains('INVALID_ACCOUNT')) return 'Check the bank details.';
+    if (raw.contains('INVALID_AMOUNT')) {
+      return 'Enter a valid amount greater than zero.';
+    }
+    if (raw.contains('ADMIN_REQUIRED')) {
+      return 'Only an admin can access funding data.';
+    }
+    return fallback;
+  }
+
   Future<int> getActiveScholarCount() async {
     final rows = await _db
         .from('profiles')
@@ -463,7 +571,8 @@ class WalletService {
     if (m.contains('CANNOT_DELETE_ADMIN')) {
       return 'Admin accounts cannot be deleted.';
     }
-    if (m.contains('ADMIN_REQUIRED')) return 'Only an admin can delete accounts.';
+    if (m.contains('ADMIN_REQUIRED'))
+      return 'Only an admin can delete accounts.';
     if (m.contains('ACCOUNT_NOT_FOUND')) return 'Account no longer exists.';
     if (m.contains('HAS_LINKED_RECORDS')) {
       return 'Account has linked records and cannot be deleted.';

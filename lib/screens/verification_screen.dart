@@ -41,27 +41,69 @@ class _VerificationScreenState extends State<VerificationScreen> {
         context: context,
         builder: (ctx) => StatefulBuilder(
             builder: (ctx, update) => AlertDialog(
-                  title: const Text('Update verification details'),
+                  backgroundColor: context.colors.surface,
+                  surfaceTintColor: context.colors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                    side: BorderSide(color: context.colors.borderSoft),
+                  ),
+                  title: Text(
+                    'Update verification details',
+                    style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   content: SingleChildScrollView(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
                     SwitchListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: const Text('I am already a scholar'),
+                        activeThumbColor: context.colors.brand,
+                        title: Text(
+                          'I am already a scholar',
+                          style: TextStyle(color: context.colors.textPrimary),
+                        ),
                         value: declared,
                         onChanged: (v) => update(() => declared = v)),
                     const SizedBox(height: 12),
-                    const Text(
-                        'These details return to the administrator for verification. No new scholarship application is created.'),
+                    Text(
+                      'These details return to the administrator for verification. No new scholarship application is created.',
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        height: 1.45,
+                      ),
+                    ),
                   ])),
+                  actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
+                  actionsAlignment: MainAxisAlignment.center,
                   actions: [
                     TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('Cancel')),
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                        foregroundColor: context.colors.textBody,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          side: BorderSide(color: context.colors.border),
+                        ),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
                     FilledButton(
-                        onPressed: () {
-                          Navigator.pop(ctx, true);
-                        },
-                        child: const Text('Resubmit details')),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 50),
+                        backgroundColor: context.colors.brand,
+                        foregroundColor: context.colors.onHeader,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx, true);
+                      },
+                      child: const Text('Resubmit details'),
+                    ),
                   ],
                 )));
     final scholarshipName = user.scholarshipName.isEmpty
@@ -111,113 +153,432 @@ class _VerificationScreenState extends State<VerificationScreen> {
     if (u == null) {
       return const Scaffold(body: Center(child: Text('Please sign in again.')));
     }
+    final status = u.verificationStatus;
+    final adminVerificationDone = status == VerificationStatus.rejected ||
+        status == VerificationStatus.approved;
+    final approvedScholarCurrent = status == VerificationStatus.approved;
+    final registrationRows = <MapEntry<String, String>>[
+      MapEntry('Name', u.fullName),
+      MapEntry('Student number', u.studentNumber ?? 'Not provided'),
+      MapEntry('School', u.university ?? 'Not provided'),
+      MapEntry('Program', u.program ?? 'Not provided'),
+      MapEntry('Year', u.yearLevel ?? 'Not provided'),
+      MapEntry('Declared scholar', u.declaredScholar ? 'Yes' : 'No'),
+      MapEntry(
+        'Existing scholarship',
+        u.scholarshipName.isEmpty ? 'Not provided' : u.scholarshipName,
+      ),
+      if (u.scholarshipReference.isNotEmpty)
+        MapEntry('Reference', u.scholarshipReference),
+    ];
+
     return Scaffold(
+      backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
+        backgroundColor: context.colors.background,
+        foregroundColor: context.colors.textPrimary,
+        surfaceTintColor: context.colors.background,
+        elevation: 0,
+        centerTitle: true,
+        titleSpacing: 0,
+        leadingWidth: 62,
         leading: widget.gate || Navigator.of(context).canPop()
             ? IconButton(
                 tooltip: widget.gate ? 'Back to login' : 'Back',
-                icon: Icon(
-                  AppIcons.back,
-                  color: context.colors.textPrimary,
+                style: IconButton.styleFrom(
+                  fixedSize: const Size.square(42),
+                  padding: EdgeInsets.zero,
+                  backgroundColor: context.colors.surface,
+                  side: BorderSide(color: context.colors.borderSoft),
+                  shape: const CircleBorder(),
                 ),
+                icon: const Icon(AppIcons.back),
                 onPressed: widget.gate
                     ? () => confirmLogout(context)
                     : () => Navigator.maybePop(context),
               )
             : null,
-        title: const Text('Scholar Verification'),
+        title: const Text(
+          'Scholar verification',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        ),
       ),
-      body: RefreshIndicator(
+      body: ContentWidth(
+        child: RefreshIndicator(
           onRefresh: _refresh,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
-              Center(
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: u.canReceiveAllowance
-                        ? context.colors.successBg
-                        : context.colors.warningBg,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    AppIcons.shieldCheck,
-                    size: 24,
-                    color: u.canReceiveAllowance
-                        ? context.colors.brand
-                        : context.colors.textLabel,
-                  ),
+              AppCard(
+                radius: 28,
+                shadow: true,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 76,
+                      height: 76,
+                      decoration: BoxDecoration(
+                        color: _statusTint(context, status),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        _statusIcon(status),
+                        size: 36,
+                        color: _statusColor(context, status),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    StatusChip(
+                      status.label,
+                      color: _statusColor(context, status),
+                      bg: _statusTint(context, status),
+                      borderRadius: 12,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 7,
+                      ),
+                      fontSize: 14,
+                      letterSpacing: 0,
+                    ),
+                    const SizedBox(height: 14),
+                    Text(
+                      _explanation(u),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        fontSize: 13.5,
+                        height: 1.55,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 16),
-              Text(u.verificationStatus.label,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall),
-              const SizedBox(height: 12),
-              Text(_explanation(u), textAlign: TextAlign.center),
+              AppCard(
+                radius: 22,
+                shadow: true,
+                padding: const EdgeInsets.fromLTRB(12, 20, 12, 16),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: _VerificationProgressStep(
+                            number: 1,
+                            label: 'Registration',
+                            done: true,
+                            current: false,
+                          ),
+                        ),
+                        Expanded(
+                          child: _VerificationProgressStep(
+                            number: 2,
+                            label: 'Admin verification',
+                            done: adminVerificationDone,
+                            current: !adminVerificationDone,
+                          ),
+                        ),
+                        Expanded(
+                          child: _VerificationProgressStep(
+                            number: 3,
+                            label: 'Approved scholar',
+                            done: false,
+                            current: approvedScholarCurrent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Then: Payout QR → Review amount → Biometrics → Allowance received',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        fontSize: 13.5,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (u.reviewNotes.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _AdministratorFeedback(
+                  status: status,
+                  message: u.reviewNotes,
+                ),
+              ],
               const SizedBox(height: 24),
-              Card(
-                  child: Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(u.fullName,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            Text(
-                                'Student number: ${u.studentNumber ?? "Not provided"}'),
-                            Text('School: ${u.university ?? "Not provided"}'),
-                            Text('Program: ${u.program ?? "Not provided"}'),
-                            Text('Year: ${u.yearLevel ?? "Not provided"}'),
-                            Text(
-                                'Declared scholar: ${u.declaredScholar ? "Yes" : "No"}'),
-                            Text(
-                                'Existing scholarship: ${u.scholarshipName.isEmpty ? "Not provided" : u.scholarshipName}'),
-                            if (u.scholarshipReference.isNotEmpty)
-                              Text('Reference: ${u.scholarshipReference}'),
-                          ]))),
-              if (u.reviewNotes.isNotEmpty)
-                Card(
-                    child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Administrator feedback',
-                                  style:
-                                      TextStyle(fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 6),
-                              Text(u.reviewNotes),
-                            ]))),
-              const SizedBox(height: 16),
-              if (_error != null)
-                Text(_error!,
-                    style:
-                        TextStyle(color: Theme.of(context).colorScheme.error)),
-              FilledButton.icon(
-                  onPressed: _busy ? null : _refresh,
-                  icon: Icon(
-                    AppIcons.refresh,
-                    color: context.colors.brand,
-                  ),
-                  label: Text(
-                      _busy ? 'Checking…' : 'Refresh verification status')),
-              if (u.verificationStatus == VerificationStatus.needsInfo)
-                OutlinedButton(
-                    onPressed: _busy ? null : () => _correct(u),
-                    child: const Text('Update requested information')),
-              const SizedBox(height: 18),
-              const Text(
-                  'Registration → Admin verification → Approved scholar → Payout QR → Review amount → Biometrics → Allowance received',
-                  textAlign: TextAlign.center),
+              SectionLabel(
+                'YOUR REGISTRATION',
+                labelColor: context.colors.textBody,
+                fontSize: 11.5,
+                letterSpacing: 1.2,
+              ),
+              const SizedBox(height: 8),
+              AppCard(
+                radius: 22,
+                shadow: true,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    for (var index = 0;
+                        index < registrationRows.length;
+                        index++)
+                      _VerificationDetailRow(
+                        label: registrationRows[index].key,
+                        value: registrationRows[index].value,
+                        divider: index > 0,
+                      ),
+                  ],
+                ),
+              ),
+              if (status == VerificationStatus.needsInfo) ...[
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  label: 'Update requested information',
+                  onPressed: _busy ? null : () => _correct(u),
+                  minHeight: 56,
+                  borderRadius: 18,
+                  shadow: true,
+                ),
+              ],
+              const SizedBox(height: 10),
+              SecondaryButton(
+                label: 'Refresh verification status',
+                loadingLabel: 'Checking…',
+                icon: AppIcons.refresh,
+                foregroundColor: context.colors.brand,
+                iconColor: context.colors.brand,
+                minHeight: 52,
+                borderRadius: 18,
+                loading: _busy,
+                onPressed: _busy ? null : _refresh,
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                ErrorCard(
+                  message: _error!,
+                  onRetry: _refresh,
+                ),
+              ],
             ],
-          )),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+IconData _statusIcon(VerificationStatus status) => switch (status) {
+      VerificationStatus.pending => AppIcons.clock,
+      VerificationStatus.underReview => AppIcons.eye,
+      VerificationStatus.needsInfo => AppIcons.error,
+      VerificationStatus.rejected => AppIcons.cancel,
+      VerificationStatus.approved => AppIcons.shieldCheck,
+    };
+
+Color _statusColor(BuildContext context, VerificationStatus status) =>
+    switch (status) {
+      VerificationStatus.pending => context.colors.warningText,
+      VerificationStatus.underReview => context.colors.brand,
+      VerificationStatus.needsInfo => context.colors.infoRequiredText,
+      VerificationStatus.rejected => context.colors.dangerText,
+      VerificationStatus.approved => context.colors.successText,
+    };
+
+Color _statusTint(BuildContext context, VerificationStatus status) =>
+    switch (status) {
+      VerificationStatus.pending => context.colors.warningBg,
+      VerificationStatus.underReview => context.colors.brandTint,
+      VerificationStatus.needsInfo => context.colors.infoRequiredBg,
+      VerificationStatus.rejected => context.colors.dangerBg,
+      VerificationStatus.approved => context.colors.successBg,
+    };
+
+class _VerificationProgressStep extends StatelessWidget {
+  final int number;
+  final String label;
+  final bool done;
+  final bool current;
+
+  const _VerificationProgressStep({
+    required this.number,
+    required this.label,
+    required this.done,
+    required this.current,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final circleColor = done
+        ? context.colors.successAccent
+        : current
+            ? context.colors.brand
+            : context.colors.brandTint;
+    final numberColor =
+        done || current ? context.colors.onHeader : context.colors.brand;
+    return Column(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: circleColor,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: done
+              ? Icon(AppIcons.check, size: 18, color: numberColor)
+              : Text(
+                  '$number',
+                  style: TextStyle(
+                    color: numberColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: current || done
+                ? context.colors.textPrimary
+                : context.colors.textBody,
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AdministratorFeedback extends StatelessWidget {
+  final VerificationStatus status;
+  final String message;
+
+  const _AdministratorFeedback({
+    required this.status,
+    required this.message,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isInformationRequired = status == VerificationStatus.needsInfo;
+    final isRejected = status == VerificationStatus.rejected;
+    final backgroundColor = isInformationRequired
+        ? colors.warningBg
+        : isRejected
+            ? colors.dangerBg
+            : colors.surface;
+    final borderColor = isInformationRequired
+        ? colors.goldTintBorder
+        : isRejected
+            ? colors.dangerOutline
+            : colors.borderSoft;
+    final textColor = isInformationRequired
+        ? colors.goldTintText
+        : isRejected
+            ? colors.dangerFeedbackText
+            : colors.textBody;
+
+    return AppCard(
+      radius: 22,
+      padding: const EdgeInsets.all(16),
+      backgroundColor: backgroundColor,
+      borderColor: borderColor,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Administrator feedback',
+            style: TextStyle(
+              color: textColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VerificationDetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool divider;
+
+  const _VerificationDetailRow({
+    required this.label,
+    required this.value,
+    required this.divider,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        if (divider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: context.colors.borderSoft,
+          ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 4,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 13.5,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 6,
+                child: Text(
+                  value,
+                  textAlign: TextAlign.right,
+                  softWrap: true,
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

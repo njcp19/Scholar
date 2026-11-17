@@ -25,6 +25,9 @@ abstract final class AppIcons {
   static const IconData sliders = LucideIcons500.slidersHorizontal;
   static const IconData minus = LucideIcons500.minus;
   static const IconData receipt = LucideIcons500.receipt;
+  static const IconData fileText = LucideIcons500.fileText;
+  static const IconData table = LucideIcons500.table2;
+  static const IconData download = LucideIcons500.download;
   static const IconData warning = LucideIcons500.triangleAlert;
   static const IconData info = LucideIcons500.info;
   static const IconData check = LucideIcons500.check;
@@ -65,4 +68,5 @@ abstract final class AppIcons {
   static const IconData flashlightOff = LucideIcons500.flashlightOff;
   static const IconData creditCard = LucideIcons500.creditCard;
   static const IconData arrowDown = LucideIcons500.arrowDown;
+  static const IconData wifiOff = LucideIcons500.wifiOff;
 }

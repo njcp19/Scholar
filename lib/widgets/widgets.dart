@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../providers/app_state.dart';
@@ -15,24 +19,447 @@ String fmtPhp(double v) => _php.format(v.abs());
 class AppSkeletonizer extends StatelessWidget {
   final bool enabled;
   final Widget child;
+  final bool? reduceMotion;
+  final Color? baseColor;
+  final Color? highlightColor;
 
   const AppSkeletonizer({
     super.key,
     required this.enabled,
     required this.child,
+    this.reduceMotion,
+    this.baseColor,
+    this.highlightColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final static = reduceMotion ?? MediaQuery.disableAnimationsOf(context);
+    final base = baseColor ?? context.colors.skeletonBase;
+    final highlight = highlightColor ?? context.colors.skeletonHighlight;
     return Skeletonizer(
       enabled: enabled,
-      effect: ShimmerEffect(
-        baseColor: context.colors.borderSoft,
-        highlightColor: context.colors.surface,
-      ),
-      child: child,
+      effect: static
+          ? SolidColorEffect(color: base)
+          : ShimmerEffect(
+              baseColor: base,
+              highlightColor: highlight,
+              duration: const Duration(milliseconds: 1400),
+            ),
+      child: enabled
+          ? Semantics(
+              container: true,
+              liveRegion: true,
+              label: 'Loading',
+              child: ExcludeSemantics(child: child),
+            )
+          : child,
     );
   }
+}
+
+class AppInitialLoadView extends StatefulWidget {
+  final bool firstLoadPending;
+  final Widget skeleton;
+  final Widget child;
+
+  const AppInitialLoadView({
+    super.key,
+    required this.firstLoadPending,
+    required this.skeleton,
+    required this.child,
+  });
+
+  @override
+  State<AppInitialLoadView> createState() => _AppInitialLoadViewState();
+}
+
+class _AppInitialLoadViewState extends State<AppInitialLoadView> {
+  static const _showDelay = Duration(milliseconds: 150);
+  static const _minimumVisible = Duration(milliseconds: 400);
+
+  Timer? _showTimer;
+  Timer? _minimumTimer;
+  bool _skeletonVisible = false;
+  bool _finished = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _finished = !widget.firstLoadPending;
+    if (!_finished) _scheduleSkeleton();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppInitialLoadView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_finished || oldWidget.firstLoadPending == widget.firstLoadPending) {
+      return;
+    }
+    if (widget.firstLoadPending) {
+      _scheduleSkeleton();
+      return;
+    }
+    _showTimer?.cancel();
+    if (!_skeletonVisible || _minimumTimer == null) {
+      _finish();
+    }
+  }
+
+  void _scheduleSkeleton() {
+    _showTimer?.cancel();
+    _showTimer = Timer(_showDelay, () {
+      if (!mounted || _finished) return;
+      setState(() {
+        _skeletonVisible = true;
+      });
+      _minimumTimer = Timer(_minimumVisible, () {
+        _minimumTimer = null;
+        if (!widget.firstLoadPending) _finish();
+      });
+    });
+  }
+
+  void _finish() {
+    if (!mounted || _finished) return;
+    _showTimer?.cancel();
+    _minimumTimer?.cancel();
+    setState(() => _finished = true);
+  }
+
+  @override
+  void dispose() {
+    _showTimer?.cancel();
+    _minimumTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_finished) return widget.child;
+    if (!_skeletonVisible) {
+      return Center(
+        child: Semantics(
+          liveRegion: true,
+          label: 'Loading',
+          child: const CircularProgressIndicator(),
+        ),
+      );
+    }
+    return AppSkeletonizer(enabled: true, child: widget.skeleton);
+  }
+}
+
+class SkeletonBox extends StatelessWidget {
+  final double? width;
+  final double height;
+  final double radius;
+
+  const SkeletonBox({
+    super.key,
+    this.width,
+    required this.height,
+    this.radius = 8,
+  });
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: context.colors.skeletonBase,
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      );
+}
+
+class SkeletonLine extends StatelessWidget {
+  final double? width;
+  final double height;
+
+  const SkeletonLine({
+    super.key,
+    this.width,
+    this.height = 12,
+  });
+
+  @override
+  Widget build(BuildContext context) => SkeletonBox(
+        width: width,
+        height: height,
+        radius: height / 2,
+      );
+}
+
+class SkeletonCircle extends StatelessWidget {
+  final double diameter;
+
+  const SkeletonCircle({super.key, required this.diameter});
+
+  @override
+  Widget build(BuildContext context) => SkeletonBox(
+        width: diameter,
+        height: diameter,
+        radius: diameter / 2,
+      );
+}
+
+class SkeletonCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+
+  const SkeletonCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+    this.radius = 22,
+  });
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+        radius: radius,
+        padding: padding,
+        shadow: true,
+        child: child,
+      );
+}
+
+class HomeLoadingSkeleton extends StatelessWidget {
+  const HomeLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        children: [
+          const Row(
+            children: [
+              SkeletonCircle(diameter: 44),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SkeletonLine(width: 150, height: 15),
+                    SizedBox(height: 8),
+                    SkeletonLine(width: 100, height: 11),
+                  ],
+                ),
+              ),
+              SkeletonCircle(diameter: 40),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const SkeletonBox(height: 170, radius: 28),
+          const SizedBox(height: 16),
+          const Row(
+            children: [
+              Expanded(child: SkeletonBox(height: 56, radius: 18)),
+              SizedBox(width: 12),
+              Expanded(child: SkeletonBox(height: 56, radius: 18)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const SkeletonCard(
+            radius: 22,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: SkeletonLine(width: 142, height: 14)),
+                    SkeletonBox(width: 72, height: 26, radius: 13),
+                  ],
+                ),
+                SizedBox(height: 18),
+                SkeletonLine(width: 180, height: 30),
+                SizedBox(height: 16),
+                SkeletonLine(height: 12),
+                SizedBox(height: 8),
+                SkeletonLine(width: 210, height: 12),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const SkeletonLine(width: 126, height: 14),
+          const SizedBox(height: 12),
+          SkeletonCard(
+            radius: 22,
+            child: Column(
+              children: [
+                for (var index = 0; index < 3; index++) ...[
+                  if (index > 0) const SizedBox(height: 18),
+                  const Row(
+                    children: [
+                      SkeletonCircle(diameter: 42),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLine(width: 138, height: 13),
+                            SizedBox(height: 8),
+                            SkeletonLine(width: 94, height: 11),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      SkeletonLine(width: 76, height: 14),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+}
+
+class TransactionLoadingSkeleton extends StatelessWidget {
+  const TransactionLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+        children: [
+          const SkeletonBox(height: 50, radius: 16),
+          const SizedBox(height: 14),
+          const Row(
+            children: [
+              Expanded(child: SkeletonBox(height: 36, radius: 18)),
+              SizedBox(width: 10),
+              Expanded(child: SkeletonBox(height: 36, radius: 18)),
+              SizedBox(width: 10),
+              Expanded(child: SkeletonBox(height: 36, radius: 18)),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const SkeletonLine(width: 120, height: 13),
+          const SizedBox(height: 12),
+          SkeletonCard(
+            child: Column(
+              children: [
+                for (var index = 0; index < 5; index++) ...[
+                  if (index > 0) const SizedBox(height: 18),
+                  const Row(
+                    children: [
+                      SkeletonCircle(diameter: 42),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SkeletonLine(width: 145, height: 13),
+                            SizedBox(height: 8),
+                            SkeletonLine(width: 92, height: 11),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          SkeletonLine(width: 72, height: 13),
+                          SizedBox(height: 8),
+                          SkeletonBox(width: 58, height: 20, radius: 8),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+}
+
+class RegistrationLoadingSkeleton extends StatelessWidget {
+  const RegistrationLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        children: [
+          const SkeletonBox(height: 50, radius: 16),
+          const SizedBox(height: 12),
+          const SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                SkeletonBox(width: 66, height: 36, radius: 18),
+                SizedBox(width: 8),
+                SkeletonBox(width: 92, height: 36, radius: 18),
+                SizedBox(width: 8),
+                SkeletonBox(width: 100, height: 36, radius: 18),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const SkeletonLine(width: 168, height: 13),
+          const SizedBox(height: 12),
+          for (var index = 0; index < 4; index++) ...[
+            if (index > 0) const SizedBox(height: 12),
+            SkeletonCard(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  const SkeletonCircle(diameter: 44),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SkeletonLine(width: 148, height: 14),
+                        SizedBox(height: 7),
+                        SkeletonLine(width: 118, height: 12),
+                        SizedBox(height: 8),
+                        SkeletonBox(width: 90, height: 22, radius: 9),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    AppIcons.chevronRight,
+                    color: context.colors.skeletonBase,
+                    size: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+}
+
+bool isOfflineLoadError(Object error) {
+  if (error is TimeoutException ||
+      error is FirebaseException && error.code == 'network-request-failed') {
+    return true;
+  }
+  final type = error.runtimeType.toString().toLowerCase();
+  if (type == 'socketexception' ||
+      type == 'httpexception' ||
+      type == 'handshakeexception' ||
+      type == 'clientexception') {
+    return true;
+  }
+  final details = error is PostgrestException
+      ? '${error.message} ${error.details} ${error.hint}'
+      : error.toString();
+  final message = details.toLowerCase();
+  return message.contains('clientexception') ||
+      message.contains('socketexception') ||
+      message.contains('networkerror') ||
+      message.contains('network error') ||
+      message.contains('failed to fetch') ||
+      message.contains('failed host lookup') ||
+      message.contains('failed to connect') ||
+      message.contains('network is unreachable') ||
+      message.contains('connection refused') ||
+      message.contains('connection reset') ||
+      message.contains('connection aborted') ||
+      message.contains('timed out');
 }
 
 class ContentWidth extends StatelessWidget {
@@ -66,6 +493,8 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
   final double borderWidth;
   final Clip clipBehavior;
+  final VoidCallback? onTap;
+  final bool heroCircles;
 
   const AppCard({
     super.key,
@@ -78,34 +507,91 @@ class AppCard extends StatelessWidget {
     this.borderColor,
     this.borderWidth = 1,
     this.clipBehavior = Clip.none,
+    this.onTap,
+    this.heroCircles = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveClipBehavior =
+        heroCircles && clipBehavior == Clip.none ? Clip.hardEdge : clipBehavior;
+    final cardChild = heroCircles
+        ? Stack(
+            children: [
+              Positioned(
+                top: -105,
+                right: -78,
+                child: Container(
+                  width: 190,
+                  height: 190,
+                  decoration: BoxDecoration(
+                    color: context.colors.onHeader.withValues(alpha: .12),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -116,
+                left: -92,
+                child: Container(
+                  width: 210,
+                  height: 210,
+                  decoration: BoxDecoration(
+                    color: context.colors.onHeader.withValues(alpha: .1),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              child,
+            ],
+          )
+        : child;
+    final decoration = BoxDecoration(
+      color:
+          gradient == null ? backgroundColor ?? context.colors.surface : null,
+      gradient: gradient,
+      borderRadius: BorderRadius.circular(radius),
+      border: Border.all(
+        color: borderColor ?? context.colors.borderSoft,
+        width: borderWidth,
+      ),
+      boxShadow: shadow
+          ? [
+              BoxShadow(
+                color: context.colors.cardShadow,
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ]
+          : null,
+    );
+    if (onTap != null) {
+      final ink = Ink(
+        width: double.infinity,
+        padding: padding,
+        decoration: decoration,
+        child: cardChild,
+      );
+      final clippedInk = effectiveClipBehavior == Clip.none
+          ? ink
+          : ClipRRect(
+              borderRadius: BorderRadius.circular(radius),
+              clipBehavior: effectiveClipBehavior,
+              child: ink,
+            );
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(radius),
+        child: clippedInk,
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: padding,
-      clipBehavior: clipBehavior,
-      decoration: BoxDecoration(
-        color:
-            gradient == null ? backgroundColor ?? context.colors.surface : null,
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(radius),
-        border: Border.all(
-          color: borderColor ?? context.colors.borderSoft,
-          width: borderWidth,
-        ),
-        boxShadow: shadow
-            ? [
-                BoxShadow(
-                  color: context.colors.cardShadow,
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
-                ),
-              ]
-            : null,
-      ),
-      child: child,
+      clipBehavior: effectiveClipBehavior,
+      decoration: decoration,
+      child: cardChild,
     );
   }
 }
@@ -173,6 +659,7 @@ class InfoBanner extends StatelessWidget {
   final String message;
   final int maxLines;
   final Color? backgroundColor;
+  final Color? borderColor;
   final Color? iconColor;
   final Color? textColor;
   final String? emphasizedPrefix;
@@ -188,6 +675,7 @@ class InfoBanner extends StatelessWidget {
     required this.message,
     this.maxLines = 2,
     this.backgroundColor,
+    this.borderColor,
     this.iconColor,
     this.textColor,
     this.emphasizedPrefix,
@@ -206,6 +694,7 @@ class InfoBanner extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? context.colors.brandTint,
         borderRadius: BorderRadius.circular(borderRadius),
+        border: borderColor == null ? null : Border.all(color: borderColor!),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,6 +739,10 @@ class SearchField extends StatelessWidget {
   final Widget? suffixIcon;
   final double radius;
   final double minHeight;
+  final Color? hintColor;
+  final Color? iconColor;
+  final Color? borderColor;
+  final double iconSize;
 
   const SearchField({
     super.key,
@@ -259,6 +752,10 @@ class SearchField extends StatelessWidget {
     this.suffixIcon,
     this.radius = 14,
     this.minHeight = 48,
+    this.hintColor,
+    this.iconColor,
+    this.borderColor,
+    this.iconSize = 24,
   });
 
   @override
@@ -272,8 +769,13 @@ class SearchField extends StatelessWidget {
         decoration: InputDecoration(
           isDense: true,
           hintText: hintText,
+          hintStyle: hintColor == null ? null : TextStyle(color: hintColor),
           suffixIcon: suffixIcon,
-          prefixIcon: Icon(AppIcons.search, color: context.colors.hint),
+          prefixIcon: Icon(
+            AppIcons.search,
+            color: iconColor ?? context.colors.hint,
+            size: iconSize,
+          ),
           prefixIconConstraints: BoxConstraints(
             minWidth: minHeight,
             minHeight: minHeight,
@@ -284,11 +786,13 @@ class SearchField extends StatelessWidget {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
-            borderSide: BorderSide(color: context.colors.borderSoft),
+            borderSide:
+                BorderSide(color: borderColor ?? context.colors.borderSoft),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
-            borderSide: BorderSide(color: context.colors.borderSoft),
+            borderSide:
+                BorderSide(color: borderColor ?? context.colors.borderSoft),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
@@ -304,6 +808,8 @@ class AppTextField extends StatelessWidget {
   final TextEditingController controller;
   final String? labelText;
   final String? hintText;
+  final int? minLines;
+  final int? maxLines;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final TextCapitalization textCapitalization;
@@ -322,6 +828,8 @@ class AppTextField extends StatelessWidget {
     required this.controller,
     this.labelText,
     this.hintText,
+    this.minLines,
+    this.maxLines,
     this.keyboardType,
     this.textInputAction,
     this.textCapitalization = TextCapitalization.none,
@@ -340,6 +848,8 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      minLines: minLines,
+      maxLines: maxLines,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
@@ -377,6 +887,19 @@ class FilterChipsRow extends StatelessWidget {
   final String selectedValue;
   final ValueChanged<String> onSelected;
   final EdgeInsetsGeometry padding;
+  final bool showCount;
+  final Color? selectedBackgroundColor;
+  final Color? selectedTextColor;
+  final Color? unselectedTextColor;
+  final double selectedBorderWidth;
+  final bool countBadge;
+  final Color? countBackgroundColor;
+  final Color? selectedCountBackgroundColor;
+  final Color? countTextColor;
+  final Color? selectedCountTextColor;
+  final double chipRadius;
+  final double chipFontSize;
+  final FontWeight chipFontWeight;
 
   const FilterChipsRow({
     super.key,
@@ -384,6 +907,19 @@ class FilterChipsRow extends StatelessWidget {
     required this.selectedValue,
     required this.onSelected,
     this.padding = const EdgeInsets.symmetric(horizontal: 20),
+    this.showCount = true,
+    this.selectedBackgroundColor,
+    this.selectedTextColor,
+    this.unselectedTextColor,
+    this.selectedBorderWidth = 1,
+    this.countBadge = false,
+    this.countBackgroundColor,
+    this.selectedCountBackgroundColor,
+    this.countTextColor,
+    this.selectedCountTextColor,
+    this.chipRadius = 20,
+    this.chipFontSize = 12,
+    this.chipFontWeight = FontWeight.w700,
   });
 
   @override
@@ -399,6 +935,19 @@ class FilterChipsRow extends StatelessWidget {
               item: items[index],
               selected: items[index].value == selectedValue,
               onTap: () => onSelected(items[index].value),
+              showCount: showCount,
+              selectedBackgroundColor: selectedBackgroundColor,
+              selectedTextColor: selectedTextColor,
+              unselectedTextColor: unselectedTextColor,
+              selectedBorderWidth: selectedBorderWidth,
+              countBadge: countBadge,
+              countBackgroundColor: countBackgroundColor,
+              selectedCountBackgroundColor: selectedCountBackgroundColor,
+              countTextColor: countTextColor,
+              selectedCountTextColor: selectedCountTextColor,
+              chipRadius: chipRadius,
+              chipFontSize: chipFontSize,
+              chipFontWeight: chipFontWeight,
             ),
           ],
         ],
@@ -411,40 +960,104 @@ class _FilterChip extends StatelessWidget {
   final FilterChipItem item;
   final bool selected;
   final VoidCallback onTap;
+  final bool showCount;
+  final Color? selectedBackgroundColor;
+  final Color? selectedTextColor;
+  final Color? unselectedTextColor;
+  final double selectedBorderWidth;
+  final bool countBadge;
+  final Color? countBackgroundColor;
+  final Color? selectedCountBackgroundColor;
+  final Color? countTextColor;
+  final Color? selectedCountTextColor;
+  final double chipRadius;
+  final double chipFontSize;
+  final FontWeight chipFontWeight;
 
   const _FilterChip({
     required this.item,
     required this.selected,
     required this.onTap,
+    required this.showCount,
+    required this.selectedBackgroundColor,
+    required this.selectedTextColor,
+    required this.unselectedTextColor,
+    required this.selectedBorderWidth,
+    required this.countBadge,
+    required this.countBackgroundColor,
+    required this.selectedCountBackgroundColor,
+    required this.countTextColor,
+    required this.selectedCountTextColor,
+    required this.chipRadius,
+    required this.chipFontSize,
+    required this.chipFontWeight,
   });
 
   @override
   Widget build(BuildContext context) {
+    final labelStyle = TextStyle(
+      color: selected
+          ? selectedTextColor ?? context.colors.onHeader
+          : unselectedTextColor ?? context.colors.textBody,
+      fontSize: chipFontSize,
+      fontWeight: chipFontWeight,
+    );
+    final Widget content;
+    if (showCount && countBadge) {
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(item.label, maxLines: 1, style: labelStyle),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: selected
+                  ? selectedCountBackgroundColor ?? context.colors.brand
+                  : countBackgroundColor ?? context.colors.borderSoft,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              '${item.count}',
+              maxLines: 1,
+              style: TextStyle(
+                color: selected
+                    ? selectedCountTextColor ?? context.colors.onHeader
+                    : countTextColor ?? context.colors.textBody,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      );
+    } else {
+      content = Text(
+        showCount ? '${item.label} (${item.count})' : item.label,
+        maxLines: 1,
+        style: labelStyle,
+      );
+    }
+
     return Material(
-      color: selected ? context.colors.brand : context.colors.surface,
-      borderRadius: BorderRadius.circular(20),
+      color: selected
+          ? selectedBackgroundColor ?? context.colors.brand
+          : context.colors.surface,
+      borderRadius: BorderRadius.circular(chipRadius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(chipRadius),
         child: Container(
           constraints: const BoxConstraints(minHeight: 36),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(chipRadius),
             border: Border.all(
               color: selected ? context.colors.brand : context.colors.border,
+              width: selected ? selectedBorderWidth : 1,
             ),
           ),
-          child: Text(
-            '${item.label} (${item.count})',
-            maxLines: 1,
-            style: TextStyle(
-              color:
-                  selected ? context.colors.onHeader : context.colors.textBody,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          child: content,
         ),
       ),
     );
@@ -542,15 +1155,81 @@ class EmptyState extends StatelessWidget {
 class ErrorCard extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;
+  final bool prominent;
+  final bool offline;
 
   const ErrorCard({
     super.key,
     required this.message,
     required this.onRetry,
+    this.prominent = false,
+    this.offline = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (prominent) {
+      final iconColor =
+          offline ? context.colors.textBody : context.colors.dangerText;
+      final iconBackground = offline
+          ? context.colors.filterCountBackground
+          : context.colors.dangerBg;
+      return AppCard(
+        radius: 28,
+        padding: const EdgeInsets.fromLTRB(40, 24, 40, 24),
+        shadow: true,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  color: iconBackground,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  offline ? AppIcons.wifiOff : AppIcons.error,
+                  color: iconColor,
+                  size: 42,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              offline ? 'No internet connection' : "Couldn't load",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.textBody,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 20),
+            PrimaryButton(
+              label: 'Try again',
+              onPressed: onRetry,
+              minHeight: 56,
+              borderRadius: 18,
+              shadow: true,
+            ),
+          ],
+        ),
+      );
+    }
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2100,6 +2779,9 @@ class QuickAction extends StatelessWidget {
   final Color? iconColor;
   final String? description;
   final int? badge;
+  final double iconTileSize;
+  final double iconTileRadius;
+  final double iconSize;
 
   const QuickAction({
     super.key,
@@ -2110,6 +2792,9 @@ class QuickAction extends StatelessWidget {
     this.iconColor,
     this.description,
     this.badge,
+    this.iconTileSize = 40,
+    this.iconTileRadius = 12,
+    this.iconSize = 24,
   });
 
   @override
@@ -2132,14 +2817,14 @@ class QuickAction extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: iconTileSize,
+                  height: iconTileSize,
                   decoration: BoxDecoration(
                     color: tileColor ?? context.colors.brandTint,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(iconTileRadius),
                   ),
                   child: Icon(icon,
-                      color: iconColor ?? context.colors.brand, size: 24),
+                      color: iconColor ?? context.colors.brand, size: iconSize),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -2335,6 +3020,9 @@ class SecondaryButton extends StatelessWidget {
   final IconData? icon;
   final Color? iconColor;
   final Color? foregroundColor;
+  final Color? dangerTextColor;
+  final Color? borderColor;
+  final String? loadingLabel;
   final bool loading;
   final bool danger;
   final double minHeight;
@@ -2347,6 +3035,9 @@ class SecondaryButton extends StatelessWidget {
     this.icon,
     this.iconColor,
     this.foregroundColor,
+    this.dangerTextColor,
+    this.borderColor,
+    this.loadingLabel,
     this.loading = false,
     this.danger = false,
     this.minHeight = 52,
@@ -2356,7 +3047,7 @@ class SecondaryButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = danger
-        ? context.colors.danger
+        ? dangerTextColor ?? context.colors.danger
         : foregroundColor ?? context.colors.textPrimary;
     return ConstrainedBox(
       constraints: BoxConstraints(minHeight: minHeight),
@@ -2367,21 +3058,48 @@ class SecondaryButton extends StatelessWidget {
           style: OutlinedButton.styleFrom(
             foregroundColor: color,
             side: BorderSide(
-              color: danger ? context.colors.danger : context.colors.border,
+              color: borderColor ??
+                  (danger ? context.colors.danger : context.colors.border),
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(borderRadius),
             ),
           ),
           child: loading
-              ? SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: color,
-                  ),
-                )
+              ? loadingLabel == null
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: color,
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: color,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            loadingLabel!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -2412,6 +3130,12 @@ class DashboardStatCard extends StatelessWidget {
   final Color iconColor;
   final String? detail;
   final VoidCallback onTap;
+  final double radius;
+  final double minHeight;
+  final double iconTileSize;
+  final double iconTileRadius;
+  final double iconSize;
+  final bool showChevron;
 
   const DashboardStatCard({
     super.key,
@@ -2422,34 +3146,40 @@ class DashboardStatCard extends StatelessWidget {
     required this.iconColor,
     required this.onTap,
     this.detail,
+    this.radius = 16,
+    this.minHeight = 96,
+    this.iconTileSize = 40,
+    this.iconTileRadius = 12,
+    this.iconSize = 24,
+    this.showChevron = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: context.colors.surface,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(radius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radius),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 96),
+          constraints: BoxConstraints(minHeight: minHeight),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(radius),
             border: Border.all(color: context.colors.borderSoft),
           ),
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: iconTileSize,
+                height: iconTileSize,
                 decoration: BoxDecoration(
                   color: tileColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(iconTileRadius),
                 ),
                 alignment: Alignment.center,
-                child: Icon(icon, color: iconColor, size: 24),
+                child: Icon(icon, color: iconColor, size: iconSize),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -2495,12 +3225,14 @@ class DashboardStatCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 4),
-              Icon(
-                AppIcons.chevronRight,
-                size: 18,
-                color: context.colors.hint,
-              ),
+              if (showChevron) ...[
+                const SizedBox(width: 4),
+                Icon(
+                  AppIcons.chevronRight,
+                  size: 18,
+                  color: context.colors.hint,
+                ),
+              ],
             ],
           ),
         ),
@@ -2848,6 +3580,7 @@ class StatusChip extends StatelessWidget {
   final String label;
   final Color color;
   final Color? bg;
+  final double borderRadius;
   final EdgeInsetsGeometry padding;
   final double fontSize;
   final double letterSpacing;
@@ -2856,6 +3589,7 @@ class StatusChip extends StatelessWidget {
     super.key,
     this.color = AppTheme.successGreen,
     this.bg,
+    this.borderRadius = 8,
     this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     this.fontSize = 10,
     this.letterSpacing = .6,
@@ -2867,7 +3601,7 @@ class StatusChip extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
           color: bg ?? context.colors.successBg,
-          borderRadius: BorderRadius.circular(8)),
+          borderRadius: BorderRadius.circular(borderRadius)),
       child: Text(label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,

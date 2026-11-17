@@ -7,6 +7,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
+import 'admin/issue_payout_screen.dart';
 
 /// Payout events are existing disbursement batches, not attendance events.
 /// No generic event QR is accepted by the allowance scanner.
@@ -18,8 +19,9 @@ class PayoutEventsScreen extends StatefulWidget {
 
 class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
   List<Map<String, dynamic>> _events = [];
-  bool _loading = true;
+  bool _hasLoaded = false;
   String? _error;
+  bool _offline = false;
 
   @override
   void initState() {
@@ -52,15 +54,18 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
         setState(() {
           _events = events;
           _error = null;
+          _offline = false;
         });
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        setState(
-            () => _error = 'Could not load payout events. Pull down to retry.');
+        setState(() {
+          _error = 'Could not load payout events. Pull down to retry.';
+          _offline = isOfflineLoadError(error);
+        });
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _hasLoaded = true);
     }
   }
 
@@ -135,8 +140,8 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
             .join(' ');
         return _PayoutStatusPresentation(
           label: label.isEmpty ? 'Unknown' : label,
-          foreground: context.colors.textBody,
-          background: context.colors.borderSoft,
+          foreground: AppTheme.successGreen,
+          background: context.colors.successBg,
         );
     }
   }
@@ -147,11 +152,11 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
   }) {
     final widgets = <Widget>[];
     if (events.length <= 3) {
-      widgets.add(const SizedBox(height: 16));
+      widgets.add(const SizedBox(height: 12));
       for (final event in events) {
         widgets
           ..add(_eventCard(event, admin: admin))
-          ..add(const SizedBox(height: 16));
+          ..add(const SizedBox(height: 12));
       }
       return widgets;
     }
@@ -171,8 +176,8 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
           child: Text(
             group.key,
             style: TextStyle(
-              color: context.colors.hint,
-              fontSize: 12,
+              color: context.colors.textBody,
+              fontSize: 11.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.1,
             ),
@@ -182,7 +187,7 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
       for (final event in group.value) {
         widgets
           ..add(_eventCard(event, admin: admin))
-          ..add(const SizedBox(height: 16));
+          ..add(const SizedBox(height: 12));
       }
     }
     return widgets;
@@ -193,12 +198,18 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
     required bool admin,
   }) {
     final status = _statusPresentation(event['status']?.toString());
-    final received = status.label == 'Received';
-    final iconBackground = received
+    final successful = status.background == context.colors.successBg;
+    final waiting = status.label == 'Waiting';
+    final iconBackground = successful
         ? context.colors.successBg
-        : status.label == 'Waiting'
+        : waiting
             ? context.colors.warningBg
             : context.colors.borderSoft;
+    final iconColor = successful
+        ? AppTheme.successGreen
+        : waiting
+            ? AppTheme.warningAmber
+            : context.colors.hintContrast;
     final title = event['title']?.toString().trim();
     final academicPeriod = title == null
         ? null
@@ -207,17 +218,15 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
         fmtPhp(((event['amount_per_scholar'] ?? 0) as num).toDouble());
     final recipientCount = event['recipient_count'];
 
-    return Container(
+    return AppCard(
+      radius: 22,
+      shadow: true,
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.borderSoft),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 width: 44,
@@ -228,110 +237,126 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
                 ),
                 child: Icon(
                   AppIcons.calendar,
-                  color: context.colors.brand,
-                  size: 24,
+                  color: iconColor,
+                  size: 22,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            title == null || title.isEmpty
-                                ? 'Allowance batch'
-                                : title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: context.colors.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        SizedBox(
-                          width: 112,
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                'PHP $amount',
-                                maxLines: 1,
-                                softWrap: false,
-                                style: TextStyle(
-                                  color: received
-                                      ? AppTheme.successGreen
-                                      : context.colors.textPrimary,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      title == null || title.isEmpty
+                          ? 'Allowance batch'
+                          : title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                    if (academicPeriod != null) ...[
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          StatusChip(
-                            academicPeriod,
-                            color: context.colors.textPrimary,
-                            bg: context.colors.brandTint,
+                    const SizedBox(height: 7),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 7,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        StatusChip(
+                          status.label,
+                          color: status.foreground,
+                          bg: status.background,
+                          borderRadius: 9,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
                           ),
+                          fontSize: 11,
+                          letterSpacing: .4,
+                        ),
+                        if (academicPeriod != null)
                           StatusChip(
                             'Demo data',
                             color: context.colors.textBody,
-                            bg: context.colors.borderSoft,
+                            bg: context.colors.filterCountBackground,
+                            borderRadius: 9,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            fontSize: 10,
+                            letterSpacing: 0,
                           ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 4),
-                    Text(
-                      'Distribution date: ${_formattedDistributionDate(event)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textBody,
-                        fontSize: 12,
-                      ),
+                        if (academicPeriod != null)
+                          StatusChip(
+                            academicPeriod,
+                            color: context.colors.brandTintText,
+                            bg: context.colors.brandTint,
+                            borderRadius: 9,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            fontSize: 10,
+                            letterSpacing: 0,
+                          ),
+                      ],
                     ),
                   ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 118),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'PHP $amount',
+                    maxLines: 1,
+                    softWrap: false,
+                    style: TextStyle(
+                      color: context.colors.brand,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            children: [
-              _StatusChip(status: status),
-              if (admin && recipientCount != null) ...[
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Recipients: $recipientCount',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.end,
-                    style: TextStyle(
-                      color: context.colors.textBody,
-                      fontSize: 12,
-                    ),
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: context.colors.borderSoft,
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Distribution date: ${_formattedDistributionDate(event)}',
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 12.5,
                   ),
                 ),
+                if (admin && recipientCount != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Recipients: $recipientCount',
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ],
       ),
@@ -339,132 +364,100 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
   }
 
   Widget _infoCard() {
-    return Container(
+    return InfoBanner(
+      icon: AppIcons.info,
+      message: 'Each payout event is one allowance batch with a single-use QR '
+          'for you. Attendance or event QR codes cannot release allowance.',
+      backgroundColor: context.colors.brandTint,
+      iconColor: context.colors.brand,
+      textColor: context.colors.textBody,
+      maxLines: 4,
+      leading: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: context.colors.surface.withValues(alpha: .75),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Icon(
+          AppIcons.info,
+          color: context.colors.brand,
+          size: 20,
+        ),
+      ),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.brandTint,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: context.colors.surface.withValues(alpha: .75),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.info,
-              color: context.colors.brand,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Each payout event is one allowance batch with a single-use QR '
-              'for you. Attendance or event QR codes cannot release allowance.',
-              style: TextStyle(
-                color: context.colors.textBody,
-                fontSize: 13,
-                height: 1.4,
-              ),
-            ),
-          ),
-        ],
-      ),
+      borderRadius: 22,
+      fontSize: 13,
+      textHeight: 1.4,
     );
   }
 
+  Future<void> _openIssuePayout() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const IssuePayoutScreen()),
+    );
+    await _load();
+  }
+
   Widget _errorCard() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.borderSoft),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: context.colors.dangerBg,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              AppIcons.error,
-              color: context.colors.textLabel,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _error ?? 'Could not load payout events.',
-                  style: TextStyle(
-                    color: context.colors.textBody,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _load,
-                  child: const Text('Try again'),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return ErrorCard(
+      message: _offline
+          ? 'Check your connection and try again. Your balance and payouts are not changed.'
+          : _error ?? 'Could not load payout events. Pull down to retry.',
+      onRetry: _load,
+      prominent: true,
+      offline: _offline,
     );
   }
 
   Widget _emptyState() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 56),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: context.colors.brandTint,
-              shape: BoxShape.circle,
+      padding: const EdgeInsets.symmetric(vertical: 32),
+      child: AppCard(
+        radius: 22,
+        shadow: true,
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                color: context.colors.brandTint,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                AppIcons.calendar,
+                color: context.colors.brand,
+                size: 42,
+              ),
             ),
-            child: Icon(
-              AppIcons.calendar,
-              color: context.colors.brand,
-              size: 24,
+            const SizedBox(height: 16),
+            Text(
+              'No payout events yet',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No payout events yet',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+            const SizedBox(height: 6),
+            Text(
+              'Allowance batches issued to you will appear here',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.textBody,
+                fontSize: 14,
+                height: 1.4,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Allowance batches issued to you will appear here',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: context.colors.textBody,
-              fontSize: 14,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -475,15 +468,51 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
     final events = _newestFirst();
     return Scaffold(
       backgroundColor: context.colors.background,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: admin
+          ? Padding(
+              padding: const EdgeInsets.only(right: 4, bottom: 4),
+              child: SizedBox(
+                height: 52,
+                child: FloatingActionButton.extended(
+                  heroTag: 'payout-events-issue-payout',
+                  tooltip: 'Issue payout',
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onPressed: _openIssuePayout,
+                  backgroundColor: context.colors.brand,
+                  foregroundColor: context.colors.onHeader,
+                  elevation: 8,
+                  shape: const StadiumBorder(),
+                  icon: const Icon(AppIcons.plus, size: 22),
+                  label: const Text(
+                    'Issue payout',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            )
+          : null,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leadingWidth: 62,
         leading: IconButton(
+          tooltip: 'Back',
           onPressed: () => Navigator.maybePop(context),
-          icon: Icon(
-            AppIcons.back,
-            color: context.colors.textPrimary,
+          style: IconButton.styleFrom(
+            fixedSize: const Size.square(42),
+            padding: EdgeInsets.zero,
+            backgroundColor: context.colors.surface,
+            side: BorderSide(color: context.colors.borderSoft),
+            shape: const CircleBorder(),
           ),
+          icon: const Icon(AppIcons.back),
         ),
-        title: const Text('Payout Events'),
+        centerTitle: true,
+        titleSpacing: 0,
+        title: const Text(
+          'Payout Events',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+        ),
         backgroundColor: context.colors.background,
         foregroundColor: context.colors.textPrimary,
         surfaceTintColor: context.colors.background,
@@ -495,64 +524,39 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
           behavior: const _PayoutEventsScrollBehavior(),
           child: RefreshIndicator(
             onRefresh: _load,
-            child: ListView(
-              clipBehavior: Clip.hardEdge,
-              physics: const ClampingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
+            child: AppInitialLoadView(
+              firstLoadPending: !_hasLoaded,
+              skeleton: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: EdgeInsets.fromLTRB(20, 16, 20, admin ? 96 : 24),
+                children: [
+                  _infoCard(),
+                  const SizedBox(height: 16),
+                  for (var index = 0; index < 2; index++) ...[
+                    _PayoutEventSkeleton(showRecipients: admin),
+                    const SizedBox(height: 16),
+                  ],
+                ],
               ),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              children: _loading
-                  ? [
-                      AppSkeletonizer(
-                        enabled: true,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _infoCard(),
-                            ..._eventWidgets(
-                              [
-                                {
-                                  'title': 'Payout Event',
-                                  'amount_per_scholar': 12345,
-                                  'status': 'issued',
-                                  'created_at':
-                                      DateTime(2026, 11, 8).toIso8601String(),
-                                  'recipient_count': admin ? 24 : null,
-                                },
-                                {
-                                  'title': 'Monthly Allowance',
-                                  'amount_per_scholar': 12345,
-                                  'status': 'issued',
-                                  'created_at':
-                                      DateTime(2026, 10, 8).toIso8601String(),
-                                  'recipient_count': admin ? 24 : null,
-                                },
-                                {
-                                  'title': 'Payout Event',
-                                  'amount_per_scholar': 12345,
-                                  'status': 'issued',
-                                  'created_at':
-                                      DateTime(2026, 9, 8).toIso8601String(),
-                                  'recipient_count': admin ? 24 : null,
-                                },
-                              ],
-                              admin: admin,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ]
-                  : [
-                      _infoCard(),
-                      if (_error != null) ...[
-                        const SizedBox(height: 16),
-                        _errorCard(),
-                      ] else if (events.isEmpty) ...[
-                        const SizedBox(height: 16),
-                        _emptyState(),
-                      ] else
-                        ..._eventWidgets(events, admin: admin),
-                    ],
+              child: ListView(
+                clipBehavior: Clip.hardEdge,
+                physics: const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
+                ),
+                padding: EdgeInsets.fromLTRB(20, 16, 20, admin ? 96 : 24),
+                children: [
+                  _infoCard(),
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    _errorCard(),
+                  ],
+                  if (events.isEmpty && _error == null) ...[
+                    const SizedBox(height: 16),
+                    _emptyState(),
+                  ] else if (events.isNotEmpty)
+                    ..._eventWidgets(events, admin: admin),
+                ],
+              ),
             ),
           ),
         ),
@@ -573,38 +577,58 @@ class _PayoutStatusPresentation {
   });
 }
 
-class _StatusChip extends StatelessWidget {
-  final _PayoutStatusPresentation status;
+class _PayoutEventSkeleton extends StatelessWidget {
+  final bool showRecipients;
 
-  const _StatusChip({required this.status});
+  const _PayoutEventSkeleton({required this.showRecipients});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 28),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: status.background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
+    return SkeletonCard(
+      radius: 22,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: status.foreground,
-              shape: BoxShape.circle,
-            ),
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonBox(width: 44, height: 44, radius: 12),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SkeletonLine(width: 100, height: 16),
+                    SizedBox(height: 7),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 7,
+                      children: [
+                        SkeletonBox(width: 76, height: 24, radius: 12),
+                        SkeletonBox(width: 72, height: 24, radius: 12),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8),
+              SkeletonLine(width: 90, height: 17),
+            ],
           ),
-          const SizedBox(width: 6),
-          Text(
-            status.label,
-            style: TextStyle(
-              color: status.foreground,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
+          const SizedBox(height: 12),
+          Divider(height: 1, thickness: 1, color: context.colors.borderSoft),
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SkeletonLine(width: 176, height: 13),
+                if (showRecipients) ...[
+                  const SizedBox(height: 6),
+                  const SkeletonLine(width: 88, height: 13),
+                ],
+              ],
             ),
           ),
         ],

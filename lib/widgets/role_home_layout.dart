@@ -15,6 +15,12 @@ class RoleHomeLayout extends StatelessWidget {
   final String heroValue;
   final String heroSupportingLine;
   final Color? heroColor;
+  final Gradient? heroGradient;
+  final Color? heroBorderColor;
+  final Color? heroTextColor;
+  final Color? heroMutedTextColor;
+  final double heroRadius;
+  final bool heroCircles;
   final IconData? heroActionIcon;
   final String? heroActionTooltip;
   final VoidCallback? onHeroAction;
@@ -51,6 +57,12 @@ class RoleHomeLayout extends StatelessWidget {
     required this.heroValue,
     required this.heroSupportingLine,
     this.heroColor,
+    this.heroGradient,
+    this.heroBorderColor,
+    this.heroTextColor,
+    this.heroMutedTextColor,
+    this.heroRadius = 16,
+    this.heroCircles = false,
     this.heroActionIcon,
     this.heroActionTooltip,
     this.onHeroAction,
@@ -199,74 +211,119 @@ class RoleHomeLayout extends StatelessWidget {
   }
 
   Widget _hero(BuildContext context) {
+    final colors = context.colors;
+    final gradientHero = heroGradient != null;
+    final primaryTextColor =
+        heroTextColor ?? (gradientHero ? colors.onHeader : colors.textPrimary);
+    final mutedTextColor = heroMutedTextColor ??
+        (gradientHero
+            ? colors.onHeader.withValues(alpha: .84)
+            : colors.textBody);
+    final heroContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                heroLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: mutedTextColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ),
+            if (onHeroAction != null)
+              IconButton(
+                tooltip: heroActionTooltip,
+                visualDensity: VisualDensity.compact,
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                onPressed: onHeroAction,
+                icon: Icon(
+                  heroActionIcon ?? AppIcons.edit,
+                  color: mutedTextColor,
+                  size: 18,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            heroValue,
+            maxLines: 1,
+            style: TextStyle(
+              color: primaryTextColor,
+              fontSize: 30,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          heroSupportingLine,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: mutedTextColor,
+            fontSize: 12,
+          ),
+        ),
+      ],
+    );
+    final heroChild = heroCircles
+        ? Stack(
+            children: [
+              Positioned(
+                top: -96,
+                right: -66,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: colors.onHeader.withValues(alpha: .12),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              Positioned(
+                bottom: -108,
+                left: -84,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: colors.onHeader.withValues(alpha: .1),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              heroContent,
+            ],
+          )
+        : heroContent;
+
     return Container(
       width: double.infinity,
       constraints: const BoxConstraints(minHeight: 140),
       padding: const EdgeInsets.all(20),
+      clipBehavior: heroCircles ? Clip.hardEdge : Clip.none,
       decoration: BoxDecoration(
-        color: heroColor ?? context.colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: context.colors.borderSoft),
+        color: heroGradient == null ? heroColor ?? colors.surface : null,
+        gradient: heroGradient,
+        borderRadius: BorderRadius.circular(heroRadius),
+        border: Border.all(
+          color: heroBorderColor ??
+              (heroGradient == null ? colors.borderSoft : Colors.transparent),
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  heroLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.textBody,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.1,
-                  ),
-                ),
-              ),
-              if (onHeroAction != null)
-                IconButton(
-                  tooltip: heroActionTooltip,
-                  visualDensity: VisualDensity.compact,
-                  constraints:
-                      const BoxConstraints(minWidth: 40, minHeight: 40),
-                  onPressed: onHeroAction,
-                  icon: Icon(
-                    heroActionIcon ?? AppIcons.edit,
-                    color: context.colors.textBody,
-                    size: 18,
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              heroValue,
-              maxLines: 1,
-              style: TextStyle(
-                color: context.colors.textPrimary,
-                fontSize: 30,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            heroSupportingLine,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: context.colors.textBody,
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
+      child: heroChild,
     );
   }
 

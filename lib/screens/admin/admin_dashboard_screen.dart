@@ -12,6 +12,8 @@ import 'issue_payout_screen.dart';
 import 'claims_monitor_screen.dart';
 import 'manage_scholars_screen.dart';
 import 'reports_screen.dart';
+import 'activity_log_screen.dart';
+import 'funding_account_screen.dart';
 import 'registration_review_screen.dart';
 import '../../services/verification_service.dart';
 import '../../models/models.dart';
@@ -41,6 +43,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _announced = false;
   bool _hasLoaded = false;
   String? _loadError;
+  bool _offline = false;
 
   @override
   void initState() {
@@ -90,6 +93,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       }
     } catch (error) {
       _loadError = error.toString();
+      _offline = isOfflineLoadError(error);
       if (mounted) setState(() {});
     }
   }
@@ -379,6 +383,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _load() async {
     final state = context.read<AppState>();
     String? error;
+    bool? offline;
     _loadError = null;
     try {
       _scholars = await state.wallet.getActiveScholarCount();
@@ -394,11 +399,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       await state.loadAllowanceSettings();
     } catch (e) {
       error = e.toString();
+      offline = isOfflineLoadError(e);
     }
     await _loadRegistrations(announce: true);
     if (mounted) {
       setState(() {
         _loadError = error ?? _loadError;
+        if (error != null) {
+          _offline = offline ?? false;
+        } else if (_loadError == null) {
+          _offline = false;
+        }
         _hasLoaded = true;
       });
     }
@@ -423,6 +434,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _openReports() async {
     await Navigator.push(
         context, MaterialPageRoute(builder: (_) => const ReportsScreen()));
+    _load();
+  }
+
+  Future<void> _openActivityLog() async {
+    await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const ActivityLogScreen()));
+    _load();
+  }
+
+  Future<void> _openFundingAccount() async {
+    await Navigator.push(context,
+        MaterialPageRoute(builder: (_) => const FundingAccountScreen()));
     _load();
   }
 
@@ -766,35 +789,65 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _quickActionTiles(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _quickActionTile(
-              context,
-              icon: AppIcons.calendar,
-              tileColor: context.colors.brandTint,
-              iconColor: context.colors.brand,
-              title: 'Payout Events',
-              subtitle: 'Allowance batches',
-              onTap: _openPayoutEvents,
-            ),
+    return Column(
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _quickActionTile(
+                  context,
+                  icon: AppIcons.calendar,
+                  tileColor: context.colors.brandTint,
+                  iconColor: context.colors.brand,
+                  title: 'Payout Events',
+                  subtitle: 'Allowance batches',
+                  onTap: _openPayoutEvents,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _quickActionTile(
+                  context,
+                  icon: AppIcons.chart,
+                  tileColor: context.colors.successBg,
+                  iconColor: context.colors.successText,
+                  title: 'Reports',
+                  subtitle: 'Totals, history, exports',
+                  onTap: _openReports,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: _quickActionTile(
-              context,
-              icon: AppIcons.chart,
-              tileColor: context.colors.successBg,
-              iconColor: context.colors.successText,
-              title: 'Reports',
-              subtitle: 'Totals, history, exports',
-              onTap: _openReports,
-            ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 160,
+          child: _quickActionTile(
+            context,
+            icon: AppIcons.clock,
+            tileColor: context.colors.brandTint,
+            iconColor: context.colors.brand,
+            title: 'Activity Log',
+            subtitle: 'Read-only payout records',
+            onTap: _openActivityLog,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 160,
+          child: _quickActionTile(
+            context,
+            icon: AppIcons.bankAccount,
+            tileColor: context.colors.warningBg,
+            iconColor: context.colors.warningText,
+            title: 'Funding account',
+            subtitle: 'Available fund and activity',
+            onTap: _openFundingAccount,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1093,117 +1146,112 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final state = context.watch<AppState>();
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: Column(
-        children: [
-          AppHeader(
-            name: state.user?.fullName ?? 'Admin',
-            initials: state.user?.initials ?? 'A',
-            subtitle: 'Administrator',
-            notificationCount: _pendingRegs.length,
-            onNotifications: _showNotifications,
-            showLogout: false,
-            softBackground: true,
-            scaleHeightForText: true,
-            avatarSize: 52,
-            avatarRingColor: context.colors.accentGold,
-            avatarRingWidth: 2,
-            nameFontSize: 20,
-            subtitleFontSize: 12,
-            roundActionButtons: true,
-            actionButtonSize: 44,
-            dayNightIcons: true,
-          ),
-          Expanded(
-            child: ClipRect(
-              child: ScrollConfiguration(
-                behavior: const _AdminNoStretchScrollBehavior(),
-                child: RefreshIndicator(
-                  onRefresh: _load,
-                  child: ContentWidth(
-                    child: ListView(
-                      physics: const ClampingScrollPhysics(
-                        parent: AlwaysScrollableScrollPhysics(),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                      children: [
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _disbursementHero(context),
+      body: AppInitialLoadView(
+        firstLoadPending: !_hasLoaded,
+        skeleton: const HomeLoadingSkeleton(),
+        child: Column(
+          children: [
+            AppHeader(
+              name: state.user?.fullName ?? 'Admin',
+              initials: state.user?.initials ?? 'A',
+              subtitle: 'Administrator',
+              notificationCount: _pendingRegs.length,
+              onNotifications: _showNotifications,
+              showLogout: false,
+              softBackground: true,
+              scaleHeightForText: true,
+              avatarSize: 52,
+              avatarRingColor: context.colors.accentGold,
+              avatarRingWidth: 2,
+              nameFontSize: 20,
+              subtitleFontSize: 12,
+              roundActionButtons: true,
+              actionButtonSize: 44,
+              dayNightIcons: true,
+            ),
+            Expanded(
+              child: ClipRect(
+                child: ScrollConfiguration(
+                  behavior: const _AdminNoStretchScrollBehavior(),
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: ContentWidth(
+                      child: ListView(
+                        physics: const ClampingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
                         ),
-                        if (_loadError != null) ...[
-                          const SizedBox(height: 16),
-                          ErrorCard(message: _loadError!, onRetry: _load),
-                        ],
-                        const SizedBox(height: 16),
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _quickActionTiles(context),
-                        ),
-                        const SizedBox(height: 16),
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _overviewCard(
-                            context,
-                            state.allowance.allowanceAmount,
-                          ),
-                        ),
-                        if (_pendingRegs.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          _registrationsCard(context),
-                        ],
-                        const SizedBox(height: 26),
-                        SectionLabel(
-                          'LATEST PAYOUT EVENT',
-                          labelColor: context.colors.textBody,
-                        ),
-                        const SizedBox(height: 10),
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _latestPayoutEventCard(context),
-                        ),
-                        const SizedBox(height: 26),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Recent payouts',
-                                style: TextStyle(
-                                  color: context.colors.textPrimary,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: _openPayoutMonitor,
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(48, 32),
-                                padding: EdgeInsets.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'View all',
-                                style: TextStyle(
-                                  color: context.colors.brand,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                        children: [
+                          _disbursementHero(context),
+                          if (_loadError != null) ...[
+                            const SizedBox(height: 16),
+                            ErrorCard(
+                              message: _offline
+                                  ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                                  : _loadError!,
+                              onRetry: _load,
+                              prominent: true,
+                              offline: _offline,
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-                        AppSkeletonizer(
-                          enabled: !_hasLoaded,
-                          child: _recentPayoutsCard(context),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          _quickActionTiles(context),
+                          const SizedBox(height: 16),
+                          _overviewCard(
+                              context, state.allowance.allowanceAmount),
+                          if (_pendingRegs.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            _registrationsCard(context),
+                          ],
+                          const SizedBox(height: 26),
+                          SectionLabel(
+                            'LATEST PAYOUT EVENT',
+                            labelColor: context.colors.textBody,
+                          ),
+                          const SizedBox(height: 10),
+                          _latestPayoutEventCard(context),
+                          const SizedBox(height: 26),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Recent payouts',
+                                  style: TextStyle(
+                                    color: context.colors.textPrimary,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _openPayoutMonitor,
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(48, 32),
+                                  padding: EdgeInsets.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'View all',
+                                  style: TextStyle(
+                                    color: context.colors.brand,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          _recentPayoutsCard(context),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

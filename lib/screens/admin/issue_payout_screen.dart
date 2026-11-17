@@ -9,6 +9,7 @@ import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
 import '../fingerprint_screen.dart';
 import 'allowance_settings_screen.dart';
+import 'funding_account_screen.dart';
 
 /// Admin: issue a payout batch. The amount comes from the single standard
 /// allowance setting and is NOT editable here, so every scholar is paid the
@@ -25,6 +26,9 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   final _distributionDate = TextEditingController();
   DateTime? _selectedDistributionDate;
   List<Scholar> _scholars = [];
+  FundingAccount? _fundingAccount;
+  FundSummary? _fundSummary;
+  bool _fundingAccountLoaded = false;
   bool _loading = true;
   bool _busy = false;
 
@@ -59,6 +63,9 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }
 
   Future<void> _load() async {
+    _fundingAccount = null;
+    _fundSummary = null;
+    _fundingAccountLoaded = false;
     try {
       final state = context.read<AppState>();
       await state.loadAllowanceSettings();
@@ -69,10 +76,31 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
               s.active && s.verificationStatus == VerificationStatus.approved)
           .toList();
       _batchTitle.text = '${state.allowance.label} • ${DateTime.now().year}';
+
+      try {
+        _fundingAccount = await state.wallet.getFundingAccount();
+        _fundingAccountLoaded = true;
+      } catch (_) {
+        _fundingAccount = null;
+      }
+
+      try {
+        _fundSummary = await state.wallet.getFundSummary();
+      } catch (_) {
+        _fundSummary = null;
+      }
     } catch (_) {
       _scholars = [];
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _openFundingAccount() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const FundingAccountScreen()),
+    );
+    if (mounted) await _load();
   }
 
   Future<void> _generate() async {
@@ -522,6 +550,219 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     );
   }
 
+  Widget _fundingAccountCard(FundingAccount account) {
+    final colors = context.colors;
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: colors.warningBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              AppIcons.bankAccount,
+              color: colors.warningText,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  account.bankName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${account.accountName} · •••• ${account.last4}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textBody,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 4),
+          TextButton(
+            onPressed: _openFundingAccount,
+            style: TextButton.styleFrom(
+              foregroundColor: colors.brand,
+              minimumSize: const Size(48, 44),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            child: const Text(
+              'Manage',
+              style: TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fundCheckCard({
+    required int selectedCount,
+    required double amountPerScholar,
+    required double total,
+    required FundSummary summary,
+  }) {
+    final colors = context.colors;
+    final enoughFunds = summary.available >= total;
+    final finalLabel = enoughFunds ? 'Remaining after payout' : 'Shortfall';
+    final finalAmount = enoughFunds
+        ? 'PHP ${fmtPhp(summary.available - total)}'
+        : 'PHP ${fmtPhp(total - summary.available)}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionLabel(
+          'FUND CHECK',
+          labelColor: colors.textBody,
+          fontSize: 11.5,
+          letterSpacing: 1.2,
+        ),
+        const SizedBox(height: 10),
+        AppCard(
+          radius: 22,
+          shadow: true,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              _fundCheckRow(
+                'Available fund',
+                'PHP ${fmtPhp(summary.available)}',
+              ),
+              Divider(height: 1, thickness: 1, color: colors.borderSoft),
+              _fundCheckRow(
+                'This payout',
+                '$selectedCount x PHP ${fmtPhp(amountPerScholar)} = '
+                    'PHP ${fmtPhp(total)}',
+              ),
+              Divider(height: 1, thickness: 1, color: colors.borderSoft),
+              _fundCheckRow(
+                finalLabel,
+                finalAmount,
+                valueColor:
+                    enoughFunds ? colors.textPrimary : colors.dangerText,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _fundStatusBanner(
+          enoughFunds: enoughFunds,
+          shortfall: enoughFunds ? 0 : total - summary.available,
+        ),
+      ],
+    );
+  }
+
+  Widget _fundCheckRow(String label, String value, {Color? valueColor}) {
+    final colors = context.colors;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: colors.textBody,
+                fontSize: 13.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                maxLines: 1,
+                softWrap: false,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: valueColor ?? colors.textPrimary,
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _fundStatusBanner({
+    required bool enoughFunds,
+    required double shortfall,
+  }) {
+    final colors = context.colors;
+    final message = enoughFunds
+        ? 'Enough funds for this payout.'
+        : 'Not enough funds. Top up at least PHP ${fmtPhp(shortfall)} '
+            'to continue.';
+    final leading = Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: enoughFunds ? colors.success : colors.dangerText,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        enoughFunds ? AppIcons.check : AppIcons.warning,
+        color: colors.onHeader,
+        size: 22,
+      ),
+    );
+    final banner = InfoBanner(
+      icon: enoughFunds ? AppIcons.check : AppIcons.warning,
+      message: message,
+      leading: leading,
+      maxLines: 3,
+      backgroundColor: enoughFunds ? colors.successBg : Colors.transparent,
+      iconColor: enoughFunds ? colors.successText : colors.dangerText,
+      textColor: enoughFunds ? colors.successText : colors.dangerText,
+      borderRadius: 18,
+      padding: const EdgeInsets.all(16),
+      fontSize: 13.5,
+    );
+
+    if (enoughFunds) return banner;
+    return Semantics(
+      liveRegion: true,
+      child: AppCard(
+        radius: 18,
+        padding: EdgeInsets.zero,
+        backgroundColor: colors.dangerBg,
+        borderColor: colors.danger.withValues(alpha: .35),
+        child: banner,
+      ),
+    );
+  }
+
   Widget _loadingSkeleton() {
     Widget block(double height, {double radius = 16}) => Container(
           width: double.infinity,
@@ -570,6 +811,14 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     final selectedCount = _scholars.where((s) => s.selected).length;
     final total = selectedCount * state.allowance.allowanceAmount;
     final colors = context.colors;
+    final fundingAccountMissing =
+        _fundingAccountLoaded && _fundingAccount == null;
+    final shortfall = _fundingAccount != null &&
+            _fundSummary != null &&
+            total > _fundSummary!.available
+        ? total - _fundSummary!.available
+        : 0.0;
+    final insufficientFunds = shortfall > 0;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -610,6 +859,52 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
                 _amountCard(state),
+                if (_fundingAccount != null) ...[
+                  const SizedBox(height: 20),
+                  SectionLabel(
+                    'FUNDING ACCOUNT',
+                    labelColor: colors.textBody,
+                    fontSize: 11.5,
+                    letterSpacing: 1.2,
+                  ),
+                  const SizedBox(height: 10),
+                  _fundingAccountCard(_fundingAccount!),
+                  if (_fundSummary != null) ...[
+                    const SizedBox(height: 18),
+                    _fundCheckCard(
+                      selectedCount: selectedCount,
+                      amountPerScholar: state.allowance.allowanceAmount,
+                      total: total,
+                      summary: _fundSummary!,
+                    ),
+                  ],
+                ] else if (fundingAccountMissing) ...[
+                  const SizedBox(height: 20),
+                  SectionLabel(
+                    'FUNDING ACCOUNT',
+                    labelColor: colors.textBody,
+                    fontSize: 11.5,
+                    letterSpacing: 1.2,
+                  ),
+                  const SizedBox(height: 10),
+                  InfoBanner(
+                    icon: AppIcons.warning,
+                    message: 'Link a funding account before issuing a payout.',
+                    backgroundColor: colors.warningBg,
+                    iconColor: colors.warningText,
+                    textColor: colors.warningText,
+                    borderRadius: 18,
+                    padding: const EdgeInsets.all(16),
+                  ),
+                  const SizedBox(height: 12),
+                  PrimaryButton(
+                    label: 'Link bank account',
+                    icon: AppIcons.link,
+                    minHeight: 54,
+                    borderRadius: 18,
+                    onPressed: _openFundingAccount,
+                  ),
+                ],
                 const SizedBox(height: 16),
                 _label('Batch title'),
                 AppTextField(
@@ -711,10 +1006,21 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   ..._scholars.map(_scholarTile),
                 const SizedBox(height: 16),
                 _totalBar(selectedCount, total),
+                if (insufficientFunds) ...[
+                  const SizedBox(height: 12),
+                  SecondaryButton(
+                    label: 'Top up fund',
+                    onPressed: _openFundingAccount,
+                    minHeight: 54,
+                    borderRadius: 18,
+                  ),
+                ],
                 const SizedBox(height: 18),
                 PrimaryButton(
                   label: 'Generate QR Codes',
-                  onPressed: _busy ? null : _generate,
+                  onPressed: _busy || fundingAccountMissing || insufficientFunds
+                      ? null
+                      : _generate,
                   icon: AppIcons.qrCode,
                   loading: _busy,
                   loadingLabel: 'Generate QR Codes',

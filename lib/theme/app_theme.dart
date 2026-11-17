@@ -14,12 +14,16 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color surface; // cards, inputs, app bars
   final Color border; // input / outline borders
   final Color borderSoft; // subtle card borders
+  final Color skeletonBase;
+  final Color skeletonHighlight;
   final Color textPrimary; // headings & body text
   final Color textBody; // secondary paragraph text
   final Color textLabel; // form labels
   final Color hint; // input hints
+  final Color hintContrast; // accessible hint and muted icon color
   final Color brand; // blue used for text / icons / links
   final Color heroGradientEnd;
+  final Color receiptHeroEnd;
   final Color balanceHeroStart;
   final Color balanceHeroEnd;
   final Color balanceHeroText;
@@ -27,6 +31,12 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color warningText;
   final Color dangerText;
   final Color brandTint; // tinted backgrounds for brand icon tiles
+  final Color brandTintText;
+  final Color filterCountBackground;
+  final Color infoRequiredBg;
+  final Color infoRequiredText;
+  final Color dangerOutline;
+  final Color dangerFeedbackText;
   final Color header; // home header bar
   final Color authHeroStart;
   final Color authHeroEnd;
@@ -34,12 +44,18 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color scanGradientStart; // scan screen background
   final Color onGold; // content displayed on gold surfaces
   final Color avatarBackground; // cream avatar background
+  final Color avatarTint;
+  final Color avatarText;
   final Color goldTint; // pale gold panel
+  final Color goldTintBorder;
+  final Color goldTintText;
   final Color accentGold; // gold icons and accents
   final Color successBg;
   final Color dangerBg;
+  final Color dangerBorder;
   final Color warningBg;
   final Color success;
+  final Color successAccent;
   final Color danger;
   final Color warning;
   final Color cardShadow;
@@ -53,12 +69,16 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.surface,
     required this.border,
     required this.borderSoft,
+    required this.skeletonBase,
+    required this.skeletonHighlight,
     required this.textPrimary,
     required this.textBody,
     required this.textLabel,
     required this.hint,
+    required this.hintContrast,
     required this.brand,
     required this.heroGradientEnd,
+    required this.receiptHeroEnd,
     required this.balanceHeroStart,
     required this.balanceHeroEnd,
     required this.balanceHeroText,
@@ -66,6 +86,12 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.warningText,
     required this.dangerText,
     required this.brandTint,
+    required this.brandTintText,
+    required this.filterCountBackground,
+    required this.infoRequiredBg,
+    required this.infoRequiredText,
+    required this.dangerOutline,
+    required this.dangerFeedbackText,
     required this.header,
     required this.authHeroStart,
     required this.authHeroEnd,
@@ -73,12 +99,18 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.scanGradientStart,
     required this.onGold,
     required this.avatarBackground,
+    required this.avatarTint,
+    required this.avatarText,
     required this.goldTint,
+    required this.goldTintBorder,
+    required this.goldTintText,
     required this.accentGold,
     required this.successBg,
     required this.dangerBg,
+    required this.dangerBorder,
     required this.warningBg,
     required this.success,
+    required this.successAccent,
     required this.danger,
     required this.warning,
     required this.cardShadow,
@@ -93,12 +125,16 @@ class AppColors extends ThemeExtension<AppColors> {
     surface: Color(0xFFFFFFFF),
     border: Color(0xFFE3E8EF),
     borderSoft: Color(0xFFEEF1F6),
+    skeletonBase: Color(0xFFE9EDF3),
+    skeletonHighlight: Color(0xFFF5F7FA),
     textPrimary: Color(0xFF1A2530),
     textBody: Color(0xFF4A5568),
     textLabel: Color(0xFF3A4556),
     hint: Color(0xFFA3ABB8),
+    hintContrast: Color(0xFF677281),
     brand: Color(0xFF1E5AA8),
     heroGradientEnd: Color(0xFF174B89),
+    receiptHeroEnd: Color(0xFF123F86),
     balanceHeroStart: Color(0xFFEFC45F),
     balanceHeroEnd: Color(0xFFDDA33B),
     balanceHeroText: Color(0xFF342507),
@@ -106,6 +142,12 @@ class AppColors extends ThemeExtension<AppColors> {
     warningText: Color(0xFF765000),
     dangerText: Color(0xFFA52A2A),
     brandTint: Color(0xFFEAF2FE),
+    brandTintText: Color(0xFF123F86),
+    filterCountBackground: Color(0xFFF0F2F6),
+    infoRequiredBg: Color(0xFFFDEFD2),
+    infoRequiredText: Color(0xFF9A5B00),
+    dangerOutline: Color(0xFFF0B8B8),
+    dangerFeedbackText: Color(0xFF6E1B1B),
     header: Color(0xFF1E5AA8),
     authHeroStart: Color(0xFF2A6FC9),
     authHeroEnd: Color(0xFF164786),
@@ -113,12 +155,18 @@ class AppColors extends ThemeExtension<AppColors> {
     scanGradientStart: Color(0xFF0B1D3A),
     onGold: Color(0xFF342507),
     avatarBackground: Color(0xFFFFF4D8),
+    avatarTint: Color(0xFFFFF1CC),
+    avatarText: Color(0xFF4A3300),
     goldTint: Color(0xFFFCF7EA),
+    goldTintBorder: Color(0xFFF3D9A0),
+    goldTintText: Color(0xFF4A3200),
     accentGold: Color(0xFFD9A441),
     successBg: Color(0xFFE5F8F0),
     dangerBg: Color(0xFFFDECEC),
+    dangerBorder: Color(0xFFE8B4B4),
     warningBg: Color(0xFFFFF6E3),
     success: Color(0xFF1DB981),
+    successAccent: Color(0xFF1FB886),
     danger: Color(0xFFE15A5A),
     warning: Color(0xFFF0A020),
     cardShadow: Color(0x140E2946),
@@ -133,12 +181,16 @@ class AppColors extends ThemeExtension<AppColors> {
     surface: Color(0xFF1A212B),
     border: Color(0xFF2E3846),
     borderSoft: Color(0xFF252E3B),
+    skeletonBase: Color(0xFF2B3442),
+    skeletonHighlight: Color(0xFF394455),
     textPrimary: Color(0xFFE8EDF4),
     textBody: Color(0xFFB4BDCB),
     textLabel: Color(0xFFC9D1DC),
     hint: Color(0xFF6B7587),
+    hintContrast: Color(0xFFA6B0BF),
     brand: Color(0xFF6FA3E8),
     heroGradientEnd: Color(0xFF103C70),
+    receiptHeroEnd: Color(0xFF0D2F5E),
     balanceHeroStart: Color(0xFFD9AD4F),
     balanceHeroEnd: Color(0xFFBF8928),
     balanceHeroText: Color(0xFF241A08),
@@ -146,6 +198,12 @@ class AppColors extends ThemeExtension<AppColors> {
     warningText: Color(0xFFF4B942),
     dangerText: Color(0xFFF07575),
     brandTint: Color(0xFF1D3554),
+    brandTintText: Color(0xFFA8C6ED),
+    filterCountBackground: Color(0xFF303744),
+    infoRequiredBg: Color(0xFF423113),
+    infoRequiredText: Color(0xFFF3C969),
+    dangerOutline: Color(0xFF6A3A3E),
+    dangerFeedbackText: Color(0xFFF2B1B1),
     header: Color(0xFF14467F),
     authHeroStart: Color(0xFF1E579B),
     authHeroEnd: Color(0xFF103763),
@@ -153,12 +211,18 @@ class AppColors extends ThemeExtension<AppColors> {
     scanGradientStart: Color(0xFF08162D),
     onGold: Color(0xFF342507),
     avatarBackground: Color(0xFF453719),
+    avatarTint: Color(0xFF3A301D),
+    avatarText: Color(0xFFF1DDA8),
     goldTint: Color(0xFF2A2415),
+    goldTintBorder: Color(0xFF5C4A28),
+    goldTintText: Color(0xFFF3E4BD),
     accentGold: Color(0xFFE6B85D),
     successBg: Color(0xFF10352A),
     dangerBg: Color(0xFF3A1D1F),
+    dangerBorder: Color(0xFF6A3A3E),
     warningBg: Color(0xFF3A2D12),
     success: Color(0xFF54D6A4),
+    successAccent: Color(0xFF48D4A3),
     danger: Color(0xFFF07575),
     warning: Color(0xFFF4B942),
     cardShadow: Color(0x33000000),
@@ -174,12 +238,16 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? surface,
     Color? border,
     Color? borderSoft,
+    Color? skeletonBase,
+    Color? skeletonHighlight,
     Color? textPrimary,
     Color? textBody,
     Color? textLabel,
     Color? hint,
+    Color? hintContrast,
     Color? brand,
     Color? heroGradientEnd,
+    Color? receiptHeroEnd,
     Color? balanceHeroStart,
     Color? balanceHeroEnd,
     Color? balanceHeroText,
@@ -187,6 +255,12 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? warningText,
     Color? dangerText,
     Color? brandTint,
+    Color? brandTintText,
+    Color? filterCountBackground,
+    Color? infoRequiredBg,
+    Color? infoRequiredText,
+    Color? dangerOutline,
+    Color? dangerFeedbackText,
     Color? header,
     Color? authHeroStart,
     Color? authHeroEnd,
@@ -194,12 +268,18 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? scanGradientStart,
     Color? onGold,
     Color? avatarBackground,
+    Color? avatarTint,
+    Color? avatarText,
     Color? goldTint,
+    Color? goldTintBorder,
+    Color? goldTintText,
     Color? accentGold,
     Color? successBg,
     Color? dangerBg,
+    Color? dangerBorder,
     Color? warningBg,
     Color? success,
+    Color? successAccent,
     Color? danger,
     Color? warning,
     Color? cardShadow,
@@ -213,12 +293,16 @@ class AppColors extends ThemeExtension<AppColors> {
         surface: surface ?? this.surface,
         border: border ?? this.border,
         borderSoft: borderSoft ?? this.borderSoft,
+        skeletonBase: skeletonBase ?? this.skeletonBase,
+        skeletonHighlight: skeletonHighlight ?? this.skeletonHighlight,
         textPrimary: textPrimary ?? this.textPrimary,
         textBody: textBody ?? this.textBody,
         textLabel: textLabel ?? this.textLabel,
         hint: hint ?? this.hint,
+        hintContrast: hintContrast ?? this.hintContrast,
         brand: brand ?? this.brand,
         heroGradientEnd: heroGradientEnd ?? this.heroGradientEnd,
+        receiptHeroEnd: receiptHeroEnd ?? this.receiptHeroEnd,
         balanceHeroStart: balanceHeroStart ?? this.balanceHeroStart,
         balanceHeroEnd: balanceHeroEnd ?? this.balanceHeroEnd,
         balanceHeroText: balanceHeroText ?? this.balanceHeroText,
@@ -226,6 +310,13 @@ class AppColors extends ThemeExtension<AppColors> {
         warningText: warningText ?? this.warningText,
         dangerText: dangerText ?? this.dangerText,
         brandTint: brandTint ?? this.brandTint,
+        brandTintText: brandTintText ?? this.brandTintText,
+        filterCountBackground:
+            filterCountBackground ?? this.filterCountBackground,
+        infoRequiredBg: infoRequiredBg ?? this.infoRequiredBg,
+        infoRequiredText: infoRequiredText ?? this.infoRequiredText,
+        dangerOutline: dangerOutline ?? this.dangerOutline,
+        dangerFeedbackText: dangerFeedbackText ?? this.dangerFeedbackText,
         header: header ?? this.header,
         authHeroStart: authHeroStart ?? this.authHeroStart,
         authHeroEnd: authHeroEnd ?? this.authHeroEnd,
@@ -233,12 +324,18 @@ class AppColors extends ThemeExtension<AppColors> {
         scanGradientStart: scanGradientStart ?? this.scanGradientStart,
         onGold: onGold ?? this.onGold,
         avatarBackground: avatarBackground ?? this.avatarBackground,
+        avatarTint: avatarTint ?? this.avatarTint,
+        avatarText: avatarText ?? this.avatarText,
         goldTint: goldTint ?? this.goldTint,
+        goldTintBorder: goldTintBorder ?? this.goldTintBorder,
+        goldTintText: goldTintText ?? this.goldTintText,
         accentGold: accentGold ?? this.accentGold,
         successBg: successBg ?? this.successBg,
         dangerBg: dangerBg ?? this.dangerBg,
+        dangerBorder: dangerBorder ?? this.dangerBorder,
         warningBg: warningBg ?? this.warningBg,
         success: success ?? this.success,
+        successAccent: successAccent ?? this.successAccent,
         danger: danger ?? this.danger,
         warning: warning ?? this.warning,
         cardShadow: cardShadow ?? this.cardShadow,
@@ -257,12 +354,16 @@ class AppColors extends ThemeExtension<AppColors> {
       surface: l(surface, other.surface),
       border: l(border, other.border),
       borderSoft: l(borderSoft, other.borderSoft),
+      skeletonBase: l(skeletonBase, other.skeletonBase),
+      skeletonHighlight: l(skeletonHighlight, other.skeletonHighlight),
       textPrimary: l(textPrimary, other.textPrimary),
       textBody: l(textBody, other.textBody),
       textLabel: l(textLabel, other.textLabel),
       hint: l(hint, other.hint),
+      hintContrast: l(hintContrast, other.hintContrast),
       brand: l(brand, other.brand),
       heroGradientEnd: l(heroGradientEnd, other.heroGradientEnd),
+      receiptHeroEnd: l(receiptHeroEnd, other.receiptHeroEnd),
       balanceHeroStart: l(balanceHeroStart, other.balanceHeroStart),
       balanceHeroEnd: l(balanceHeroEnd, other.balanceHeroEnd),
       balanceHeroText: l(balanceHeroText, other.balanceHeroText),
@@ -270,6 +371,13 @@ class AppColors extends ThemeExtension<AppColors> {
       warningText: l(warningText, other.warningText),
       dangerText: l(dangerText, other.dangerText),
       brandTint: l(brandTint, other.brandTint),
+      brandTintText: l(brandTintText, other.brandTintText),
+      filterCountBackground:
+          l(filterCountBackground, other.filterCountBackground),
+      infoRequiredBg: l(infoRequiredBg, other.infoRequiredBg),
+      infoRequiredText: l(infoRequiredText, other.infoRequiredText),
+      dangerOutline: l(dangerOutline, other.dangerOutline),
+      dangerFeedbackText: l(dangerFeedbackText, other.dangerFeedbackText),
       header: l(header, other.header),
       authHeroStart: l(authHeroStart, other.authHeroStart),
       authHeroEnd: l(authHeroEnd, other.authHeroEnd),
@@ -277,12 +385,18 @@ class AppColors extends ThemeExtension<AppColors> {
       scanGradientStart: l(scanGradientStart, other.scanGradientStart),
       onGold: l(onGold, other.onGold),
       avatarBackground: l(avatarBackground, other.avatarBackground),
+      avatarTint: l(avatarTint, other.avatarTint),
+      avatarText: l(avatarText, other.avatarText),
       goldTint: l(goldTint, other.goldTint),
+      goldTintBorder: l(goldTintBorder, other.goldTintBorder),
+      goldTintText: l(goldTintText, other.goldTintText),
       accentGold: l(accentGold, other.accentGold),
       successBg: l(successBg, other.successBg),
       dangerBg: l(dangerBg, other.dangerBg),
+      dangerBorder: l(dangerBorder, other.dangerBorder),
       warningBg: l(warningBg, other.warningBg),
       success: l(success, other.success),
+      successAccent: l(successAccent, other.successAccent),
       danger: l(danger, other.danger),
       warning: l(warning, other.warning),
       cardShadow: l(cardShadow, other.cardShadow),

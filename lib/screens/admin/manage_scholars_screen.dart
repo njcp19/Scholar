@@ -25,8 +25,10 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   List<Scholar> _scholars = [];
   final Set<String> _updatingIds = {};
   bool _loading = true;
+  bool _hasLoaded = false;
   String _query = '';
   String? _error;
+  bool _offline = false;
   ShellTabController? _tabController;
 
   @override
@@ -61,11 +63,17 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
     try {
       _scholars = await context.read<AppState>().wallet.getScholars();
       _error = null;
+      _offline = false;
     } catch (e) {
-      _scholars = [];
       _error = '$e';
+      _offline = isOfflineLoadError(e);
     }
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() {
+        _loading = false;
+        _hasLoaded = true;
+      });
+    }
   }
 
   List<Scholar> get _visibleScholars {
@@ -208,184 +216,149 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
           ),
         ],
       ),
-      body: _loading
-          ? _loadingBody()
-          : _error != null
-              ? ListView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    ErrorCard(
-                      message: 'Could not load scholars.\n$_error',
-                      onRetry: _load,
-                    ),
-                  ],
-                )
-              : RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-                    children: [
-                      _heroCard(),
-                      const SizedBox(height: 16),
-                      SearchField(
-                        controller: _searchController,
-                        hintText: 'Search by name or ID',
-                        radius: 18,
-                        minHeight: 52,
-                        onChanged: (value) => setState(() => _query = value),
-                        suffixIcon: _query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: 'Clear search',
-                                onPressed: _clearSearch,
-                                icon: Icon(
-                                  AppIcons.close,
-                                  color: context.colors.textBody,
-                                ),
-                              ),
-                      ),
-                      const SizedBox(height: 20),
-                      SectionLabel(
-                        'SCHOLARS (${_visibleScholars.length}) · '
-                        'TOGGLE TO CONTROL ALLOWANCE',
-                      ),
-                      const SizedBox(height: 12),
-                      if (_scholars.isEmpty)
-                        const AppCard(
-                          radius: 22,
-                          shadow: true,
-                          child: EmptyState(
-                            icon: AppIcons.users,
-                            title: 'No scholars registered yet',
-                            message:
-                                'Registered scholar accounts will appear here.',
-                          ),
-                        )
-                      else if (_visibleScholars.isEmpty)
-                        AppCard(
-                          radius: 22,
-                          shadow: true,
-                          child: EmptyState(
-                            icon: AppIcons.search,
-                            title: 'No matching scholars',
-                            message: 'Try another name or student ID.',
-                            action: TextButton(
-                              onPressed: _clearSearch,
-                              child: const Text('Clear filters'),
-                            ),
-                          ),
-                        )
-                      else
-                        ..._visibleScholars.map(_scholarCard),
-                    ],
-                  ),
+      body: AppInitialLoadView(
+        firstLoadPending: !_hasLoaded,
+        skeleton: _loadingBody(),
+        child: RefreshIndicator(
+          onRefresh: _load,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            children: [
+              if (_error != null) ...[
+                ErrorCard(
+                  message: _offline
+                      ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                      : 'Could not load scholars.\n$_error',
+                  onRetry: _load,
+                  prominent: _scholars.isEmpty,
+                  offline: _offline,
                 ),
+                if (_scholars.isNotEmpty) const SizedBox(height: 12),
+              ],
+              _heroCard(),
+              const SizedBox(height: 16),
+              SearchField(
+                controller: _searchController,
+                hintText: 'Search by name or ID',
+                radius: 18,
+                minHeight: 52,
+                onChanged: (value) => setState(() => _query = value),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: _clearSearch,
+                        icon: Icon(
+                          AppIcons.close,
+                          color: context.colors.textBody,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 20),
+              SectionLabel(
+                'SCHOLARS (${_visibleScholars.length}) · '
+                'TOGGLE TO CONTROL ALLOWANCE',
+              ),
+              const SizedBox(height: 12),
+              if (_scholars.isEmpty && _error == null)
+                const AppCard(
+                  radius: 22,
+                  shadow: true,
+                  child: EmptyState(
+                    icon: AppIcons.users,
+                    title: 'No scholars registered yet',
+                    message: 'Registered scholar accounts will appear here.',
+                  ),
+                )
+              else if (_scholars.isNotEmpty && _visibleScholars.isEmpty)
+                AppCard(
+                  radius: 22,
+                  shadow: true,
+                  child: EmptyState(
+                    icon: AppIcons.search,
+                    title: 'No matching scholars',
+                    message: 'Try another name or student ID.',
+                    action: TextButton(
+                      onPressed: _clearSearch,
+                      child: const Text('Clear filters'),
+                    ),
+                  ),
+                )
+              else if (_visibleScholars.isNotEmpty)
+                ..._visibleScholars.map(_scholarCard),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   Widget _loadingBody() {
-    return AppSkeletonizer(
-      enabled: true,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-        children: [
-          _loadingHero(),
-          const SizedBox(height: 16),
-          SearchField(
-            controller: _searchController,
-            hintText: 'Search by name or ID',
-            radius: 18,
-            minHeight: 52,
-          ),
-          const SizedBox(height: 20),
-          const SectionLabel('SCHOLARS · TOGGLE TO CONTROL ALLOWANCE'),
-          const SizedBox(height: 12),
-          for (var index = 0; index < 3; index++) ...[
-            _loadingCard(),
-            const SizedBox(height: 12),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _loadingHero() {
-    return AppCard(
-      radius: 26,
-      padding: const EdgeInsets.all(22),
-      backgroundColor: context.colors.borderSoft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(height: 12, width: 140, color: Colors.white),
-          const SizedBox(height: 10),
-          Container(height: 44, width: 68, color: Colors.white),
-          const SizedBox(height: 14),
-          Row(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+      children: [
+        const SkeletonCard(
+          radius: 26,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 34,
-                width: 110,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(24)),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                height: 34,
-                width: 138,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(24)),
-                ),
+              SkeletonLine(width: 140),
+              SizedBox(height: 10),
+              SkeletonLine(width: 68, height: 44),
+              SizedBox(height: 14),
+              Row(
+                children: [
+                  SkeletonBox(width: 102, height: 34, radius: 17),
+                  SizedBox(width: 8),
+                  SkeletonBox(width: 120, height: 34, radius: 17),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _loadingCard() {
-    return AppCard(
-      radius: 22,
-      shadow: true,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const CircleAvatar(radius: 24),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        const SizedBox(height: 16),
+        const SkeletonBox(height: 52, radius: 18),
+        const SizedBox(height: 20),
+        const SkeletonLine(width: 210, height: 13),
+        const SizedBox(height: 12),
+        for (var index = 0; index < 4; index++) ...[
+          if (index > 0) const SizedBox(height: 12),
+          const SkeletonCard(
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    Container(height: 16, width: 150, color: Colors.white),
-                    const SizedBox(height: 8),
-                    Container(height: 12, width: 100, color: Colors.white),
+                    SkeletonCircle(diameter: 48),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkeletonLine(width: 150, height: 15),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 100, height: 12),
+                        ],
+                      ),
+                    ),
+                    SkeletonBox(width: 40, height: 24, radius: 12),
                   ],
                 ),
-              ),
-              const SizedBox(width: 40, height: 24),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Divider(color: context.colors.borderSoft),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Container(height: 24, width: 74, color: Colors.white),
-              const SizedBox(width: 12),
-              Container(height: 16, width: 104, color: Colors.white),
-            ],
+                SizedBox(height: 16),
+                SkeletonLine(height: 1),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    SkeletonBox(width: 74, height: 24, radius: 12),
+                    SizedBox(width: 12),
+                    SkeletonLine(width: 104, height: 16),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
-      ),
+      ],
     );
   }
 

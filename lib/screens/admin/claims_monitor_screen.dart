@@ -22,8 +22,9 @@ class ClaimsMonitorScreen extends StatefulWidget {
 
 class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   List<AllowanceClaim> _claims = [];
-  bool _loading = true;
+  bool _hasLoaded = false;
   String? _error;
+  bool _offline = false;
   String _filter = 'all';
   String _query = '';
   final _searchController = TextEditingController();
@@ -64,22 +65,23 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       setState(() {
         _claims = claims;
         _error = null;
-        _loading = false;
+        _offline = false;
+        _hasLoaded = true;
       });
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _claims = [];
         _error = '$error';
-        _loading = false;
+        _offline = isOfflineLoadError(error);
+        _hasLoaded = true;
       });
     }
   }
 
   Future<void> _retry() async {
     setState(() {
-      _loading = true;
       _error = null;
+      _offline = false;
     });
     await _load();
   }
@@ -652,41 +654,78 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   }
 
   Widget _loadingSkeleton() {
-    return AppSkeletonizer(
-      enabled: true,
-      child: Column(
-        children: [
-          AppCard(
-            radius: 26,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(width: 140, height: 14, color: Colors.white),
-                const SizedBox(height: 12),
-                Container(width: 230, height: 42, color: Colors.white),
-              ],
-            ),
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      children: [
+        const SkeletonCard(
+          radius: 26,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonLine(width: 140, height: 14),
+              SizedBox(height: 12),
+              SkeletonLine(width: 230, height: 42),
+            ],
           ),
-          const SizedBox(height: 16),
-          AppCard(
-            radius: 22,
-            child: Container(height: 56, color: Colors.white),
-          ),
-          const SizedBox(height: 16),
-          AppCard(
-            radius: 22,
-            child: Column(
-              children: List.generate(
-                3,
-                (index) => Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Container(height: 42, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        const Row(
+          children: [
+            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            SizedBox(width: 10),
+            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            SizedBox(width: 10),
+            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+          ],
+        ),
+        const SizedBox(height: 14),
+        const SkeletonBox(height: 48, radius: 16),
+        const SizedBox(height: 12),
+        const Row(
+          children: [
+            SkeletonBox(width: 56, height: 34, radius: 17),
+            SizedBox(width: 8),
+            SkeletonBox(width: 82, height: 34, radius: 17),
+            SizedBox(width: 8),
+            SkeletonBox(width: 90, height: 34, radius: 17),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SkeletonCard(
+          child: Column(
+            children: [
+              for (var index = 0; index < 4; index++) ...[
+                if (index > 0) const SizedBox(height: 18),
+                const Row(
+                  children: [
+                    SkeletonCircle(diameter: 42),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkeletonLine(width: 142, height: 13),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 92, height: 11),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        SkeletonLine(width: 72, height: 13),
+                        SizedBox(height: 8),
+                        SkeletonBox(width: 58, height: 20, radius: 8),
+                      ],
+                    ),
+                  ],
                 ),
-              ),
-            ),
+              ],
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -791,113 +830,129 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         onRefresh: _load,
         child: ScrollConfiguration(
           behavior: const _ClaimsMonitorScrollBehavior(),
-          child: ListView(
-            physics: const ClampingScrollPhysics(
-              parent: AlwaysScrollableScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            children: [
-              if (_loading)
-                _loadingSkeleton()
-              else if (_error != null)
-                ErrorCard(
-                  message: 'Could not load payouts. $_error',
-                  onRetry: _retry,
-                )
-              else ...[
-                _hero(receivedClaims.length, totalPaid),
-                const SizedBox(height: 16),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _statCard(
-                          label: 'Waiting',
-                          value: '$waiting',
-                          dotColor: context.colors.warning,
-                          valueColor: context.colors.warningText,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _statCard(
-                          label: 'Received',
-                          value: '${receivedClaims.length}',
-                          dotColor: context.colors.success,
-                          valueColor: context.colors.successText,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _statCard(
-                          label: 'Reserved',
-                          value: 'PHP ${fmtPhp(reserved)}',
-                          dotColor: context.colors.brand,
-                          valueColor: context.colors.brand,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SearchField(
-                  controller: _searchController,
-                  hintText: 'Search scholar name',
-                  radius: 18,
-                  minHeight: 48,
-                  onChanged: (value) => setState(() => _query = value),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() => _query = '');
-                          },
-                          icon: Icon(
-                            AppIcons.close,
-                            color: context.colors.textBody,
+          child: AppInitialLoadView(
+            firstLoadPending: !_hasLoaded,
+            skeleton: _loadingSkeleton(),
+            child: ListView(
+              physics: const ClampingScrollPhysics(
+                parent: AlwaysScrollableScrollPhysics(),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+              children: [
+                if (_error != null && _claims.isEmpty)
+                  ErrorCard(
+                    message: _offline
+                        ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                        : 'Could not load payouts. $_error',
+                    onRetry: _retry,
+                    prominent: true,
+                    offline: _offline,
+                  )
+                else ...[
+                  if (_error != null) ...[
+                    ErrorCard(
+                      message: _offline
+                          ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                          : 'Could not load payouts. $_error',
+                      onRetry: _retry,
+                      offline: _offline,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  _hero(receivedClaims.length, totalPaid),
+                  const SizedBox(height: 16),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _statCard(
+                            label: 'Waiting',
+                            value: '$waiting',
+                            dotColor: context.colors.warning,
+                            valueColor: context.colors.warningText,
                           ),
                         ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Row(
-                    children: [
-                      for (var index = 0;
-                          index < filterOptions.length;
-                          index++) ...[
-                        if (index > 0) const SizedBox(width: 8),
-                        _filterChip(
-                          filterOptions[index].$1,
-                          filterOptions[index].$2,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _statCard(
+                            label: 'Received',
+                            value: '${receivedClaims.length}',
+                            dotColor: context.colors.success,
+                            valueColor: context.colors.successText,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _statCard(
+                            label: 'Reserved',
+                            value: 'PHP ${fmtPhp(reserved)}',
+                            dotColor: context.colors.brand,
+                            valueColor: context.colors.brand,
+                          ),
                         ),
                       ],
-                    ],
-                  ),
-                ),
-                if (visible.isEmpty) ...[
-                  const SizedBox(height: 24),
-                  _emptyCard(
-                    title: _claims.isEmpty
-                        ? 'No payouts yet'
-                        : 'No matching payouts',
-                    showClear: _claims.isNotEmpty,
-                  ),
-                ] else
-                  for (final entry in grouped.entries) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(top: 24, bottom: 10),
-                      child: SectionLabel(
-                        '${entry.key.toUpperCase()} · ${entry.value.length} '
-                        '${entry.value.length == 1 ? 'PAYOUT' : 'PAYOUTS'}',
-                      ),
                     ),
-                    _claimCard(entry.value),
-                  ],
+                  ),
+                  const SizedBox(height: 14),
+                  SearchField(
+                    controller: _searchController,
+                    hintText: 'Search scholar name',
+                    radius: 18,
+                    minHeight: 48,
+                    onChanged: (value) => setState(() => _query = value),
+                    suffixIcon: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Clear search',
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() => _query = '');
+                            },
+                            icon: Icon(
+                              AppIcons.close,
+                              color: context.colors.textBody,
+                            ),
+                          ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Row(
+                      children: [
+                        for (var index = 0;
+                            index < filterOptions.length;
+                            index++) ...[
+                          if (index > 0) const SizedBox(width: 8),
+                          _filterChip(
+                            filterOptions[index].$1,
+                            filterOptions[index].$2,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  if (visible.isEmpty) ...[
+                    const SizedBox(height: 24),
+                    _emptyCard(
+                      title: _claims.isEmpty
+                          ? 'No payouts yet'
+                          : 'No matching payouts',
+                      showClear: _claims.isNotEmpty,
+                    ),
+                  ] else
+                    for (final entry in grouped.entries) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 24, bottom: 10),
+                        child: SectionLabel(
+                          '${entry.key.toUpperCase()} · ${entry.value.length} '
+                          '${entry.value.length == 1 ? 'PAYOUT' : 'PAYOUTS'}',
+                        ),
+                      ),
+                      _claimCard(entry.value),
+                    ],
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

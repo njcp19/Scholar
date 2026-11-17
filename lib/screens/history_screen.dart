@@ -26,8 +26,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   List<WalletTransaction> _all = [];
   String _query = '';
   _Filter _filter = _Filter.all;
-  bool _loading = true;
+  bool _hasLoaded = false;
   String? _error;
+  bool _offline = false;
   final _searchController = TextEditingController();
   ShellTabController? _tabController;
 
@@ -69,24 +70,25 @@ class _HistoryScreenState extends State<HistoryScreen> {
         setState(() {
           _all = transactions;
           _error = null;
+          _offline = false;
         });
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() {
-          _all = [];
           _error = 'Could not load transactions.';
+          _offline = isOfflineLoadError(error);
         });
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _hasLoaded = true);
     }
   }
 
   Future<void> _retry() async {
     setState(() {
-      _loading = true;
       _error = null;
+      _offline = false;
     });
     await _load();
   }
@@ -515,56 +517,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _loadingSkeleton() {
-    return AppSkeletonizer(
-      enabled: true,
-      child: Column(
-        children: [
-          AppCard(
-            radius: 22,
-            child: Container(height: 80, color: Colors.white),
-          ),
-          const SizedBox(height: 22),
-          AppCard(
-            radius: 22,
-            child: Column(
-              children: [
-                for (var index = 0; index < 3; index++) ...[
-                  if (index > 0)
-                    Divider(height: 1, color: context.colors.borderSoft),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            height: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 18),
-                        Container(width: 80, height: 16, color: Colors.white),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _roundBackButton() {
     return Padding(
       padding: const EdgeInsets.only(left: 8),
@@ -609,90 +561,98 @@ class _HistoryScreenState extends State<HistoryScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: SearchField(
-              controller: _searchController,
-              hintText: 'Search transactions',
-              radius: 18,
-              minHeight: 52,
-              onChanged: (value) => setState(() => _query = value),
-              suffixIcon: _query.isEmpty
-                  ? null
-                  : IconButton(
-                      tooltip: 'Clear search',
-                      onPressed: () {
-                        _searchController.clear();
-                        setState(() => _query = '');
-                      },
-                      icon: Icon(
-                        AppIcons.close,
-                        size: 18,
-                        color: context.colors.textBody,
+      body: AppInitialLoadView(
+        firstLoadPending: !_hasLoaded,
+        skeleton: const TransactionLoadingSkeleton(),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: SearchField(
+                controller: _searchController,
+                hintText: 'Search transactions',
+                radius: 18,
+                minHeight: 52,
+                onChanged: (value) => setState(() => _query = value),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                        icon: Icon(
+                          AppIcons.close,
+                          size: 18,
+                          color: context.colors.textBody,
+                        ),
                       ),
-                    ),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-            child: Row(
-              children: [
-                Expanded(child: _filterChip('All', _Filter.all)),
-                const SizedBox(width: 10),
-                Expanded(child: _filterChip('Credits', _Filter.credit)),
-                const SizedBox(width: 10),
-                Expanded(child: _filterChip('Debits', _Filter.debit)),
-              ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+              child: Row(
+                children: [
+                  Expanded(child: _filterChip('All', _Filter.all)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _filterChip('Credits', _Filter.credit)),
+                  const SizedBox(width: 10),
+                  Expanded(child: _filterChip('Debits', _Filter.debit)),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            child: ClipRect(
-              child: ScrollConfiguration(
-                behavior: const _HistoryScrollBehavior(),
-                child: RefreshIndicator(
-                  onRefresh: _load,
-                  child: ListView(
-                    clipBehavior: Clip.hardEdge,
-                    physics: const ClampingScrollPhysics(
-                      parent: AlwaysScrollableScrollPhysics(),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    children: [
-                      if (_loading)
-                        _loadingSkeleton()
-                      else if (_error != null)
-                        ErrorCard(
-                          message: _error!,
-                          onRetry: _retry,
-                        )
-                      else if (_all.isEmpty)
-                        _emptyCard(
-                          title: 'No transactions yet',
-                          message:
-                              'Your allowance and cash-outs will appear here.',
-                          noTransactions: true,
-                        )
-                      else if (filtered.isEmpty)
-                        _emptyCard(
-                          title: 'No matching transactions',
-                          message:
-                              'Try a different search or transaction type.',
-                          showClear: hasFilters,
-                        )
-                      else ...[
-                        _summaryCard(filtered),
-                        ..._grouped(filtered),
+            const SizedBox(height: 6),
+            Expanded(
+              child: ClipRect(
+                child: ScrollConfiguration(
+                  behavior: const _HistoryScrollBehavior(),
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: ListView(
+                      clipBehavior: Clip.hardEdge,
+                      physics: const ClampingScrollPhysics(
+                        parent: AlwaysScrollableScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                      children: [
+                        if (_error != null) ...[
+                          ErrorCard(
+                            message: _offline
+                                ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                                : _error!,
+                            onRetry: _retry,
+                            prominent: _all.isEmpty,
+                            offline: _offline,
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (_all.isEmpty && _error == null)
+                          _emptyCard(
+                            title: 'No transactions yet',
+                            message:
+                                'Your allowance and cash-outs will appear here.',
+                            noTransactions: true,
+                          )
+                        else if (_all.isNotEmpty && filtered.isEmpty)
+                          _emptyCard(
+                            title: 'No matching transactions',
+                            message:
+                                'Try a different search or transaction type.',
+                            showClear: hasFilters,
+                          )
+                        else if (_all.isNotEmpty) ...[
+                          _summaryCard(filtered),
+                          ..._grouped(filtered),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

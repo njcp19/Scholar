@@ -41,8 +41,9 @@ class _HomeScreenState extends State<HomeScreen> {
   List<WalletTransaction> _recent = [];
   List<AllowanceClaim> _pending = [];
   List<AllowanceClaim> _claims = [];
-  bool _loading = true;
+  bool _hasLoaded = false;
   String? _loadError;
+  bool _offline = false;
   Timer? _poll;
   Set<String>? _seenPending;
   bool _announced = false;
@@ -101,6 +102,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _pending = [];
         _claims = [];
         _loadError = null;
+        _offline = false;
         return;
       }
       await state.refreshBalance();
@@ -115,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _pending = await state.wallet.getPendingClaims(uid);
       _claims = await state.wallet.getMyClaims(uid);
       _loadError = null;
+      _offline = false;
       _seenPending ??= _pending.map((c) => c.id).toSet();
       if (!_announced && _pending.isNotEmpty && mounted) {
         _announced = true;
@@ -128,13 +131,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ));
         });
       }
-    } catch (_) {
-      _recent = [];
-      _pending = [];
-      _claims = [];
+    } catch (error) {
       _loadError = 'Could not load your Scholar Home. Please try again.';
+      _offline = isOfflineLoadError(error);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _hasLoaded = true);
     }
   }
 
@@ -654,58 +655,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      body: Column(
-        children: [
-          AppHeader(
-            name: user?.fullName ?? 'Scholar',
-            initials: user?.initials ?? '?',
-            subtitle: user?.studentNumber?.isNotEmpty == true
-                ? 'ID: ${user!.studentNumber}'
-                : '',
-            notificationCount: _pending.length,
-            onNotifications: _showNotifications,
-            showLogout: false,
-            softBackground: true,
-            scaleHeightForText: true,
-            avatarSize: 52,
-            avatarRingColor: context.colors.accentGold,
-            avatarRingWidth: 2,
-            nameFontSize: 20,
-            subtitleFontSize: 12,
-            roundActionButtons: true,
-            actionButtonSize: 44,
-            dayNightIcons: true,
-          ),
-          Expanded(
-            child: ClipRect(
-              child: ScrollConfiguration(
-                behavior: const _HomeNoStretchScrollBehavior(),
-                child: RefreshIndicator(
-                  onRefresh: _load,
-                  child: ContentWidth(
-                    child: ListView(
-                      physics: const ClampingScrollPhysics(
-                        parent: AlwaysScrollableScrollPhysics(),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                      children: [
-                        AppSkeletonizer(
-                          enabled: _loading,
-                          child: _balanceHero(context, state.balance),
+      body: AppInitialLoadView(
+        firstLoadPending: !_hasLoaded,
+        skeleton: const HomeLoadingSkeleton(),
+        child: Column(
+          children: [
+            AppHeader(
+              name: user?.fullName ?? 'Scholar',
+              initials: user?.initials ?? '?',
+              subtitle: user?.studentNumber?.isNotEmpty == true
+                  ? 'ID: ${user!.studentNumber}'
+                  : '',
+              notificationCount: _pending.length,
+              onNotifications: _showNotifications,
+              showLogout: false,
+              softBackground: true,
+              scaleHeightForText: true,
+              avatarSize: 52,
+              avatarRingColor: context.colors.accentGold,
+              avatarRingWidth: 2,
+              nameFontSize: 20,
+              subtitleFontSize: 12,
+              roundActionButtons: true,
+              actionButtonSize: 44,
+              dayNightIcons: true,
+            ),
+            Expanded(
+              child: ClipRect(
+                child: ScrollConfiguration(
+                  behavior: const _HomeNoStretchScrollBehavior(),
+                  child: RefreshIndicator(
+                    onRefresh: _load,
+                    child: ContentWidth(
+                      child: ListView(
+                        physics: const ClampingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
                         ),
-                        if (_loadError != null) ...[
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                        children: [
+                          _balanceHero(context, state.balance),
+                          if (_loadError != null) ...[
+                            const SizedBox(height: 16),
+                            ErrorCard(
+                              message: _offline
+                                  ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                                  : _loadError!,
+                              onRetry: _load,
+                              prominent: true,
+                              offline: _offline,
+                            ),
+                          ],
                           const SizedBox(height: 16),
-                          ErrorCard(message: _loadError!, onRetry: _load),
-                        ],
-                        const SizedBox(height: 16),
-                        AppSkeletonizer(
-                          enabled: _loading,
-                          child: _homeActionButtons(context),
-                        ),
-                        const SizedBox(height: 16),
-                        AppSkeletonizer(
-                          enabled: _loading,
-                          child: MonthlyAllowanceCard(
+                          _homeActionButtons(context),
+                          const SizedBox(height: 16),
+                          MonthlyAllowanceCard(
                             title: displayedPayout?.batchTitle ??
                                 state.allowance.label,
                             amount: displayedPayout?.amount ??
@@ -732,12 +735,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             iconTileSize: 48,
                             amountFontSize: 36,
                           ),
-                        ),
-                        if (!state.fingerprintRegistered) ...[
-                          const SizedBox(height: 16),
-                          AppSkeletonizer(
-                            enabled: _loading,
-                            child: BiometricStatusCard(
+                          if (!state.fingerprintRegistered) ...[
+                            const SizedBox(height: 16),
+                            BiometricStatusCard(
                               highlighted: true,
                               radius: 22,
                               iconTileSize: 52,
@@ -751,56 +751,51 @@ class _HomeScreenState extends State<HomeScreen> {
                                 if (mounted) setState(() {});
                               },
                             ),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        AppSkeletonizer(
-                          enabled: _loading,
-                          child: _payoutEventsRow(context),
-                        ),
-                        const SizedBox(height: 26),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Recent activity',
-                                style: TextStyle(
-                                  color: context.colors.textPrimary,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () => _tabs.select(1),
-                              style: TextButton.styleFrom(
-                                minimumSize: const Size(48, 32),
-                                padding: EdgeInsets.zero,
-                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                              child: Text(
-                                'View all',
-                                style: TextStyle(
-                                  color: context.colors.brand,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-                        AppSkeletonizer(
-                          enabled: _loading,
-                          child: _activityCard(context, activity),
-                        ),
-                      ],
+                          const SizedBox(height: 16),
+                          _payoutEventsRow(context),
+                          const SizedBox(height: 26),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Recent activity',
+                                  style: TextStyle(
+                                    color: context.colors.textPrimary,
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () => _tabs.select(1),
+                                style: TextButton.styleFrom(
+                                  minimumSize: const Size(48, 32),
+                                  padding: EdgeInsets.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'View all',
+                                  style: TextStyle(
+                                    color: context.colors.brand,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          _activityCard(context, activity),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

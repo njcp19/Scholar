@@ -17,9 +17,10 @@ class _RegistrationReviewScreenState extends State<RegistrationReviewScreen> {
   final _service = VerificationService();
   final _searchController = TextEditingController();
   List<AppUser> _users = [];
-  bool _loading = true;
+  bool _hasLoaded = false;
   bool _initialFilterResolved = false;
   String? _error;
+  bool _offline = false;
   VerificationStatus? _filter = VerificationStatus.pending;
 
   @override
@@ -41,6 +42,7 @@ class _RegistrationReviewScreenState extends State<RegistrationReviewScreen> {
         setState(() {
           _users = users;
           _error = null;
+          _offline = false;
           if (!_initialFilterResolved) {
             if (!users.any(
                 (u) => u.verificationStatus == VerificationStatus.pending)) {
@@ -50,13 +52,16 @@ class _RegistrationReviewScreenState extends State<RegistrationReviewScreen> {
           }
         });
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        setState(() => _error =
-            'Could not load registrations. Check your connection, Firebase integration, and database migration.');
+        setState(() {
+          _error =
+              'Could not load registrations. Check your connection, Firebase integration, and database migration.';
+          _offline = isOfflineLoadError(error);
+        });
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _hasLoaded = true);
     }
   }
 
@@ -98,115 +103,115 @@ class _RegistrationReviewScreenState extends State<RegistrationReviewScreen> {
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
-        backgroundColor: context.colors.surface,
-        foregroundColor: context.colors.textPrimary,
-        surfaceTintColor: context.colors.surface,
-        leading: IconButton(
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(AppIcons.back),
-        ),
-        title: const Text('Registration Review'),
-      ),
+      appBar: _registrationAppBar(context),
       body: ScrollConfiguration(
         behavior: const _NoStretchScrollBehavior(),
         child: RefreshIndicator(
           onRefresh: _load,
           child: ContentWidth(
-            child: ListView(
-              physics: const ClampingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [
-                const Padding(
-                  padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: InfoBanner(
-                    icon: AppIcons.info,
-                    message:
-                        'Verify existing scholars against the official roster. This is not an application for a new scholarship.',
-                  ),
+            child: AppInitialLoadView(
+              firstLoadPending: !_hasLoaded,
+              skeleton: const RegistrationLoadingSkeleton(),
+              child: ListView(
+                physics: const ClampingScrollPhysics(
+                  parent: AlwaysScrollableScrollPhysics(),
                 ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SectionLabel(
-                    'REGISTRATIONS (${_users.length})',
-                    labelColor: context.colors.textBody,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SearchField(
-                    controller: _searchController,
-                    hintText: 'Search name or student number',
-                    onChanged: (_) => setState(() {}),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                FilterChipsRow(
-                  items: filterItems,
-                  selectedValue: selectedFilter,
-                  onSelected: (value) => setState(() {
-                    _filter = value == 'all'
-                        ? null
-                        : VerificationStatus.values.firstWhere(
-                            (status) => status.databaseValue == value,
-                          );
-                  }),
-                ),
-                const SizedBox(height: 16),
-                if (_loading)
-                  SizedBox(
-                    height: 180,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: context.colors.brand,
-                      ),
-                    ),
-                  )
-                else if (_error != null)
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+                children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: ErrorCard(
-                      message: _error!,
-                      onRetry: _load,
-                    ),
-                  )
-                else if (_users.isEmpty && !hasCriteria)
-                  const EmptyState(
-                    icon: AppIcons.userSearch,
-                    title: 'No registrations in this status',
-                    message: 'New registrations will appear here',
-                  )
-                else if (users.isEmpty)
-                  EmptyState(
-                    icon: AppIcons.search,
-                    title: 'No matching registrations',
-                    message: 'Try a different search or status filter.',
-                    action: TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _filter = null;
-                          _searchController.clear();
-                        });
-                      },
-                      child: const Text('Clear filters'),
-                    ),
-                  )
-                else
-                  ...users.map(
-                    (user) => Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                      child: _RegistrationRow(
-                        user: user,
-                        onTap: () => _open(user),
-                      ),
+                    child: SearchField(
+                      controller: _searchController,
+                      hintText: 'Search name or student number',
+                      onChanged: (_) => setState(() {}),
+                      minHeight: 50,
+                      radius: 16,
+                      borderColor: context.colors.border,
+                      iconColor: context.colors.hintContrast,
+                      iconSize: 19,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 12),
+                  FilterChipsRow(
+                    items: filterItems,
+                    selectedValue: selectedFilter,
+                    onSelected: (value) => setState(() {
+                      _filter = value == 'all'
+                          ? null
+                          : VerificationStatus.values.firstWhere(
+                              (status) => status.databaseValue == value,
+                            );
+                    }),
+                    selectedBackgroundColor: context.colors.brandTint,
+                    selectedTextColor: context.colors.brand,
+                    unselectedTextColor: context.colors.textBody,
+                    selectedBorderWidth: 1.5,
+                    countBadge: true,
+                    countBackgroundColor: context.colors.filterCountBackground,
+                    selectedCountBackgroundColor: context.colors.brand,
+                    countTextColor: context.colors.textBody,
+                    selectedCountTextColor: context.colors.onHeader,
+                    chipRadius: 18,
+                    chipFontSize: 14,
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SectionLabel(
+                      'REGISTRATIONS (${_users.length})',
+                      labelColor: context.colors.textBody,
+                      fontSize: 11.5,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_error != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: ErrorCard(
+                        message: _offline
+                            ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                            : _error!,
+                        onRetry: _load,
+                        prominent: _users.isEmpty,
+                        offline: _offline,
+                      ),
+                    ),
+                    if (_users.isNotEmpty) const SizedBox(height: 12),
+                  ],
+                  if (_error == null && _users.isEmpty && !hasCriteria)
+                    const EmptyState(
+                      icon: AppIcons.userSearch,
+                      title: 'No registrations in this status',
+                      message: 'New registrations will appear here',
+                    )
+                  else if (_users.isNotEmpty && users.isEmpty)
+                    EmptyState(
+                      icon: AppIcons.search,
+                      title: 'No matching registrations',
+                      message: 'Try a different search or status filter.',
+                      action: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _filter = null;
+                            _searchController.clear();
+                          });
+                        },
+                        child: const Text('Clear filters'),
+                      ),
+                    )
+                  else if (users.isNotEmpty)
+                    ...users.map(
+                      (user) => Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: _RegistrationRow(
+                          user: user,
+                          onTap: () => _open(user),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
@@ -214,6 +219,32 @@ class _RegistrationReviewScreenState extends State<RegistrationReviewScreen> {
     );
   }
 }
+
+AppBar _registrationAppBar(BuildContext context) => AppBar(
+      backgroundColor: context.colors.background,
+      foregroundColor: context.colors.textPrimary,
+      surfaceTintColor: context.colors.background,
+      elevation: 0,
+      centerTitle: true,
+      titleSpacing: 0,
+      leadingWidth: 62,
+      leading: IconButton(
+        tooltip: 'Back',
+        onPressed: () => Navigator.maybePop(context),
+        style: IconButton.styleFrom(
+          fixedSize: const Size.square(42),
+          padding: EdgeInsets.zero,
+          backgroundColor: context.colors.surface,
+          side: BorderSide(color: context.colors.borderSoft),
+          shape: const CircleBorder(),
+        ),
+        icon: const Icon(AppIcons.back),
+      ),
+      title: const Text(
+        'Registration Verification',
+        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+      ),
+    );
 
 class _RegistrationRow extends StatelessWidget {
   final AppUser user;
@@ -227,30 +258,29 @@ class _RegistrationRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = user.verificationStatus;
-    final university = user.university?.trim();
-    final subtitle =
-        'ID ${user.studentNumber?.trim().isNotEmpty == true ? user.studentNumber : '—'} - '
-        '${university?.isNotEmpty == true ? university : '—'}';
+    final studentNumber = user.studentNumber?.trim();
 
     return ListRowCard(
       onTap: onTap,
+      radius: 22,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      shadow: true,
       child: Row(
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: context.colors.brandTint,
+            backgroundColor: context.colors.avatarTint,
             child: Text(
               user.initials,
               style: TextStyle(
-                color: context.colors.brand,
+                color: context.colors.avatarText,
                 fontWeight: FontWeight.w800,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -259,12 +289,13 @@ class _RegistrationRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textPrimary,
-                    fontWeight: FontWeight.w800,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  subtitle,
+                  'Student number: ${studentNumber?.isNotEmpty == true ? studentNumber : '—'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -272,24 +303,24 @@ class _RegistrationRow extends StatelessWidget {
                     fontSize: 12,
                   ),
                 ),
+                const SizedBox(height: 7),
+                StatusChip(
+                  status.label,
+                  color: _statusColor(context, status),
+                  bg: _statusBackground(context, status),
+                  borderRadius: 9,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  fontSize: 11,
+                  letterSpacing: .4,
+                ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Flexible(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 132),
-              child: StatusChip(
-                _statusLabel(status),
-                color: _statusColor(context, status),
-                bg: _statusBackground(context, status),
-              ),
-            ),
-          ),
-          const SizedBox(width: 2),
           Icon(
             AppIcons.chevronRight,
-            color: context.colors.hint,
+            color: context.colors.hintContrast,
             size: 18,
           ),
         ],
@@ -369,34 +400,48 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
     }
   }
 
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 7),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 112,
-            child: Text(
-              label,
-              style: TextStyle(
-                color: context.colors.textBody,
-                fontSize: 12,
-              ),
-            ),
+  Widget _detailRow(String label, String value, {bool divider = false}) {
+    return Column(
+      children: [
+        if (divider)
+          Divider(
+            height: 1,
+            thickness: 1,
+            color: context.colors.borderSoft,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: context.colors.textPrimary,
-                fontWeight: FontWeight.w600,
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 4,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 13.5,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 6,
+                child: Text(
+                  value,
+                  textAlign: TextAlign.right,
+                  softWrap: true,
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -417,20 +462,31 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
     final status = u.verificationStatus;
     final undecided = status != VerificationStatus.approved &&
         status != VerificationStatus.rejected;
+    final details = <MapEntry<String, String>>[
+      MapEntry('Email', u.email),
+      MapEntry('Student number', u.studentNumber ?? '—'),
+      MapEntry('School', u.university ?? '—'),
+      MapEntry('Program', u.program ?? '—'),
+      MapEntry('Year', u.yearLevel ?? '—'),
+      MapEntry('Declared scholar', u.declaredScholar ? 'Yes' : 'No'),
+      MapEntry(
+        'Scholarship',
+        u.scholarshipName.isEmpty ? 'Not provided' : u.scholarshipName,
+      ),
+      MapEntry(
+        'Award reference',
+        u.scholarshipReference.isEmpty
+            ? 'Not provided'
+            : u.scholarshipReference,
+      ),
+    ];
+    if (u.reviewNotes.isNotEmpty) {
+      details.add(MapEntry('Previous feedback', u.reviewNotes));
+    }
 
     return Scaffold(
       backgroundColor: context.colors.background,
-      appBar: AppBar(
-        backgroundColor: context.colors.surface,
-        foregroundColor: context.colors.textPrimary,
-        surfaceTintColor: context.colors.surface,
-        leading: IconButton(
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(AppIcons.back),
-        ),
-        title: const Text('Registration Review'),
-      ),
+      appBar: _registrationAppBar(context),
       body: ScrollConfiguration(
         behavior: const _NoStretchScrollBehavior(),
         child: ContentWidth(
@@ -438,121 +494,179 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
             physics: const ClampingScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: Text(
-                      u.fullName,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
+              AppCard(
+                radius: 22,
+                shadow: true,
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: context.colors.avatarTint,
+                      child: Text(
+                        u.initials,
+                        style: TextStyle(
+                          color: context.colors.avatarText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  StatusChip(
-                    _statusLabel(status),
-                    color: _statusColor(context, status),
-                    bg: _statusBackground(context, status),
-                  ),
-                ],
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            u.fullName,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: context.colors.textPrimary,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          StatusChip(
+                            status.label,
+                            color: _statusColor(context, status),
+                            bg: _statusBackground(context, status),
+                            borderRadius: 10,
+                            fontSize: 11,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 16),
               SectionLabel(
                 'SCHOLAR DETAILS',
                 labelColor: context.colors.textBody,
+                fontSize: 11.5,
+                letterSpacing: 1.2,
               ),
               const SizedBox(height: 8),
               AppCard(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                radius: 22,
+                shadow: true,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    _detailRow('Email', u.email),
-                    _detailRow('Student number', u.studentNumber ?? '—'),
-                    _detailRow('School', u.university ?? '—'),
-                    _detailRow('Program', u.program ?? '—'),
-                    _detailRow('Year', u.yearLevel ?? '—'),
-                    _detailRow(
-                      'Declared scholar',
-                      u.declaredScholar ? 'Yes' : 'No',
-                    ),
-                    _detailRow(
-                      'Scholarship',
-                      u.scholarshipName.isEmpty
-                          ? 'Not provided'
-                          : u.scholarshipName,
-                    ),
-                    _detailRow(
-                      'Award reference',
-                      u.scholarshipReference.isEmpty
-                          ? 'Not provided'
-                          : u.scholarshipReference,
-                    ),
-                    if (u.reviewNotes.isNotEmpty)
-                      _detailRow('Previous feedback', u.reviewNotes),
+                    for (var index = 0; index < details.length; index++)
+                      _detailRow(
+                        details[index].key,
+                        details[index].value,
+                        divider: index > 0,
+                      ),
                   ],
                 ),
               ),
               if (undecided) ...[
                 const SizedBox(height: 16),
-                const InfoBanner(
-                  icon: AppIcons.info,
+                InfoBanner(
+                  icon: AppIcons.warning,
                   message:
                       'Check the official scholarship roster. A declaration alone is not proof.',
+                  backgroundColor: context.colors.warningBg,
+                  borderColor: context.colors.goldTintBorder,
+                  iconColor: context.colors.warningText,
+                  textColor: context.colors.goldTintText,
+                  leading: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: context.colors.avatarTint,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      AppIcons.warning,
+                      color: context.colors.warningText,
+                      size: 19,
+                    ),
+                  ),
+                  padding: const EdgeInsets.all(14),
+                  borderRadius: 22,
+                  fontSize: 12.5,
                 ),
                 const SizedBox(height: 12),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  activeColor: context.colors.brand,
-                  title: Text(
-                    'I verified this scholar against the official scholarship roster',
-                    style: TextStyle(color: context.colors.textPrimary),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    checkboxTheme: CheckboxThemeData(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      side: BorderSide(color: context.colors.border),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
-                  value: _rosterChecked,
-                  onChanged: _busy
-                      ? null
-                      : (value) =>
-                          setState(() => _rosterChecked = value ?? false),
+                  child: CheckboxListTile(
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    visualDensity: VisualDensity.compact,
+                    activeColor: context.colors.brand,
+                    title: Text(
+                      'I verified this scholar against the official scholarship roster',
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    value: _rosterChecked,
+                    onChanged: _busy
+                        ? null
+                        : (value) =>
+                            setState(() => _rosterChecked = value ?? false),
+                  ),
                 ),
-                AppCard(
-                  padding: const EdgeInsets.all(12),
-                  child: TextField(
-                    controller: _notes,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Review notes / reason',
-                      helperText:
-                          'Required when rejecting or requesting information',
-                      border: OutlineInputBorder(),
+                const SizedBox(height: 8),
+                Text(
+                  'Review notes / reason',
+                  style: TextStyle(
+                    color: context.colors.textLabel,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                AppTextField(
+                  minLines: 3,
+                  maxLines: 4,
+                  controller: _notes,
+                  decoration: InputDecoration(
+                    hintText:
+                        'Required when rejecting or requesting information',
+                    hintStyle: TextStyle(color: context.colors.hintContrast),
+                    filled: true,
+                    fillColor: context.colors.surface,
+                    alignLabelWithHint: true,
+                    contentPadding: const EdgeInsets.all(14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: context.colors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: context.colors.brand),
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                if (status == VerificationStatus.pending) ...[
-                  SecondaryButton(
-                    label: 'Mark under review',
-                    onPressed: _busy
-                        ? null
-                        : () => _decide(VerificationStatus.underReview),
-                    loading: _busyStatus == VerificationStatus.underReview,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                SecondaryButton(
-                  label: 'Request information',
-                  onPressed: _busy
-                      ? null
-                      : () => _decide(VerificationStatus.needsInfo),
-                  loading: _busyStatus == VerificationStatus.needsInfo,
-                ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 PrimaryButton(
                   label: 'Approve verified scholar',
+                  icon: AppIcons.shieldCheck,
+                  minHeight: 56,
+                  borderRadius: 18,
+                  shadow: true,
                   onPressed: !_busy &&
                           _rosterChecked &&
                           u.declaredScholar &&
@@ -561,10 +675,44 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                       : null,
                   loading: _busyStatus == VerificationStatus.approved,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
+                if (status == VerificationStatus.pending) ...[
+                  SecondaryButton(
+                    label: 'Mark under review',
+                    icon: AppIcons.eye,
+                    foregroundColor: context.colors.brand,
+                    iconColor: context.colors.brand,
+                    minHeight: 52,
+                    borderRadius: 18,
+                    onPressed: _busy
+                        ? null
+                        : () => _decide(VerificationStatus.underReview),
+                    loading: _busyStatus == VerificationStatus.underReview,
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                SecondaryButton(
+                  label: 'Request information',
+                  icon: AppIcons.error,
+                  foregroundColor: context.colors.brand,
+                  iconColor: context.colors.brand,
+                  minHeight: 52,
+                  borderRadius: 18,
+                  onPressed: _busy
+                      ? null
+                      : () => _decide(VerificationStatus.needsInfo),
+                  loading: _busyStatus == VerificationStatus.needsInfo,
+                ),
+                const SizedBox(height: 10),
                 SecondaryButton(
                   label: 'Reject registration',
+                  icon: AppIcons.cancel,
                   danger: true,
+                  dangerTextColor: context.colors.dangerText,
+                  iconColor: context.colors.dangerText,
+                  borderColor: context.colors.dangerOutline,
+                  minHeight: 52,
+                  borderRadius: 18,
                   onPressed:
                       _busy ? null : () => _decide(VerificationStatus.rejected),
                   loading: _busyStatus == VerificationStatus.rejected,
@@ -574,14 +722,21 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
               SectionLabel(
                 'REVIEW HISTORY',
                 labelColor: context.colors.textBody,
+                fontSize: 11.5,
+                letterSpacing: 1.2,
               ),
               const SizedBox(height: 8),
               FutureBuilder<List<Map<String, dynamic>>>(
                 future: _history,
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
-                    return const AppCard(
-                      child: Text('Review history could not be loaded.'),
+                    return AppCard(
+                      radius: 22,
+                      shadow: true,
+                      child: Text(
+                        'Review history could not be loaded.',
+                        style: TextStyle(color: context.colors.textBody),
+                      ),
                     );
                   }
                   if (!snapshot.hasData) {
@@ -591,47 +746,58 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                     );
                   }
                   if (snapshot.data!.isEmpty) {
-                    return const AppCard(
-                      child: Text('No review recorded yet.'),
+                    return AppCard(
+                      radius: 22,
+                      shadow: true,
+                      child: Text(
+                        'No review recorded yet.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: context.colors.textBody),
+                      ),
                     );
                   }
                   return Column(
-                    children: snapshot.data!
-                        .map(
-                          (review) => Padding(
-                            padding: const EdgeInsets.only(bottom: 10),
-                            child: AppCard(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  StatusChip(
-                                    _statusLabel(verificationStatusFrom(
-                                        review['decision'])),
-                                    color: context.colors.brand,
-                                    bg: context.colors.brandTint,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _detailRow(
-                                    'Notes',
-                                    (review['notes'] ?? '').toString().isEmpty
-                                        ? '—'
-                                        : review['notes'].toString(),
-                                  ),
-                                  _detailRow('Date',
-                                      _historyDate(review['created_at'])),
-                                  _detailRow(
-                                    'Reviewer',
-                                    (review['reviewer_id'] ??
-                                            'Scholar resubmission')
-                                        .toString(),
-                                  ),
-                                ],
+                    children: snapshot.data!.map((review) {
+                      final reviewStatus = verificationStatusFrom(
+                        review['decision'],
+                      );
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: AppCard(
+                          radius: 22,
+                          shadow: true,
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              StatusChip(
+                                reviewStatus.label,
+                                color: _statusColor(context, reviewStatus),
+                                bg: _statusBackground(context, reviewStatus),
+                                borderRadius: 9,
+                                fontSize: 11,
+                                letterSpacing: .4,
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              _detailRow(
+                                'Notes',
+                                (review['notes'] ?? '').toString().isEmpty
+                                    ? '—'
+                                    : review['notes'].toString(),
+                              ),
+                              _detailRow(
+                                  'Date', _historyDate(review['created_at'])),
+                              _detailRow(
+                                'Reviewer',
+                                (review['reviewer_id'] ??
+                                        'Scholar resubmission')
+                                    .toString(),
+                              ),
+                            ],
                           ),
-                        )
-                        .toList(),
+                        ),
+                      );
+                    }).toList(),
                   );
                 },
               ),
@@ -643,29 +809,21 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
   }
 }
 
-String _statusLabel(VerificationStatus status) => switch (status) {
-      VerificationStatus.pending => 'Pending verification',
-      VerificationStatus.underReview => 'Under review',
-      VerificationStatus.needsInfo => 'Information required',
-      VerificationStatus.approved => 'Verified',
-      VerificationStatus.rejected => 'Rejected',
-    };
+String _statusLabel(VerificationStatus status) => status.label;
 
 Color _statusColor(BuildContext context, VerificationStatus status) =>
     switch (status) {
-      VerificationStatus.pending ||
-      VerificationStatus.needsInfo =>
-        context.colors.warning,
+      VerificationStatus.pending => context.colors.warningText,
+      VerificationStatus.needsInfo => context.colors.infoRequiredText,
       VerificationStatus.underReview => context.colors.brand,
-      VerificationStatus.approved => context.colors.success,
-      VerificationStatus.rejected => context.colors.danger,
+      VerificationStatus.approved => context.colors.successText,
+      VerificationStatus.rejected => context.colors.dangerText,
     };
 
 Color _statusBackground(BuildContext context, VerificationStatus status) =>
     switch (status) {
-      VerificationStatus.pending ||
-      VerificationStatus.needsInfo =>
-        context.colors.warningBg,
+      VerificationStatus.pending => context.colors.warningBg,
+      VerificationStatus.needsInfo => context.colors.infoRequiredBg,
       VerificationStatus.underReview => context.colors.brandTint,
       VerificationStatus.approved => context.colors.successBg,
       VerificationStatus.rejected => context.colors.dangerBg,

@@ -246,6 +246,78 @@ class WalletTransaction {
       );
 }
 
+class FundingAccount {
+  final String bankName;
+  final String accountName;
+  final String last4;
+  final DateTime linkedAt;
+
+  const FundingAccount({
+    required this.bankName,
+    required this.accountName,
+    required this.last4,
+    required this.linkedAt,
+  });
+
+  factory FundingAccount.fromMap(Map<String, dynamic> m) => FundingAccount(
+        bankName: m['bank_name'] as String,
+        accountName: m['account_name'] as String,
+        last4: m['account_last4'] as String,
+        linkedAt: DateTime.parse(m['linked_at'] as String).toLocal(),
+      );
+}
+
+class FundSummary {
+  final double available;
+  final double reserved;
+  final double disbursed;
+
+  const FundSummary({
+    required this.available,
+    required this.reserved,
+    required this.disbursed,
+  });
+
+  factory FundSummary.fromMap(Map<String, dynamic> m) => FundSummary(
+        available: (m['available'] as num).toDouble(),
+        reserved: (m['reserved'] as num).toDouble(),
+        disbursed: (m['disbursed'] as num).toDouble(),
+      );
+}
+
+enum FundEntryKind { topup, reserve, release, disburse }
+
+class FundEntry {
+  final int id;
+  final FundEntryKind kind;
+  final double amount;
+  final String? batchId;
+  final String? note;
+  final DateTime createdAt;
+
+  const FundEntry({
+    required this.id,
+    required this.kind,
+    required this.amount,
+    this.batchId,
+    this.note,
+    required this.createdAt,
+  });
+
+  factory FundEntry.fromMap(Map<String, dynamic> m) => FundEntry(
+        id: (m['id'] as num).toInt(),
+        kind: FundEntryKind.values.firstWhere(
+          (kind) => kind.name == m['kind'],
+          orElse: () =>
+              throw const FormatException('Unknown fund ledger entry kind.'),
+        ),
+        amount: (m['amount'] as num).toDouble(),
+        batchId: m['batch_id'] as String?,
+        note: m['note'] as String?,
+        createdAt: DateTime.parse(m['created_at'] as String).toLocal(),
+      );
+}
+
 class Scholar {
   final String id;
   final String studentId;

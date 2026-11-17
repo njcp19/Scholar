@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/shell_tab_controller.dart';
 import '../widgets/widgets.dart';
+import 'payout_receipt_screen.dart';
 import 'scan_claim_screen.dart';
 
 /// Scholar: every allowance payout issued to them — waiting to be received,
@@ -36,8 +37,9 @@ class _ClaimsNoStretchScrollBehavior extends MaterialScrollBehavior {
 
 class _ClaimsScreenState extends State<ClaimsScreen> {
   List<AllowanceClaim> _claims = [];
-  bool _loading = true;
+  bool _hasLoaded = false;
   String? _loadError;
+  bool _offline = false;
   ShellTabController? _tabController;
 
   @override
@@ -75,23 +77,24 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
       setState(() {
         _claims = claims;
         _loadError = null;
-        _loading = false;
+        _offline = false;
+        _hasLoaded = true;
       });
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
-        _claims = [];
         _loadError =
             'Could not load payouts. Check your connection and try again.';
-        _loading = false;
+        _offline = isOfflineLoadError(error);
+        _hasLoaded = true;
       });
     }
   }
 
   Future<void> _retry() async {
     setState(() {
-      _loading = true;
       _loadError = null;
+      _offline = false;
     });
     await _load();
   }
@@ -309,51 +312,58 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
   }
 
   Widget _skeleton() {
-    return AppSkeletonizer(
-      enabled: true,
-      child: Column(
-        children: [
-          AppCard(
-            radius: 26,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(width: 130, height: 14, color: Colors.white),
-                const SizedBox(height: 12),
-                Container(width: 220, height: 42, color: Colors.white),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      children: [
+        const SkeletonCard(
+          radius: 26,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: AppCard(
-                  radius: 22,
-                  child: Container(height: 56, color: Colors.white),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: AppCard(
-                  radius: 22,
-                  child: Container(height: 56, color: Colors.white),
-                ),
-              ),
+              SkeletonLine(width: 130, height: 14),
+              SizedBox(height: 12),
+              SkeletonLine(width: 220, height: 42),
             ],
           ),
-          const SizedBox(height: 20),
-          AppCard(
-            radius: 22,
-            child: Container(height: 74, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        const Row(
+          children: [
+            Expanded(child: SkeletonBox(height: 76, radius: 22)),
+            SizedBox(width: 12),
+            Expanded(child: SkeletonBox(height: 76, radius: 22)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        SkeletonCard(
+          child: Column(
+            children: [
+              for (var index = 0; index < 3; index++) ...[
+                if (index > 0) const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    SkeletonCircle(diameter: 42),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SkeletonLine(width: 138, height: 13),
+                          SizedBox(height: 8),
+                          SkeletonLine(width: 94, height: 11),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    SkeletonLine(width: 76, height: 14),
+                  ],
+                ),
+              ],
+            ],
           ),
-          const SizedBox(height: 12),
-          AppCard(
-            radius: 22,
-            child: Container(height: 74, color: Colors.white),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -457,6 +467,14 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
       child: AppCard(
         radius: 22,
         shadow: true,
+        onTap: received
+            ? () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => PayoutReceiptScreen(claim: claim),
+                  ),
+                )
+            : null,
         borderColor:
             pending ? context.colors.accentGold : context.colors.borderSoft,
         borderWidth: pending ? 1.5 : 1,
@@ -655,57 +673,73 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         onRefresh: _load,
         child: ScrollConfiguration(
           behavior: const _ClaimsNoStretchScrollBehavior(),
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: ClampingScrollPhysics(),
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
-            children: [
-              if (_loading)
-                _skeleton()
-              else if (_loadError != null)
-                ErrorCard(
-                  message: _loadError!,
-                  onRetry: _retry,
-                )
-              else ...[
-                _hero(totalReceived, receivedClaims.length),
-                const SizedBox(height: 16),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: _statCard(
-                          label: 'Waiting for scan',
-                          count: pendingCount,
-                          icon: AppIcons.clock,
-                          tileColor: context.colors.warningBg,
-                          iconColor: context.colors.warningText,
+          child: AppInitialLoadView(
+            firstLoadPending: !_hasLoaded,
+            skeleton: _skeleton(),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: ClampingScrollPhysics(),
+              ),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              children: [
+                if (_loadError != null && _claims.isEmpty)
+                  ErrorCard(
+                    message: _offline
+                        ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                        : _loadError!,
+                    onRetry: _retry,
+                    prominent: true,
+                    offline: _offline,
+                  )
+                else ...[
+                  if (_loadError != null) ...[
+                    ErrorCard(
+                      message: _offline
+                          ? 'Check your connection and try again. Your balance and payouts are not changed.'
+                          : _loadError!,
+                      onRetry: _retry,
+                      offline: _offline,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  _hero(totalReceived, receivedClaims.length),
+                  const SizedBox(height: 16),
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: _statCard(
+                            label: 'Waiting for scan',
+                            count: pendingCount,
+                            icon: AppIcons.clock,
+                            tileColor: context.colors.warningBg,
+                            iconColor: context.colors.warningText,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _statCard(
-                          label: 'Received',
-                          count: receivedClaims.length,
-                          icon: AppIcons.checkCircle,
-                          tileColor: context.colors.successBg,
-                          iconColor: context.colors.successText,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _statCard(
+                            label: 'Received',
+                            count: receivedClaims.length,
+                            icon: AppIcons.checkCircle,
+                            tileColor: context.colors.successBg,
+                            iconColor: context.colors.successText,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                SectionLabel('PAYOUTS (${_claims.length})'),
-                const SizedBox(height: 10),
-                if (_claims.isEmpty)
-                  _emptyState()
-                else
-                  ..._claims.map(_claimCard),
+                  const SizedBox(height: 24),
+                  SectionLabel('PAYOUTS (${_claims.length})'),
+                  const SizedBox(height: 10),
+                  if (_claims.isEmpty)
+                    _emptyState()
+                  else
+                    ..._claims.map(_claimCard),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

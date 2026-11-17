@@ -4,8 +4,6 @@ import 'package:lucide_icons_flutter/lucide_icons_500.dart';
 abstract final class AppIcons {
   static const IconData home = Icons.home_rounded;
   static const IconData homeOutline = Icons.home_outlined;
-  static const IconData cashOut = LucideIcons500.handCoins;
-  static const IconData history = LucideIcons500.history;
   static const IconData payouts = LucideIcons500.receipt;
   static const IconData bell = LucideIcons500.bell;
   static const IconData logout = LucideIcons500.logOut;
@@ -24,6 +22,7 @@ abstract final class AppIcons {
   static const IconData chevronRight = LucideIcons500.chevronRight;
   static const IconData plus = LucideIcons500.plus;
   static const IconData edit = LucideIcons500.pencil;
+  static const IconData sliders = LucideIcons500.slidersHorizontal;
   static const IconData minus = LucideIcons500.minus;
   static const IconData receipt = LucideIcons500.receipt;
   static const IconData warning = LucideIcons500.triangleAlert;
@@ -36,7 +35,6 @@ abstract final class AppIcons {
   static const IconData eye = LucideIcons500.eye;
   static const IconData eyeOff = LucideIcons500.eyeOff;
   static const IconData school = LucideIcons500.school;
-  static const IconData settings = LucideIcons500.settings;
   static const IconData bankAccount = LucideIcons500.landmark;
   static const IconData phone = LucideIcons500.smartphone;
   static const IconData demo = LucideIcons500.flaskConical;
@@ -53,18 +51,14 @@ abstract final class AppIcons {
   static const IconData book = LucideIcons500.bookOpen;
   static const IconData chevronDown = LucideIcons500.chevronDown;
   static const IconData award = LucideIcons500.award;
-  static const IconData userPlus = LucideIcons500.userPlus;
   static const IconData users = LucideIcons500.users;
-  static const IconData badgeCheck = LucideIcons500.badgeCheck;
-  static const IconData lockKeyhole = LucideIcons500.lockKeyhole;
-  static const IconData clipboardCheck = LucideIcons500.clipboardCheck;
   static const IconData chart = LucideIcons500.chartColumnIncreasing;
   static const IconData refresh = LucideIcons500.refreshCw;
   static const IconData cancel = LucideIcons500.circleX;
   static const IconData userSearch = LucideIcons500.userSearch;
-  static const IconData circle = LucideIcons500.circle;
   static const IconData shieldCheck = LucideIcons500.shieldCheck;
   static const IconData send = LucideIcons500.send;
+  static const IconData mailCheck = LucideIcons500.mailCheck;
   static const IconData userCheck = LucideIcons500.userCheck2;
   static const IconData arrowUpRight = LucideIcons500.arrowUpRight;
   static const IconData flashlight = LucideIcons500.flashlight;

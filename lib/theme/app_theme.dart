@@ -28,6 +28,8 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color dangerText;
   final Color brandTint; // tinted backgrounds for brand icon tiles
   final Color header; // home header bar
+  final Color authHeroStart;
+  final Color authHeroEnd;
   final Color onHeader; // content displayed on the header
   final Color scanGradientStart; // scan screen background
   final Color onGold; // content displayed on gold surfaces
@@ -41,6 +43,9 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color danger;
   final Color warning;
   final Color cardShadow;
+  final Color modalScrim;
+  final Color sheetHandle;
+  final Color qrFrame;
 
   const AppColors({
     required this.canvas,
@@ -62,6 +67,8 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.dangerText,
     required this.brandTint,
     required this.header,
+    required this.authHeroStart,
+    required this.authHeroEnd,
     required this.onHeader,
     required this.scanGradientStart,
     required this.onGold,
@@ -75,6 +82,9 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.danger,
     required this.warning,
     required this.cardShadow,
+    required this.modalScrim,
+    required this.sheetHandle,
+    required this.qrFrame,
   });
 
   static const light = AppColors(
@@ -97,6 +107,8 @@ class AppColors extends ThemeExtension<AppColors> {
     dangerText: Color(0xFFA52A2A),
     brandTint: Color(0xFFEAF2FE),
     header: Color(0xFF1E5AA8),
+    authHeroStart: Color(0xFF2A6FC9),
+    authHeroEnd: Color(0xFF164786),
     onHeader: Color(0xFFFFFFFF),
     scanGradientStart: Color(0xFF0B1D3A),
     onGold: Color(0xFF342507),
@@ -110,6 +122,9 @@ class AppColors extends ThemeExtension<AppColors> {
     danger: Color(0xFFE15A5A),
     warning: Color(0xFFF0A020),
     cardShadow: Color(0x140E2946),
+    modalScrim: Color(0xFF0F1B2D),
+    sheetHandle: Color(0xFFD5DCE8),
+    qrFrame: Color(0xFFFFFFFF),
   );
 
   static const dark = AppColors(
@@ -132,6 +147,8 @@ class AppColors extends ThemeExtension<AppColors> {
     dangerText: Color(0xFFF07575),
     brandTint: Color(0xFF1D3554),
     header: Color(0xFF14467F),
+    authHeroStart: Color(0xFF1E579B),
+    authHeroEnd: Color(0xFF103763),
     onHeader: Color(0xFFFFFFFF),
     scanGradientStart: Color(0xFF08162D),
     onGold: Color(0xFF342507),
@@ -145,6 +162,9 @@ class AppColors extends ThemeExtension<AppColors> {
     danger: Color(0xFFF07575),
     warning: Color(0xFFF4B942),
     cardShadow: Color(0x33000000),
+    modalScrim: Color(0xFF0F1B2D),
+    sheetHandle: Color(0xFF3A4658),
+    qrFrame: Color(0xFFFFFFFF),
   );
 
   @override
@@ -168,6 +188,8 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? dangerText,
     Color? brandTint,
     Color? header,
+    Color? authHeroStart,
+    Color? authHeroEnd,
     Color? onHeader,
     Color? scanGradientStart,
     Color? onGold,
@@ -181,6 +203,9 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? danger,
     Color? warning,
     Color? cardShadow,
+    Color? modalScrim,
+    Color? sheetHandle,
+    Color? qrFrame,
   }) =>
       AppColors(
         canvas: canvas ?? this.canvas,
@@ -202,6 +227,8 @@ class AppColors extends ThemeExtension<AppColors> {
         dangerText: dangerText ?? this.dangerText,
         brandTint: brandTint ?? this.brandTint,
         header: header ?? this.header,
+        authHeroStart: authHeroStart ?? this.authHeroStart,
+        authHeroEnd: authHeroEnd ?? this.authHeroEnd,
         onHeader: onHeader ?? this.onHeader,
         scanGradientStart: scanGradientStart ?? this.scanGradientStart,
         onGold: onGold ?? this.onGold,
@@ -215,6 +242,9 @@ class AppColors extends ThemeExtension<AppColors> {
         danger: danger ?? this.danger,
         warning: warning ?? this.warning,
         cardShadow: cardShadow ?? this.cardShadow,
+        modalScrim: modalScrim ?? this.modalScrim,
+        sheetHandle: sheetHandle ?? this.sheetHandle,
+        qrFrame: qrFrame ?? this.qrFrame,
       );
 
   @override
@@ -241,6 +271,8 @@ class AppColors extends ThemeExtension<AppColors> {
       dangerText: l(dangerText, other.dangerText),
       brandTint: l(brandTint, other.brandTint),
       header: l(header, other.header),
+      authHeroStart: l(authHeroStart, other.authHeroStart),
+      authHeroEnd: l(authHeroEnd, other.authHeroEnd),
       onHeader: l(onHeader, other.onHeader),
       scanGradientStart: l(scanGradientStart, other.scanGradientStart),
       onGold: l(onGold, other.onGold),
@@ -254,6 +286,9 @@ class AppColors extends ThemeExtension<AppColors> {
       danger: l(danger, other.danger),
       warning: l(warning, other.warning),
       cardShadow: l(cardShadow, other.cardShadow),
+      modalScrim: l(modalScrim, other.modalScrim),
+      sheetHandle: l(sheetHandle, other.sheetHandle),
+      qrFrame: l(qrFrame, other.qrFrame),
     );
   }
 }
@@ -373,7 +408,16 @@ class SectionLabel extends StatelessWidget {
   final String text;
   final Widget? trailing;
   final Color? labelColor;
-  const SectionLabel(this.text, {super.key, this.trailing, this.labelColor});
+  final double fontSize;
+  final double letterSpacing;
+  const SectionLabel(
+    this.text, {
+    super.key,
+    this.trailing,
+    this.labelColor,
+    this.fontSize = 12,
+    this.letterSpacing = 1.1,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -386,9 +430,9 @@ class SectionLabel extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
-              fontSize: 12,
+              fontSize: fontSize,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1.1,
+              letterSpacing: letterSpacing,
               color: labelColor ?? context.colors.hint,
             ),
           ),

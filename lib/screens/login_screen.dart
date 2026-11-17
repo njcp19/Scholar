@@ -8,6 +8,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
+import 'forgot_password_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -123,19 +124,12 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _forgot() async {
-    if (_email.text.isEmpty) {
-      showMsg(context, 'Type your email first.', error: true);
-      return;
-    }
-    try {
-      await context.read<AppState>().auth.sendPasswordReset(_email.text);
-      if (mounted) showMsg(context, 'Password reset email sent.');
-    } catch (e) {
-      if (mounted) {
-        showMsg(context, context.read<AppState>().auth.friendlyError(e),
-            error: true);
-      }
-    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ForgotPasswordScreen(initialEmail: _email.text),
+      ),
+    );
   }
 
   TextStyle _fieldLabelStyle(BuildContext context) => TextStyle(

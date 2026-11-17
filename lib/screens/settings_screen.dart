@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/shell_tab_controller.dart';
 import '../widgets/widgets.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/claims_monitor_screen.dart';
@@ -16,7 +17,9 @@ import 'history_screen.dart';
 import 'home_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final bool embedded;
+
+  const SettingsScreen({super.key, this.embedded = false});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -100,6 +103,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _navigate(int index, bool isAdmin) async {
+    if (widget.embedded) {
+      context.read<ShellTabController>().select(index);
+      return;
+    }
     if (isAdmin) {
       switch (index) {
         case 0:
@@ -754,7 +761,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: _navigation(isAdmin),
+      bottomNavigationBar: widget.embedded ? null : _navigation(isAdmin),
     );
   }
 }

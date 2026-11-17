@@ -6,16 +6,19 @@ import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/success_animation.dart';
 import '../widgets/widgets.dart';
+import '../widgets/shell_tab_controller.dart';
 import 'history_screen.dart';
 
 class PayoutReceivedScreen extends StatefulWidget {
   final AllowanceClaim claim;
   final double receivedAmount;
+  final ShellTabController? shellController;
 
   const PayoutReceivedScreen({
     super.key,
     required this.claim,
     required this.receivedAmount,
+    this.shellController,
   });
 
   @override
@@ -33,11 +36,29 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         Navigator.popUntil(context, (route) => route.isFirst);
+        widget.shellController?.select(0);
+      }
+    });
+  }
+
+  void _returnToTransactions() {
+    if (_returningHome || !mounted) return;
+    _returningHome = true;
+    setState(() => _allowPop = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        Navigator.popUntil(context, (route) => route.isFirst);
+        widget.shellController?.select(1);
       }
     });
   }
 
   void _viewTransactions() {
+    final controller = widget.shellController;
+    if (controller != null) {
+      _returnToTransactions();
+      return;
+    }
     Navigator.pushAndRemoveUntil<void>(
       context,
       MaterialPageRoute<void>(builder: (_) => const HistoryScreen()),

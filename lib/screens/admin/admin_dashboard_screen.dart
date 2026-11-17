@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../../providers/app_state.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/shell_tab_controller.dart';
 import 'allowance_settings_screen.dart';
 import 'issue_payout_screen.dart';
 import 'claims_monitor_screen.dart';
@@ -26,6 +27,7 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  final ShellTabController _tabs = ShellTabController();
   int _scholars = 0;
   int _waiting = 0;
   int _received = 0;
@@ -43,14 +45,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _tabs.addListener(_onTabChanged);
     _load();
     _poll =
         Timer.periodic(const Duration(seconds: 15), (_) => _checkReceived());
   }
 
+  void _onTabChanged() {
+    if (_tabs.selectedIndex == 0) _load();
+  }
+
   @override
   void dispose() {
     _poll?.cancel();
+    _tabs
+      ..removeListener(_onTabChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -400,17 +410,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _load();
   }
 
-  Future<void> _openManageScholars() async {
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => const ManageScholarsScreen()));
-    _load();
-  }
+  void _openManageScholars() => _tabs.select(2);
 
-  Future<void> _openPayoutMonitor() async {
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => const ClaimsMonitorScreen()));
-    _load();
-  }
+  void _openPayoutMonitor() => _tabs.select(1);
 
   Future<void> _openPayoutEvents() async {
     await Navigator.push(
@@ -452,14 +454,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String _friendlyDate(DateTime? date) => date == null
       ? 'Date unavailable'
       : DateFormat('MMM d, yyyy • h:mm a').format(date.toLocal());
-
-  Future<void> _openProfile() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SettingsScreen()),
-    );
-    _load();
-  }
 
   Widget _disbursementHero(BuildContext context) {
     final colors = context.colors;
@@ -1095,8 +1089,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildHomeTab(BuildContext context) {
     final state = context.watch<AppState>();
     return Scaffold(
       backgroundColor: context.colors.background,
@@ -1212,29 +1205,48 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: ScholarBottomNavigation(
-        currentIndex: 0,
-        height: 76,
-        selectedIconPill: true,
-        items: const [
-          HomeNavigationItem(
-              label: 'Home',
-              icon: AppIcons.homeOutline,
-              activeIcon: AppIcons.home),
-          HomeNavigationItem(label: 'Payouts', icon: AppIcons.payouts),
-          HomeNavigationItem(label: 'Scholars', icon: AppIcons.users),
-          HomeNavigationItem(label: 'Profile', icon: AppIcons.user),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 1:
-              _openPayoutMonitor();
-            case 2:
-              _openManageScholars();
-            case 3:
-              _openProfile();
-          }
-        },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider<ShellTabController>.value(
+      value: _tabs,
+      child: Consumer<ShellTabController>(
+        builder: (context, tabs, _) => PopScope<Object?>(
+          canPop: tabs.selectedIndex == 0,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && tabs.selectedIndex != 0) tabs.select(0);
+          },
+          child: Scaffold(
+            backgroundColor: context.colors.background,
+            body: IndexedStack(
+              index: tabs.selectedIndex,
+              children: [
+                _buildHomeTab(context),
+                const ClaimsMonitorScreen(embedded: true),
+                const ManageScholarsScreen(embedded: true),
+                const SettingsScreen(embedded: true),
+              ],
+            ),
+            bottomNavigationBar: ScholarBottomNavigation(
+              currentIndex: tabs.selectedIndex,
+              height: 76,
+              selectedIconPill: true,
+              items: const [
+                HomeNavigationItem(
+                  label: 'Home',
+                  icon: AppIcons.homeOutline,
+                  activeIcon: AppIcons.home,
+                ),
+                HomeNavigationItem(label: 'Payouts', icon: AppIcons.payouts),
+                HomeNavigationItem(label: 'Scholars', icon: AppIcons.users),
+                HomeNavigationItem(label: 'Profile', icon: AppIcons.user),
+              ],
+              onTap: tabs.select,
+            ),
+          ),
+        ),
       ),
     );
   }

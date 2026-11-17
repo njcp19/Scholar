@@ -7,13 +7,16 @@ import '../models/models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/shell_tab_controller.dart';
 import '../widgets/widgets.dart';
 import 'scan_claim_screen.dart';
 
 /// Scholar: every allowance payout issued to them — waiting to be received,
 /// received, or cancelled. Tapping a waiting payout opens the scanner.
 class ClaimsScreen extends StatefulWidget {
-  const ClaimsScreen({super.key});
+  final bool embedded;
+
+  const ClaimsScreen({super.key, this.embedded = false});
 
   @override
   State<ClaimsScreen> createState() => _ClaimsScreenState();
@@ -35,11 +38,33 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
   List<AllowanceClaim> _claims = [];
   bool _loading = true;
   String? _loadError;
+  ShellTabController? _tabController;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _tabController?.removeListener(_onTabChanged);
+    super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.embedded) return;
+    final controller = context.read<ShellTabController>();
+    if (_tabController != controller) {
+      _tabController?.removeListener(_onTabChanged);
+      _tabController = controller..addListener(_onTabChanged);
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController?.selectedIndex == 2) _load();
   }
 
   Future<void> _load() async {
@@ -74,7 +99,12 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
   Future<void> _openScanner() async {
     final ok = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const ScanClaimScreen()),
+      MaterialPageRoute(
+        builder: (_) => ScanClaimScreen(
+          shellController:
+              widget.embedded ? context.read<ShellTabController>() : null,
+        ),
+      ),
     );
     if (ok == true) _load();
   }
@@ -565,7 +595,6 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                       onPressed: () => showPayoutQrSheet(
                         context,
                         claim,
-                        onScan: _openScanner,
                       ),
                     ),
                   ),
@@ -600,6 +629,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.embedded,
         backgroundColor: context.colors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -613,19 +643,13 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
             fontWeight: FontWeight.w800,
           ),
         ),
-        leading: _roundAction(
-          icon: AppIcons.back,
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-        ),
-        actions: [
-          _roundAction(
-            icon: AppIcons.qrScan,
-            tooltip: 'Scan QR',
-            onPressed: _openScanner,
-          ),
-          const SizedBox(width: 4),
-        ],
+        leading: widget.embedded
+            ? null
+            : _roundAction(
+                icon: AppIcons.back,
+                tooltip: 'Back',
+                onPressed: () => Navigator.maybePop(context),
+              ),
       ),
       body: RefreshIndicator(
         onRefresh: _load,

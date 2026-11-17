@@ -98,8 +98,18 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     }
     final selectedCount = selected.length;
     final total = selectedCount * state.allowance.allowanceAmount;
-    final verified = await state.verifyFingerprint(
-        'Disburse PHP ${fmtPhp(total)} to $selectedCount scholar(s)?');
+    final scholarWord = selectedCount == 1 ? 'scholar' : 'scholars';
+    final confirmationMessage =
+        'Disburse PHP ${fmtPhp(total)} to $selectedCount $scholarWord?';
+    final confirmed = await _confirmDisbursement(
+      selectedCount: selectedCount,
+      total: total,
+      amountPerScholar: state.allowance.allowanceAmount,
+      batchTitle: _batchTitle.text.trim(),
+      confirmationMessage: confirmationMessage,
+    );
+    if (!confirmed || !mounted) return;
+    final verified = await state.verifyFingerprint(confirmationMessage);
     if (!mounted) return;
     if (!verified) {
       showMsg(context, 'Biometrics not verified. No payout was issued.',
@@ -134,204 +144,597 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     }
   }
 
+  Future<bool> _confirmDisbursement({
+    required int selectedCount,
+    required double total,
+    required double amountPerScholar,
+    required String batchTitle,
+    required String confirmationMessage,
+  }) async {
+    final colors = context.colors;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: colors.surface.withValues(alpha: 0),
+      barrierColor: colors.modalScrim.withValues(alpha: .55),
+      sheetAnimationStyle: AnimationStyle(
+        duration:
+            reduceMotion ? Duration.zero : const Duration(milliseconds: 250),
+        reverseDuration:
+            reduceMotion ? Duration.zero : const Duration(milliseconds: 200),
+      ),
+      builder: (sheetContext) => AppBottomSheet(
+        title: 'Confirm disbursement',
+        radius: 32,
+        contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
+        showDragHandle: true,
+        dragHandleSize: const Size(44, 5),
+        dragHandleColor: colors.sheetHandle,
+        dragHandleRadius: 3,
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                color: colors.brandTint,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                AppIcons.fingerprint,
+                size: 46,
+                color: colors.brand,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Confirm disbursement',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              confirmationMessage,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textBody,
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: colors.background,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      batchTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textBody,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        '$selectedCount x PHP ${fmtPhp(amountPerScholar)}',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: colors.brand,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Confirm with your device biometrics',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.textBody,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: SecondaryButton(
+                label: 'Cancel',
+                onPressed: () => Navigator.pop(sheetContext, false),
+                minHeight: 52,
+                borderRadius: 18,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: PrimaryButton(
+                label: 'Continue',
+                onPressed: () => Navigator.pop(sheetContext, true),
+                icon: AppIcons.fingerprint,
+                minHeight: 52,
+                borderRadius: 18,
+                iconSize: 20,
+                iconSpacing: 8,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return confirmed == true;
+  }
+
+  Widget _amountCard(AppState state) {
+    final colors = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+      radius: 26,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [colors.balanceHeroStart, colors.balanceHeroEnd],
+      ),
+      borderColor: colors.balanceHeroStart,
+      borderWidth: 0,
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          Positioned(
+            top: -98,
+            right: -54,
+            child: Container(
+              width: 180,
+              height: 180,
+              decoration: BoxDecoration(
+                color: colors.onHeader.withValues(alpha: .13),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Positioned(
+            top: -72,
+            right: 30,
+            child: Container(
+              width: 150,
+              height: 150,
+              decoration: BoxDecoration(
+                color: colors.onHeader.withValues(alpha: .1),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'AMOUNT PER SCHOLAR (FIXED)',
+                style: TextStyle(
+                  color: colors.balanceHeroText,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    'PHP',
+                    style: TextStyle(
+                      color: colors.balanceHeroText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        fmtPhp(state.allowance.allowanceAmount),
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: colors.balanceHeroText,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Set once for everybody. Every selected scholar gets exactly this amount.',
+                style: TextStyle(
+                  color: colors.balanceHeroText,
+                  fontSize: 12,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Material(
+                color: colors.onHeader.withValues(alpha: .5),
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AllowanceSettingsScreen(),
+                      ),
+                    );
+                    _load();
+                  },
+                  borderRadius: BorderRadius.circular(18),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          AppIcons.sliders,
+                          size: 16,
+                          color: colors.balanceHeroText,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Change standard amount',
+                          style: TextStyle(
+                            color: colors.balanceHeroText,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _fieldDecoration(
+    BuildContext context, {
+    String? hintText,
+    Widget? suffixIcon,
+    bool focused = false,
+  }) {
+    final colors = context.colors;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(
+        color: focused ? colors.brand : colors.border,
+        width: focused ? 2 : 1,
+      ),
+    );
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(color: colors.hint, fontSize: 15),
+      filled: true,
+      fillColor: colors.surface,
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border,
+      suffixIcon: suffixIcon,
+    );
+  }
+
+  Widget _periodChips() {
+    final colors = context.colors;
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final period in ['1st Semester', '2nd Semester', 'Summer'])
+          ActionChip(
+            label: Text(
+              period,
+              style: TextStyle(
+                color: colors.textBody,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            onPressed: () => setState(() => _academicPeriod.text = period),
+            backgroundColor: colors.surface,
+            side: BorderSide(color: colors.border),
+            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+      ],
+    );
+  }
+
+  Widget _totalBar(int selectedCount, double total) {
+    final colors = context.colors;
+    final scholarLabel =
+        '$selectedCount ${selectedCount == 1 ? 'scholar' : 'scholars'} selected';
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      radius: 18,
+      backgroundColor: colors.brandTint,
+      borderColor: colors.brandTint,
+      borderWidth: 0,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              scholarLabel,
+              style: TextStyle(
+                color: colors.brand,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'PHP ${fmtPhp(total)}',
+            style: TextStyle(
+              color: colors.brand,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _loadingSkeleton() {
+    Widget block(double height, {double radius = 16}) => Container(
+          width: double.infinity,
+          height: height,
+          decoration: BoxDecoration(
+            color: context.colors.surface,
+            borderRadius: BorderRadius.circular(radius),
+          ),
+        );
+
+    return AppSkeletonizer(
+      enabled: true,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          block(206, radius: 26),
+          const SizedBox(height: 20),
+          block(72),
+          const SizedBox(height: 16),
+          block(72),
+          const SizedBox(height: 10),
+          block(36, radius: 18),
+          const SizedBox(height: 16),
+          block(72),
+          const SizedBox(height: 30),
+          block(18),
+          const SizedBox(height: 12),
+          for (var index = 0; index < 3; index++) ...[
+            block(68, radius: 18),
+            const SizedBox(height: 10),
+          ],
+          const SizedBox(height: 4),
+          block(56, radius: 18),
+          const SizedBox(height: 18),
+          block(56, radius: 18),
+          const SizedBox(height: 12),
+          block(52),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final selectedCount = _scholars.where((s) => s.selected).length;
     final total = selectedCount * state.allowance.allowanceAmount;
+    final colors = context.colors;
 
     return Scaffold(
+      backgroundColor: colors.background,
       appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.maybePop(context),
-          icon: Icon(
-            AppIcons.back,
-            color: context.colors.textPrimary,
+        leadingWidth: 62,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: IconButton(
+            onPressed: () => Navigator.maybePop(context),
+            style: IconButton.styleFrom(
+              fixedSize: const Size(42, 42),
+              padding: EdgeInsets.zero,
+              backgroundColor: colors.surface,
+              foregroundColor: colors.textPrimary,
+              shape: const CircleBorder(),
+              side: BorderSide(color: colors.borderSoft),
+            ),
+            icon: const Icon(AppIcons.back, size: 20),
           ),
         ),
-        title: const Text('Issue Payout Event'),
+        title: Text(
+          'Issue payout event',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: colors.background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? _loadingSkeleton()
           : ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: context.colors.goldTint,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                        color: AppTheme.accentGold.withValues(alpha: .5)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('AMOUNT PER SCHOLAR (FIXED)',
-                          style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1,
-                              color: AppTheme.textMuted)),
-                      const SizedBox(height: 6),
-                      Text('PHP ${fmtPhp(state.allowance.allowanceAmount)}',
-                          style: TextStyle(
-                              fontSize: 26,
-                              fontWeight: FontWeight.w800,
-                              color: context.colors.textPrimary)),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Set once for everybody — every selected scholar gets '
-                        'exactly this amount.',
-                        style: TextStyle(
-                            fontSize: 12, color: context.colors.textBody),
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton.icon(
-                        onPressed: () async {
-                          await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const AllowanceSettingsScreen()));
-                          _load();
-                        },
-                        icon: Icon(
-                          AppIcons.filter,
-                          size: 16,
-                          color: context.colors.brand,
-                        ),
-                        label: const Text('Change standard amount'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _label('Batch Title'),
+                _amountCard(state),
+                const SizedBox(height: 16),
+                _label('Batch title'),
                 AppTextField(
                   controller: _batchTitle,
-                  hintText: 'e.g. November 2025 Monthly Allowance',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: _fieldDecoration(context),
                 ),
                 const SizedBox(height: 16),
-                _label('Academic Period (optional)'),
+                _label('Academic period (optional)'),
                 AppTextField(
                   controller: _academicPeriod,
                   hintText: '1st Semester AY 2026-2027',
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: _fieldDecoration(
+                    context,
+                    hintText: '1st Semester AY 2026-2027',
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    for (final period in [
-                      '1st Semester',
-                      '2nd Semester',
-                      'Summer',
-                    ])
-                      ActionChip(
-                        label: Text(period),
-                        onPressed: () => setState(
-                          () => _academicPeriod.text = period,
-                        ),
-                      ),
-                  ],
-                ),
+                const SizedBox(height: 10),
+                _periodChips(),
                 const SizedBox(height: 16),
-                _label('Distribution Date (required)'),
+                _label('Distribution date (required)'),
                 AppTextField(
                   controller: _distributionDate,
                   readOnly: true,
                   onTap: _pickDistributionDate,
-                  hintText: 'Select a date',
-                  suffixIcon: IconButton(
-                    tooltip: 'Choose distribution date',
-                    onPressed: _pickDistributionDate,
-                    icon: const Icon(AppIcons.calendar),
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: _fieldDecoration(
+                    context,
+                    hintText: 'Select a date',
+                    focused: _distributionDate.text.isNotEmpty,
+                    suffixIcon: Icon(
+                      AppIcons.calendar,
+                      size: 19,
+                      color: colors.textBody,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 Text(
                   'This date is saved with the payout event. QR codes can be '
                   'generated and scanned immediately.',
                   style: TextStyle(
-                    color: context.colors.textBody,
+                    color: colors.textBody,
                     fontSize: 12,
+                    height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    const SectionLabel('RECIPIENTS'),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: () => setState(() {
-                        final all = selectedCount != _scholars.length;
-                        for (final s in _scholars) {
-                          s.selected = all;
-                        }
-                      }),
-                      child: Text(selectedCount == _scholars.length
-                          ? 'Clear all'
-                          : 'Select all'),
+                const SizedBox(height: 24),
+                SectionLabel(
+                  'RECIPIENTS',
+                  labelColor: colors.textBody,
+                  fontSize: 11.5,
+                  letterSpacing: 1.2,
+                  trailing: TextButton(
+                    onPressed: () => setState(() {
+                      final all = selectedCount != _scholars.length;
+                      for (final scholar in _scholars) {
+                        scholar.selected = all;
+                      }
+                    }),
+                    style: TextButton.styleFrom(
+                      foregroundColor: colors.brand,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: const Size(0, 40),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                if (_scholars.isEmpty)
-                  const Padding(
-                    padding: EdgeInsets.all(24),
-                    child: Center(
-                      child: Text(
-                        'No active scholars yet.\nActivate scholars in Manage '
-                        'Scholars first.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppTheme.textMuted),
+                    child: Text(
+                      selectedCount == _scholars.length
+                          ? 'Clear all'
+                          : 'Select all',
+                      style: TextStyle(
+                        color: colors.brand,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (_scholars.isEmpty)
+                  const EmptyState(
+                    icon: AppIcons.users,
+                    title: 'No active scholars yet',
+                    message: 'Activate scholars in Manage Scholars first.',
                   )
                 else
                   ..._scholars.map(_scholarTile),
-                const SizedBox(height: 14),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: context.colors.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: context.colors.borderSoft),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text('$selectedCount scholar(s) selected',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppTheme.textMuted)),
-                      ),
-                      Text('PHP ${fmtPhp(total)}',
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: context.colors.brand)),
-                    ],
-                  ),
-                ),
+                const SizedBox(height: 16),
+                _totalBar(selectedCount, total),
                 const SizedBox(height: 18),
-                ElevatedButton.icon(
+                PrimaryButton(
+                  label: 'Generate QR Codes',
                   onPressed: _busy ? null : _generate,
-                  icon: _busy
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(AppIcons.qrCode),
-                  label: const Text('Generate QR Codes'),
+                  icon: AppIcons.qrCode,
+                  loading: _busy,
+                  loadingLabel: 'Generate QR Codes',
+                  minHeight: 56,
+                  borderRadius: 18,
+                  shadow: true,
+                  iconSize: 20,
+                  iconSpacing: 10,
                 ),
-                const SizedBox(height: 10),
-                const Text(
+                const SizedBox(height: 12),
+                Text(
                   'Generating reserves the amount for each selected scholar. '
                   'The money is only released once the scholar scans their QR '
                   'code and verifies their fingerprint.',
-                  style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: colors.textBody,
+                    fontSize: 11.5,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -339,43 +742,101 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }
 
   Widget _scholarTile(Scholar s) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: context.colors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: s.selected ? context.colors.brand : context.colors.borderSoft,
-          width: s.selected ? 1.5 : 1,
-        ),
-      ),
-      child: CheckboxListTile(
-        value: s.selected,
-        onChanged: (v) => setState(() => s.selected = v ?? false),
-        title: Text(s.name,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-        subtitle: Row(
+    final colors = context.colors;
+    final parts = s.name.trim().split(RegExp(r'\s+'));
+    final initials = parts
+        .where((part) => part.isNotEmpty)
+        .take(2)
+        .map((part) => part[0].toUpperCase())
+        .join();
+    final avatarTextColor = Theme.of(context).brightness == Brightness.dark
+        ? colors.textPrimary
+        : colors.onGold;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: ListRowCard(
+        onTap: () => setState(() => s.selected = !s.selected),
+        minHeight: 68,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        radius: 18,
+        backgroundColor: colors.surface,
+        borderColor: s.selected ? colors.brand : colors.border,
+        borderWidth: s.selected ? 2 : 1,
+        child: Row(
           children: [
-            Text('ID: ${s.studentId}',
-                style:
-                    const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: s.selected ? colors.brand : colors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: s.selected ? colors.brand : colors.border,
+                  width: 1.5,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: s.selected
+                  ? Icon(AppIcons.check, size: 16, color: colors.onHeader)
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: colors.avatarBackground,
+              child: Text(
+                initials.isEmpty ? '?' : initials,
+                style: TextStyle(
+                  color: avatarTextColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'ID: ${s.studentId}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textBody,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(width: 8),
-            Icon(
-              AppIcons.fingerprint,
-              size: 18,
-              color: s.fingerprintRegistered
-                  ? context.colors.textLabel
-                  : context.colors.brand,
+            Tooltip(
+              message: s.fingerprintRegistered
+                  ? 'Fingerprint registered'
+                  : 'Fingerprint not registered',
+              child: Icon(
+                AppIcons.fingerprint,
+                size: 18,
+                color:
+                    s.fingerprintRegistered ? colors.successText : colors.hint,
+              ),
             ),
           ],
         ),
-        secondary: CircleAvatar(
-          backgroundColor: context.colors.brand.withValues(alpha: .15),
-          child: Text(s.name.isNotEmpty ? s.name[0].toUpperCase() : '?',
-              style: TextStyle(
-                  color: context.colors.brand, fontWeight: FontWeight.w700)),
-        ),
-        controlAffinity: ListTileControlAffinity.leading,
       ),
     );
   }
@@ -384,9 +845,9 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
         padding: const EdgeInsets.only(bottom: 6),
         child: Text(t,
             style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: context.colors.textPrimary)),
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: context.colors.textLabel)),
       );
 }
 
@@ -401,96 +862,177 @@ class _QrSheetScreen extends StatelessWidget {
     required this.distributionDate,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          onPressed: () => Navigator.maybePop(context),
-          icon: Icon(
-            AppIcons.back,
-            color: context.colors.textPrimary,
-          ),
-        ),
-        title: const Text('Payout QR Codes'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+  Widget _claimCard(BuildContext context, AllowanceClaim claim) {
+    final colors = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      radius: 24,
+      shadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: context.colors.successBg,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  AppIcons.checkCircle,
-                  color: context.colors.brand,
-                  size: 22,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    '${claims.length} QR code(s) generated for PHP '
-                    '${fmtPhp(amount)} each. Distribution date: '
-                    '${DateFormat('MMM d, yyyy').format(distributionDate)}. '
-                    'Show a scholar their code — it can only be scanned once.',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppTheme.successGreen),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          ...claims.map((c) => Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: context.colors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: context.colors.borderSoft),
-                ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(c.scholarName,
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 15,
-                                      color: context.colors.textPrimary)),
-                              Text(c.batchTitle,
-                                  style: const TextStyle(
-                                      fontSize: 11, color: AppTheme.textMuted)),
-                            ],
-                          ),
-                        ),
-                        Text('PHP ${fmtPhp(c.amount)}',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                                color: context.colors.brand)),
-                      ],
+                    Text(
+                      claim.scholarName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    ClaimQrPanel(claim: c, size: 200),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Single use • the scholar scans this in their app to '
-                      'confirm receipt',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                    const SizedBox(height: 3),
+                    Text(
+                      claim.batchTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textBody,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
-              )),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    'PHP ${fmtPhp(claim.amount)}',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: colors.brand,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 214),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: AppCard(
+                  padding: EdgeInsets.zero,
+                  radius: 20,
+                  backgroundColor: colors.qrFrame,
+                  borderColor: colors.border,
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: ClaimQrPanel(claim: claim, size: 190),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Single use • the scholar scans this in their app to confirm receipt',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.textBody,
+              fontSize: 11.5,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final qrCodeLabel = claims.length == 1 ? 'QR code' : 'QR codes';
+    final successMessage = '${claims.length} $qrCodeLabel generated for PHP '
+        '${fmtPhp(amount)} each. Distribution date: '
+        '${DateFormat('MMM d, yyyy').format(distributionDate)}. '
+        'Show a scholar their code. It can only be scanned once.';
+
+    return Scaffold(
+      backgroundColor: colors.background,
+      appBar: AppBar(
+        leadingWidth: 62,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 20),
+          child: IconButton(
+            onPressed: () => Navigator.maybePop(context),
+            style: IconButton.styleFrom(
+              fixedSize: const Size(42, 42),
+              padding: EdgeInsets.zero,
+              backgroundColor: colors.surface,
+              foregroundColor: colors.textPrimary,
+              shape: const CircleBorder(),
+              side: BorderSide(color: colors.borderSoft),
+            ),
+            icon: const Icon(AppIcons.back, size: 20),
+          ),
+        ),
+        title: Text(
+          'Payout QR codes',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: colors.background,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+        children: [
+          InfoBanner(
+            icon: AppIcons.check,
+            message: successMessage,
+            maxLines: 6,
+            backgroundColor: colors.successBg,
+            iconColor: colors.onHeader,
+            textColor: colors.successText,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            borderRadius: 20,
+            fontSize: 12.5,
+            textHeight: 1.5,
+            leading: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: colors.success,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                AppIcons.check,
+                color: colors.onHeader,
+                size: 19,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          ...claims.map(
+            (claim) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _claimCard(context, claim),
+            ),
+          ),
         ],
       ),
     );

@@ -6,12 +6,15 @@ import '../../models/models.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 import '../fingerprint_screen.dart';
 
 /// Admin: every payout QR ever issued, with its live status.
 class ClaimsMonitorScreen extends StatefulWidget {
-  const ClaimsMonitorScreen({super.key});
+  final bool embedded;
+
+  const ClaimsMonitorScreen({super.key, this.embedded = false});
 
   @override
   State<ClaimsMonitorScreen> createState() => _ClaimsMonitorScreenState();
@@ -24,6 +27,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   String _filter = 'all';
   String _query = '';
   final _searchController = TextEditingController();
+  ShellTabController? _tabController;
 
   @override
   void initState() {
@@ -32,7 +36,23 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.embedded) return;
+    final controller = context.read<ShellTabController>();
+    if (_tabController != controller) {
+      _tabController?.removeListener(_onTabChanged);
+      _tabController = controller..addListener(_onTabChanged);
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController?.selectedIndex == 1) _load();
+  }
+
+  @override
   void dispose() {
+    _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -742,8 +762,9 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.embedded,
         leadingWidth: 60,
-        leading: _roundBackButton(),
+        leading: widget.embedded ? null : _roundBackButton(),
         centerTitle: true,
         title: Text(
           'Payout Monitor',

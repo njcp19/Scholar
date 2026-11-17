@@ -9,6 +9,7 @@ import '../providers/app_state.dart';
 import '../models/models.dart';
 import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/shell_tab_controller.dart';
 import 'scan_claim_screen.dart';
 import 'history_screen.dart';
 import 'fingerprint_screen.dart';
@@ -36,6 +37,7 @@ class _HomeNoStretchScrollBehavior extends MaterialScrollBehavior {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final ShellTabController _tabs = ShellTabController();
   List<WalletTransaction> _recent = [];
   List<AllowanceClaim> _pending = [];
   List<AllowanceClaim> _claims = [];
@@ -48,13 +50,21 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _tabs.addListener(_onTabChanged);
     _load();
     _poll = Timer.periodic(const Duration(seconds: 15), (_) => _checkNewQr());
+  }
+
+  void _onTabChanged() {
+    if (_tabs.selectedIndex == 0) _load();
   }
 
   @override
   void dispose() {
     _poll?.cancel();
+    _tabs
+      ..removeListener(_onTabChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -74,7 +84,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
                 'New allowance from admin: PHP ${fmtPhp(total)}. Scan the QR to receive it.'),
-            action: SnackBarAction(label: 'SCAN', onPressed: _openScanner),
             duration: const Duration(seconds: 10),
           ));
         }
@@ -115,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(
                 'You have ${_pending.length} allowance(s) waiting: PHP ${fmtPhp(total)}. Scan the QR from the admin to receive it.'),
-            action: SnackBarAction(label: 'SCAN', onPressed: _openScanner),
             duration: const Duration(seconds: 10),
           ));
         });
@@ -162,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         void openPayout(AllowanceClaim claim) {
           Navigator.pop(sheetContext);
-          showPayoutQrSheet(context, claim, onScan: _openScanner);
+          showPayoutQrSheet(context, claim);
         }
 
         return AppBottomSheet(
@@ -350,7 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!mounted) return;
     final received = await Navigator.push<bool>(
       context,
-      MaterialPageRoute(builder: (_) => const ScanClaimScreen()),
+      MaterialPageRoute(
+        builder: (_) => ScanClaimScreen(shellController: _tabs),
+      ),
     );
     if (received == true) _load();
   }
@@ -359,30 +369,6 @@ class _HomeScreenState extends State<HomeScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const CashoutScreen()),
-    );
-    _load();
-  }
-
-  Future<void> _openTransactions() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const HistoryScreen()),
-    );
-    _load();
-  }
-
-  Future<void> _openMyPayouts() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const ClaimsScreen()),
-    );
-    _load();
-  }
-
-  Future<void> _openProfile() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
     _load();
   }
@@ -605,6 +591,53 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return ChangeNotifierProvider<ShellTabController>.value(
+      value: _tabs,
+      child: Consumer<ShellTabController>(
+        builder: (context, tabs, _) => PopScope<Object?>(
+          canPop: tabs.selectedIndex == 0,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && tabs.selectedIndex != 0) tabs.select(0);
+          },
+          child: Scaffold(
+            backgroundColor: context.colors.background,
+            body: IndexedStack(
+              index: tabs.selectedIndex,
+              children: [
+                _buildHomeTab(context),
+                const HistoryScreen(embedded: true),
+                const ClaimsScreen(embedded: true),
+                const SettingsScreen(embedded: true),
+              ],
+            ),
+            bottomNavigationBar: ScholarBottomNavigation(
+              currentIndex: tabs.selectedIndex,
+              height: 76,
+              selectedIconPill: true,
+              scaleHeightForText: true,
+              items: const [
+                HomeNavigationItem(
+                  label: 'Home',
+                  icon: AppIcons.homeOutline,
+                  activeIcon: AppIcons.home,
+                ),
+                HomeNavigationItem(label: 'Transactions', icon: AppIcons.chart),
+                HomeNavigationItem(
+                  label: 'My Payouts',
+                  icon: AppIcons.payouts,
+                  activeIcon: AppIcons.payouts,
+                ),
+                HomeNavigationItem(label: 'Profile', icon: AppIcons.user),
+              ],
+              onTap: tabs.select,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeTab(BuildContext context) {
     final state = context.watch<AppState>();
     final user = state.user;
     final latestPayout = _latestPayout;
@@ -739,7 +772,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             TextButton(
-                              onPressed: _openTransactions,
+                              onPressed: () => _tabs.select(1),
                               style: TextButton.styleFrom(
                                 minimumSize: const Size(48, 32),
                                 padding: EdgeInsets.zero,
@@ -768,34 +801,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: ScholarBottomNavigation(
-        currentIndex: 0,
-        height: 76,
-        selectedIconPill: true,
-        scaleHeightForText: true,
-        items: const [
-          HomeNavigationItem(
-              label: 'Home',
-              icon: AppIcons.homeOutline,
-              activeIcon: AppIcons.home),
-          HomeNavigationItem(label: 'Transactions', icon: AppIcons.chart),
-          HomeNavigationItem(
-              label: 'My Payouts',
-              icon: AppIcons.payouts,
-              activeIcon: AppIcons.payouts),
-          HomeNavigationItem(label: 'Profile', icon: AppIcons.user),
-        ],
-        onTap: (index) {
-          switch (index) {
-            case 1:
-              _openTransactions();
-            case 2:
-              _openMyPayouts();
-            case 3:
-              _openProfile();
-          }
-        },
       ),
     );
   }

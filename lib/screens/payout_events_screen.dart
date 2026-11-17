@@ -7,7 +7,6 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
-import 'admin/issue_payout_screen.dart';
 
 /// Payout events are existing disbursement batches, not attendance events.
 /// No generic event QR is accepted by the allowance scanner.
@@ -491,21 +490,6 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      floatingActionButton: admin
-          ? FloatingActionButton.extended(
-              icon: Icon(
-                AppIcons.plus,
-                color: context.colors.brand,
-              ),
-              label: const Text('Issue payout'),
-              onPressed: () async {
-                await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const IssuePayoutScreen()));
-                if (mounted) await _load();
-              })
-          : null,
       body: ClipRect(
         child: ScrollConfiguration(
           behavior: const _PayoutEventsScrollBehavior(),

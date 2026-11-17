@@ -158,9 +158,10 @@ class RoleHomeLayout extends StatelessWidget {
                           const SizedBox(height: 8),
                           if (showListEmptyState)
                             listEmptyState ??
-                                const EmptyStateCard(
+                                const EmptyState(
                                   icon: AppIcons.receipt,
                                   message: 'Nothing here yet.',
+                                  card: true,
                                 ),
                           if (listRows.isNotEmpty)
                             AppSkeletonizer(

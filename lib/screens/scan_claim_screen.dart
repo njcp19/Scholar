@@ -9,6 +9,7 @@ import '../services/wallet_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/shell_tab_controller.dart';
 import 'fingerprint_screen.dart';
 import 'payout_confirmation_screen.dart';
 import 'payout_received_screen.dart';
@@ -18,7 +19,9 @@ import 'payout_received_screen.dart';
 /// Flow: camera detects QR -> look up the claim -> confirm with fingerprint ->
 /// server-side single-use redemption -> balance credited.
 class ScanClaimScreen extends StatefulWidget {
-  const ScanClaimScreen({super.key});
+  final ShellTabController? shellController;
+
+  const ScanClaimScreen({super.key, this.shellController});
 
   @override
   State<ScanClaimScreen> createState() => _ScanClaimScreenState();
@@ -166,6 +169,7 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
           builder: (_) => PayoutReceivedScreen(
             claim: preview,
             receivedAmount: receivedAmount,
+            shellController: widget.shellController,
           ),
         ),
         result: true,

@@ -38,39 +38,17 @@ class AnimatedLogo extends StatelessWidget {
 
     final animatedImage = reduceMotion
         ? image
-        : Animate(
-            delay: const Duration(milliseconds: 700),
-            onPlay: (controller) => controller.repeat(reverse: true),
-            effects: const [
-              MoveEffect(
-                begin: Offset(0, -2),
-                end: Offset(0, 2),
-                duration: Duration(milliseconds: 1500),
-                curve: Curves.easeInOut,
-              ),
-            ],
-            child: Animate(
-              onPlay: (controller) => controller.repeat(),
-              effects: [
-                ShimmerEffect(
-                  delay: const Duration(seconds: 3),
-                  duration: const Duration(milliseconds: 800),
-                  color: context.colors.surface.withValues(alpha: .3),
-                ),
-              ],
-              child: image
-                  .animate()
-                  .fadeIn(
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.easeOut,
-                  )
-                  .scale(
-                    begin: const Offset(.85, .85),
-                    duration: const Duration(milliseconds: 700),
-                    curve: Curves.easeOut,
-                  ),
-            ),
-          );
+        : image
+            .animate()
+            .fadeIn(
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOut,
+            )
+            .scale(
+              begin: const Offset(.85, .85),
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeOut,
+            );
 
     const title = Column(
       children: [

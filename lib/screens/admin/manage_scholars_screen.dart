@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 
 /// FR-23 — Admin controls who receives an allowance by activating or
@@ -11,7 +12,9 @@ import '../../widgets/widgets.dart';
 /// all finished inactive ones). Deactivated scholars are excluded from the
 /// Disburse Allowance recipient list.
 class ManageScholarsScreen extends StatefulWidget {
-  const ManageScholarsScreen({super.key});
+  final bool embedded;
+
+  const ManageScholarsScreen({super.key, this.embedded = false});
 
   @override
   State<ManageScholarsScreen> createState() => _ManageScholarsScreenState();
@@ -24,6 +27,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   bool _loading = true;
   String _query = '';
   String? _error;
+  ShellTabController? _tabController;
 
   @override
   void initState() {
@@ -32,7 +36,23 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.embedded) return;
+    final controller = context.read<ShellTabController>();
+    if (_tabController != controller) {
+      _tabController?.removeListener(_onTabChanged);
+      _tabController = controller..addListener(_onTabChanged);
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController?.selectedIndex == 2) _load();
+  }
+
+  @override
   void dispose() {
+    _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -170,10 +190,12 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         automaticallyImplyLeading: false,
         centerTitle: true,
         title: const Text('Manage Scholars'),
-        leading: _RoundToolbarButton(
-          icon: AppIcons.back,
-          onPressed: () => Navigator.maybePop(context),
-        ),
+        leading: widget.embedded
+            ? null
+            : _RoundToolbarButton(
+                icon: AppIcons.back,
+                onPressed: () => Navigator.maybePop(context),
+              ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),

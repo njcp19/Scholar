@@ -227,7 +227,7 @@ class _SignupScreenState extends State<SignupScreen> {
         title: title,
         child: Text(
           '$title text will be provided.',
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.inter(
             fontSize: 14,
             color: context.colors.textBody,
           ),
@@ -345,7 +345,7 @@ class _SignupScreenState extends State<SignupScreen> {
         _ => context.colors.successText,
       };
 
-  TextStyle _label(BuildContext context) => GoogleFonts.poppins(
+  TextStyle _label(BuildContext context) => GoogleFonts.inter(
         fontSize: 13,
         fontWeight: FontWeight.w600,
         color: context.colors.textLabel,
@@ -363,13 +363,13 @@ class _SignupScreenState extends State<SignupScreen> {
       filled: true,
       fillColor: colors.background,
       hintText: hint,
-      hintStyle: GoogleFonts.poppins(fontSize: 14, color: colors.textBody),
+      hintStyle: GoogleFonts.inter(fontSize: 14, color: colors.textBody),
       prefixIcon: Icon(icon, size: 20, color: colors.textBody),
       prefixIconConstraints: const BoxConstraints(minWidth: 48),
       suffixIcon: suffix,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
       errorText: error,
-      errorStyle: GoogleFonts.poppins(fontSize: 12, color: colors.dangerText),
+      errorStyle: GoogleFonts.inter(fontSize: 12, color: colors.dangerText),
       border: _border(colors.borderSoft),
       enabledBorder: _border(colors.borderSoft),
       focusedBorder: _border(colors.brand, width: 2),
@@ -428,7 +428,7 @@ class _SignupScreenState extends State<SignupScreen> {
           textCapitalization: capitalization,
           obscureText: obscure,
           onChanged: (_) => _onFieldChanged(key),
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.inter(
             fontSize: 14,
             color: context.colors.textPrimary,
           ),
@@ -496,7 +496,7 @@ class _SignupScreenState extends State<SignupScreen> {
               initialValue: _yearLevel,
               isExpanded: true,
               icon: Icon(AppIcons.chevronDown, color: colors.textBody),
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.inter(
                 fontSize: 14,
                 color: colors.textPrimary,
               ),
@@ -522,7 +522,7 @@ class _SignupScreenState extends State<SignupScreen> {
           const SizedBox(height: 2),
           Text(
             'EXISTING SCHOLARSHIP',
-            style: GoogleFonts.poppins(
+            style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.8,
@@ -541,7 +541,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'Scholar Wallet is only for existing scholarship beneficiaries.',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 12,
                         height: 1.4,
                         color: colors.textBody,
@@ -665,7 +665,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   _passwordStrengthLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: strengthColor,
@@ -682,7 +682,7 @@ class _SignupScreenState extends State<SignupScreen> {
               obscureText: _obscureConfirm,
               textInputAction: TextInputAction.done,
               onChanged: (_) => _onFieldChanged('confirm'),
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.inter(
                 fontSize: 14,
                 color: context.colors.textPrimary,
               ),
@@ -745,7 +745,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     Text(
                       'I agree to the Scholar Wallet ',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 13,
                         height: 1.5,
                         color: colors.textBody,
@@ -755,7 +755,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       onTap: () => _showPolicySheet('Terms of Service'),
                       child: Text(
                         'Terms of Service',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.inter(
                           fontSize: 13,
                           height: 1.5,
                           fontWeight: FontWeight.w700,
@@ -765,7 +765,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     Text(
                       ' and ',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 13,
                         height: 1.5,
                         color: colors.textBody,
@@ -775,7 +775,7 @@ class _SignupScreenState extends State<SignupScreen> {
                       onTap: () => _showPolicySheet('Privacy Policy'),
                       child: Text(
                         'Privacy Policy',
-                        style: GoogleFonts.poppins(
+                        style: GoogleFonts.inter(
                           fontSize: 13,
                           height: 1.5,
                           fontWeight: FontWeight.w700,
@@ -785,7 +785,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     Text(
                       ' for financial disbursement.',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 13,
                         height: 1.5,
                         color: colors.textBody,
@@ -802,7 +802,7 @@ class _SignupScreenState extends State<SignupScreen> {
             padding: const EdgeInsets.only(left: 40, top: 4),
             child: Text(
               _fieldErrors['terms']!,
-              style: GoogleFonts.poppins(
+              style: GoogleFonts.inter(
                 fontSize: 12,
                 color: colors.dangerText,
               ),
@@ -846,7 +846,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   children: [
                     TextSpan(
                       text: 'Scholar ',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: colors.brand,
@@ -854,7 +854,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                     TextSpan(
                       text: 'Wallet',
-                      style: GoogleFonts.poppins(
+                      style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                         color: colors.accentGold,
@@ -883,7 +883,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 'Step ${_step + 1} of 2',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: colors.textLabel,
@@ -897,7 +897,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: colors.brand,
@@ -943,7 +943,7 @@ class _SignupScreenState extends State<SignupScreen> {
       children: [
         Text(
           title,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.inter(
             fontSize: 30,
             fontWeight: FontWeight.w700,
             height: 1.15,
@@ -953,7 +953,7 @@ class _SignupScreenState extends State<SignupScreen> {
         const SizedBox(height: 8),
         Text(
           subtitle,
-          style: GoogleFonts.poppins(
+          style: GoogleFonts.inter(
             fontSize: 14,
             height: 1.5,
             color: colors.textBody,
@@ -984,7 +984,7 @@ class _SignupScreenState extends State<SignupScreen> {
             children: [
               Text(
                 'Already have an account? ',
-                style: GoogleFonts.poppins(
+                style: GoogleFonts.inter(
                   fontSize: 13,
                   color: colors.textBody,
                 ),
@@ -993,7 +993,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 onTap: () => Navigator.pop(context),
                 child: Text(
                   'Sign In',
-                  style: GoogleFonts.poppins(
+                  style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: colors.brand,

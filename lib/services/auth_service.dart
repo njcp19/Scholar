@@ -155,6 +155,10 @@ class AuthService {
           return 'Password must be at least 6 characters.';
         case 'invalid-email':
           return 'Please enter a valid email address.';
+        case 'too-many-requests':
+          return 'Too many requests. Please wait a while before trying again.';
+        case 'network-request-failed':
+          return 'Please check your internet connection and try again.';
         default:
           return e.message ?? 'Authentication failed.';
       }

@@ -6,13 +6,15 @@ import '../models/models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/shell_tab_controller.dart';
 import '../widgets/widgets.dart';
-import 'scan_claim_screen.dart';
 
 /// FR-12/FR-13/FR-14 — full transaction history, grouped by month, with
 /// search and a credit/debit filter.
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  final bool embedded;
+
+  const HistoryScreen({super.key, this.embedded = false});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
@@ -27,9 +29,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
   bool _loading = true;
   String? _error;
   final _searchController = TextEditingController();
+  ShellTabController? _tabController;
 
   @override
   void dispose() {
+    _tabController?.removeListener(_onTabChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -38,6 +42,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!widget.embedded) return;
+    final controller = context.read<ShellTabController>();
+    if (_tabController != controller) {
+      _tabController?.removeListener(_onTabChanged);
+      _tabController = controller..addListener(_onTabChanged);
+    }
+  }
+
+  void _onTabChanged() {
+    if (_tabController?.selectedIndex == 1) _load();
   }
 
   Future<void> _load() async {
@@ -70,14 +89,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       _error = null;
     });
     await _load();
-  }
-
-  Future<void> _openScanner() async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const ScanClaimScreen()),
-    );
-    if (result == true) _load();
   }
 
   String _amountSearchText(WalletTransaction transaction) {
@@ -446,16 +457,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
               fontSize: 14,
             ),
           ),
-          if (noTransactions) ...[
-            const SizedBox(height: 22),
-            PrimaryButton(
-              label: 'Scan payout QR',
-              icon: AppIcons.qrScan,
-              onPressed: _openScanner,
-              minHeight: 54,
-              borderRadius: 18,
-            ),
-          ],
           if (showClear) ...[
             const SizedBox(height: 14),
             SecondaryButton(
@@ -591,8 +592,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.embedded,
         leadingWidth: 60,
-        leading: _roundBackButton(),
+        leading: widget.embedded ? null : _roundBackButton(),
         centerTitle: true,
         title: Text(
           'Transaction History',

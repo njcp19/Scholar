@@ -35,8 +35,61 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
   }
 
+  Widget _requestedInformationField(
+    BuildContext context,
+    String label,
+    TextEditingController controller,
+    IconData icon, {
+    TextCapitalization capitalization = TextCapitalization.none,
+  }) {
+    final colors = context.colors;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: colors.border),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.textLabel,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        AppTextField(
+          controller: controller,
+          textCapitalization: capitalization,
+          style: TextStyle(fontSize: 14, color: colors.textPrimary),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: colors.background,
+            hintText: 'Enter $label',
+            hintStyle: TextStyle(fontSize: 14, color: colors.hint),
+            prefixIcon: Icon(icon, size: 20, color: colors.textBody),
+            prefixIconConstraints: const BoxConstraints(minWidth: 48),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: border,
+            enabledBorder: border,
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(color: colors.brand, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _correct(AppUser user) async {
     bool declared = user.declaredScholar;
+    final studentNumber = TextEditingController(text: user.studentNumber ?? '');
+    final university = TextEditingController(text: user.university ?? '');
+    final program = TextEditingController(text: user.program ?? '');
+    final yearLevel = TextEditingController(text: user.yearLevel ?? '');
     final submit = await showDialog<bool>(
         context: context,
         builder: (ctx) => StatefulBuilder(
@@ -74,6 +127,37 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         height: 1.45,
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    _requestedInformationField(
+                      context,
+                      'Student number',
+                      studentNumber,
+                      AppIcons.idCard,
+                    ),
+                    const SizedBox(height: 12),
+                    _requestedInformationField(
+                      context,
+                      'University',
+                      university,
+                      AppIcons.school,
+                      capitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    _requestedInformationField(
+                      context,
+                      'Program',
+                      program,
+                      AppIcons.book,
+                      capitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 12),
+                    _requestedInformationField(
+                      context,
+                      'Year level',
+                      yearLevel,
+                      AppIcons.award,
+                      capitalization: TextCapitalization.words,
+                    ),
                   ])),
                   actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                   actionsAlignment: MainAxisAlignment.center,
@@ -106,21 +190,38 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     ),
                   ],
                 )));
-    final scholarshipName = user.scholarshipName.isEmpty
-        ? 'Existing scholarship'
-        : user.scholarshipName;
-    final scholarshipReference = user.scholarshipReference;
     // Dialog routes animate out before their text controllers are disposed.
     await Future<void>.delayed(const Duration(milliseconds: 300));
+    final studentNumberValue = studentNumber.text;
+    final universityValue = university.text;
+    final programValue = program.text;
+    final yearLevelValue = yearLevel.text;
+    studentNumber.dispose();
+    university.dispose();
+    program.dispose();
+    yearLevel.dispose();
     if (submit != true || !mounted) return;
+    String? changedValue(String value, String? original) {
+      final trimmed = value.trim();
+      return trimmed == (original ?? '').trim() ? null : trimmed;
+    }
+
     setState(() => _busy = true);
     try {
       await VerificationService().resubmit(
           declaredScholar: declared,
-          scholarshipName: scholarshipName,
-          scholarshipReference: scholarshipReference);
+          scholarshipName: user.scholarshipName.isEmpty
+              ? 'Existing scholarship'
+              : user.scholarshipName,
+          scholarshipReference: user.scholarshipReference,
+          studentNumber: changedValue(studentNumberValue, user.studentNumber),
+          university: changedValue(universityValue, user.university),
+          program: changedValue(programValue, user.program),
+          yearLevel: changedValue(yearLevelValue, user.yearLevel));
       if (!mounted) return;
       await _refresh();
+    } on VerificationServiceException catch (e) {
+      if (mounted) showMsg(context, e.message, error: true);
     } catch (_) {
       if (mounted) {
         showMsg(

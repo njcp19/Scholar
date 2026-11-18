@@ -374,10 +374,15 @@ class WalletService {
 
   /// Simulated cash-out (mockup). Returns nothing; history shows the result.
   Future<void> requestWithdrawal(
-      {required int accountId, required double amount}) async {
+      {required int accountId,
+      required double amount,
+      required String idempotencyKey}) async {
     try {
-      await _db.rpc('request_withdrawal',
-          params: {'p_account_id': accountId, 'p_amount': amount});
+      await _db.rpc('request_withdrawal', params: {
+        'p_account_id': accountId,
+        'p_amount': amount,
+        'p_idempotency_key': idempotencyKey,
+      });
     } on PostgrestException catch (e) {
       throw WalletException(_friendlyCashout(e.message));
     }
@@ -410,6 +415,10 @@ class WalletService {
       'BELOW_MINIMUM': 'The amount is below the minimum cash-out.',
       'BAD_AMOUNT': 'Use at most 2 decimal places.',
       'INSUFFICIENT_BALANCE': 'Not enough balance for this cash-out.',
+      'INVALID_KEY':
+          'This Cash Out request could not be verified. Please review it and try again.',
+      'KEY_REUSED_WITH_DIFFERENT_REQUEST':
+          'This request key is already associated with a different Cash Out. Check your Cash Out history before trying again.',
     };
     for (final e in map.entries) {
       if (raw.contains(e.key)) return e.value;

@@ -417,13 +417,14 @@ class LinkedAccount {
   }
 }
 
-enum WithdrawalStatus { pending, completed, rejected, cancelled }
+enum WithdrawalStatus { pending, processing, completed, failed, cancelled }
 
 extension WithdrawalStatusLabel on WithdrawalStatus {
   String get label => switch (this) {
         WithdrawalStatus.pending => 'Pending',
-        WithdrawalStatus.completed => 'Sent',
-        WithdrawalStatus.rejected => 'Rejected',
+        WithdrawalStatus.processing => 'Processing',
+        WithdrawalStatus.completed => 'Completed',
+        WithdrawalStatus.failed => 'Failed',
         WithdrawalStatus.cancelled => 'Cancelled',
       };
 }

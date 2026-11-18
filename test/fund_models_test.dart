@@ -28,6 +28,30 @@ void main() {
     expect(account.masked, '•••• 3299');
   });
 
+  test('withdrawal model recognizes each server status', () {
+    for (final status in WithdrawalStatus.values) {
+      final withdrawal = Withdrawal.fromMap({
+        'id': 42,
+        'scholar_id': 'scholar-1',
+        'amount': 100,
+        'provider': 'gcash',
+        'account_name': 'Alex Scholar',
+        'account_number': '1234',
+        'status': status.name,
+        'created_at': '2026-11-17T06:00:00Z',
+      });
+
+      expect(withdrawal.status, status);
+      expect(withdrawal.isPending, status == WithdrawalStatus.pending);
+    }
+
+    expect(WithdrawalStatus.pending.label, 'Pending');
+    expect(WithdrawalStatus.processing.label, 'Processing');
+    expect(WithdrawalStatus.completed.label, 'Completed');
+    expect(WithdrawalStatus.failed.label, 'Failed');
+    expect(WithdrawalStatus.cancelled.label, 'Cancelled');
+  });
+
   test('fund summary parses numeric JSON values', () {
     final summary = FundSummary.fromMap({
       'available': 5000,

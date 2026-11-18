@@ -545,15 +545,26 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Expanded(
-          child: PrimaryButton(
-            label: 'Cash Out',
-            onPressed: _openCashOut,
-            icon: AppIcons.arrowUpRight,
-            backgroundColor: cashOutColor,
-            foregroundColor: context.colors.onHeader,
-            minHeight: buttonHeight,
-            borderRadius: 20,
-            shadow: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              PrimaryButton(
+                label: 'Cash Out',
+                onPressed: _openCashOut,
+                icon: AppIcons.arrowUpRight,
+                backgroundColor: cashOutColor,
+                foregroundColor: context.colors.onHeader,
+                minHeight: buttonHeight,
+                borderRadius: 20,
+                shadow: true,
+              ),
+              const SizedBox(height: 6),
+              StatusChip(
+                'Simulated',
+                color: context.colors.brand,
+                bg: context.colors.brandTint,
+              ),
+            ],
           ),
         ),
         const SizedBox(width: 12),

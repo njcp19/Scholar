@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,19 +33,48 @@ class _CashoutScreenState extends State<CashoutScreen> {
   bool _loading = true;
   bool _busy = false;
   bool _showSuccessAnimation = false;
+  String? _cashoutIdempotencyKey;
+  int? _cashoutKeyAccountId;
+  double? _cashoutKeyAmount;
   Timer? _successAnimationTimer;
 
   @override
   void initState() {
     super.initState();
+    _amount.addListener(_invalidateCashoutKey);
     _load();
   }
 
   @override
   void dispose() {
     _successAnimationTimer?.cancel();
+    _amount.removeListener(_invalidateCashoutKey);
     _amount.dispose();
     super.dispose();
+  }
+
+  void _invalidateCashoutKey() {
+    _cashoutIdempotencyKey = null;
+    _cashoutKeyAccountId = null;
+    _cashoutKeyAmount = null;
+  }
+
+  String _cashoutKeyFor(double amount, int accountId) {
+    if (_cashoutIdempotencyKey == null ||
+        _cashoutKeyAccountId != accountId ||
+        _cashoutKeyAmount != amount) {
+      final random = Random.secure();
+      final randomHex = List.generate(
+        16,
+        (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+      ).join();
+      final timestampHex =
+          DateTime.now().microsecondsSinceEpoch.toRadixString(16);
+      _cashoutIdempotencyKey = '$timestampHex$randomHex';
+      _cashoutKeyAccountId = accountId;
+      _cashoutKeyAmount = amount;
+    }
+    return _cashoutIdempotencyKey!;
   }
 
   Future<void> _load() async {
@@ -65,12 +95,15 @@ class _CashoutScreenState extends State<CashoutScreen> {
       final accounts = await state.wallet.getLinkedAccounts(user.id);
       final history = await state.wallet.getMyWithdrawals(user.id);
       if (!mounted) return;
+      final selectedAccount = _selected != null &&
+              accounts.any((account) => account.id == _selected)
+          ? _selected
+          : accounts.firstOrNull?.id;
+      if (selectedAccount != _selected) _invalidateCashoutKey();
       setState(() {
         _accounts = accounts;
         _history = history;
-        if (_selected == null || !accounts.any((a) => a.id == _selected)) {
-          _selected = accounts.isEmpty ? null : accounts.first.id;
-        }
+        _selected = selectedAccount;
       });
     } catch (_) {
       if (mounted) {
@@ -106,6 +139,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 account,
                 selected: account.id == _selected,
                 onTap: () {
+                  if (_selected != account.id) _invalidateCashoutKey();
                   setState(() => _selected = account.id);
                   Navigator.pop(sheetContext);
                 },
@@ -138,6 +172,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       return;
     }
 
+    final idempotencyKey = _cashoutKeyFor(amount, acc.id);
     FocusManager.instance.primaryFocus?.unfocus();
     final ok = await showModalBottomSheet<bool>(
       context: context,
@@ -221,7 +256,12 @@ class _CashoutScreenState extends State<CashoutScreen> {
       if (!verified) {
         throw WalletException('Biometrics not verified. Nothing was deducted.');
       }
-      await state.wallet.requestWithdrawal(accountId: acc.id, amount: amount);
+      await state.wallet.requestWithdrawal(
+        accountId: acc.id,
+        amount: amount,
+        idempotencyKey: idempotencyKey,
+      );
+      _invalidateCashoutKey();
       _amount.clear();
       await _load();
       if (mounted) {
@@ -234,6 +274,14 @@ class _CashoutScreenState extends State<CashoutScreen> {
       }
     } on WalletException catch (e) {
       if (mounted) showMsg(context, e.message, error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not confirm the Cash Out result. Check your Cash Out history, then retry with the same amount and account.',
+          error: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -702,13 +750,17 @@ class _CashoutScreenState extends State<CashoutScreen> {
 
   Color _statusColor(WithdrawalStatus status) => switch (status) {
         WithdrawalStatus.completed => context.colors.successText,
-        WithdrawalStatus.pending => context.colors.warningText,
+        WithdrawalStatus.pending ||
+        WithdrawalStatus.processing =>
+          context.colors.warningText,
         _ => context.colors.dangerText,
       };
 
   Color _statusBackground(WithdrawalStatus status) => switch (status) {
         WithdrawalStatus.completed => context.colors.successBg,
-        WithdrawalStatus.pending => context.colors.warningBg,
+        WithdrawalStatus.pending ||
+        WithdrawalStatus.processing =>
+          context.colors.warningBg,
         _ => context.colors.dangerBg,
       };
 
@@ -720,9 +772,11 @@ class _CashoutScreenState extends State<CashoutScreen> {
     final date = DateFormat('MMM d, yyyy · h:mm a')
         .format(withdrawal.createdAt.toLocal());
     final statusLabel = switch (withdrawal.status) {
-      WithdrawalStatus.completed => 'Completed',
       WithdrawalStatus.pending => 'Pending',
-      _ => 'Failed',
+      WithdrawalStatus.processing => 'Processing',
+      WithdrawalStatus.completed => 'Completed',
+      WithdrawalStatus.failed => 'Failed',
+      WithdrawalStatus.cancelled => 'Cancelled',
     };
 
     return Padding(

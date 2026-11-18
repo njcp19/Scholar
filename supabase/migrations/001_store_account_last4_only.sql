@@ -193,37 +193,6 @@ begin
 end;
 $$;
 
--- Reassert the explicit RPC allowlist: no function execution via PUBLIC.
-do $$
-declare
-  f record;
-begin
-  for f in
-    select p.oid::regprocedure as signature
-      from pg_proc p
-      join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public'
-       and p.proname in (
-         'wallet_uid', 'wallet_is_admin', 'wallet_is_verified',
-         'review_registration', 'resubmit_registration',
-         'set_verified_scholar_active', 'issue_verified_payout',
-         'claim_allowance', 'link_account', 'unlink_account',
-         'request_withdrawal', 'admin_delete_scholar',
-         'admin_delete_inactive_scholars'
-       )
-  loop
-    execute format(
-      'revoke all on function %s from public, anon, authenticated',
-      f.signature
-    );
-    execute format(
-      'grant execute on function %s to anon, authenticated',
-      f.signature
-    );
-  end loop;
-end
-$$;
-
 do $$
 begin
   if exists (

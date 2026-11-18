@@ -836,7 +836,9 @@ class _LinkFundingAccountSheetState extends State<_LinkFundingAccountSheet> {
       : null;
 
   String? get _numberError =>
-      _digits.length >= 8 ? null : 'Enter a valid account number.';
+      _digits.length < 8 || _digits.length > 20
+          ? 'Enter an account number with 8 to 20 digits.'
+          : null;
 
   bool get _isValid =>
       _bankError == null && _nameError == null && _numberError == null;

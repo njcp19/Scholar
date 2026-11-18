@@ -123,6 +123,20 @@ class WalletService {
         throw WalletException(
             'Not enough funds for this payout. Top up the fund first.');
       }
+      if (e.message.contains('ADMIN_REQUIRED')) {
+        throw WalletException('Only an admin can issue payouts.');
+      }
+      if (e.message.contains('RECIPIENTS_REQUIRED')) {
+        throw WalletException('Select at least one scholar for the payout.');
+      }
+      if (e.message.contains('INVALID_ALLOWANCE')) {
+        throw WalletException(
+            'The standard allowance is invalid. Update it and try again.');
+      }
+      if (e.message.contains('SCHOLAR_NOT_VERIFIED')) {
+        throw WalletException(
+            'A selected scholar is no longer active and verified. Refresh the list and try again.');
+      }
       rethrow;
     }
     return (result as List)

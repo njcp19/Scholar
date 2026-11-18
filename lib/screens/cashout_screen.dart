@@ -182,7 +182,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   child: SecondaryButton(
                     label: 'Back',
                     onPressed: () => Navigator.pop(sheetContext, false),
-                    minHeight: 50,
+                    minHeight: 52,
+                    borderRadius: 18,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -191,7 +192,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
                     label: 'Confirm',
                     icon: AppIcons.fingerprint,
                     onPressed: () => Navigator.pop(sheetContext, true),
-                    minHeight: 50,
+                    minHeight: 52,
+                    borderRadius: 18,
                   ),
                 ),
               ],
@@ -239,7 +241,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -258,7 +260,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
 
   Widget _balanceHero(double balance) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(22),
@@ -826,41 +828,42 @@ class _CashoutScreenState extends State<CashoutScreen> {
     );
   }
 
-  Widget _loadingSkeleton() {
+  Widget _loadingSkeleton(BuildContext context) {
+    final placeholderColor = context.colors.borderSoft;
     return AppSkeletonizer(
       enabled: true,
       child: Column(
         children: [
           AppCard(
-            radius: 26,
+            radius: 28,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(width: 150, height: 14, color: Colors.white),
+                Container(width: 150, height: 14, color: placeholderColor),
                 const SizedBox(height: 12),
-                Container(width: 230, height: 42, color: Colors.white),
+                Container(width: 230, height: 42, color: placeholderColor),
               ],
             ),
           ),
           const SizedBox(height: 16),
           AppCard(
-            radius: 16,
-            child: Container(height: 52, color: Colors.white),
+            radius: 22,
+            child: Container(height: 52, color: placeholderColor),
           ),
           const SizedBox(height: 16),
           AppCard(
             radius: 22,
-            child: Container(height: 58, color: Colors.white),
+            child: Container(height: 58, color: placeholderColor),
           ),
           const SizedBox(height: 16),
           AppCard(
             radius: 22,
-            child: Container(height: 120, color: Colors.white),
+            child: Container(height: 120, color: placeholderColor),
           ),
           const SizedBox(height: 16),
           AppCard(
             radius: 22,
-            child: Container(height: 52, color: Colors.white),
+            child: Container(height: 52, color: placeholderColor),
           ),
         ],
       ),
@@ -896,13 +899,13 @@ class _CashoutScreenState extends State<CashoutScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: _roundBackButton(),
         title: Text(
           'Cash Out',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -920,7 +923,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
                 children: [
                   if (_loading)
-                    _loadingSkeleton()
+                    _loadingSkeleton(context)
                   else ...[
                     _balanceHero(state.balance),
                     const SizedBox(height: 16),

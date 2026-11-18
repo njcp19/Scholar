@@ -134,16 +134,16 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.only(left: 26),
           child: Material(
             color: colors.surface,
             shape: CircleBorder(side: BorderSide(color: colors.borderSoft)),
             child: IconButton(
               onPressed: () => Navigator.maybePop(context),
               tooltip: 'Back',
-              constraints: const BoxConstraints.tightFor(width: 42, height: 42),
+              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
               padding: EdgeInsets.zero,
               icon: Icon(AppIcons.back, color: colors.textPrimary, size: 21),
             ),
@@ -153,7 +153,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
           'Activity Log',
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),

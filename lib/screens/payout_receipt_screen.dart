@@ -83,9 +83,9 @@ class PayoutReceiptScreen extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.only(left: 26),
           child: Material(
             color: context.colors.surface,
             shape: CircleBorder(
@@ -95,8 +95,8 @@ class PayoutReceiptScreen extends StatelessWidget {
               onPressed: () => Navigator.maybePop(context),
               tooltip: 'Back',
               constraints: const BoxConstraints.tightFor(
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
               ),
               padding: EdgeInsets.zero,
               icon: Icon(
@@ -111,7 +111,7 @@ class PayoutReceiptScreen extends StatelessWidget {
           'Receipt',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -124,7 +124,7 @@ class PayoutReceiptScreen extends StatelessWidget {
             _hero(context, receivedDate),
             const SizedBox(height: 16),
             AppCard(
-              radius: 24,
+              radius: 22,
               shadow: true,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
               child: Column(

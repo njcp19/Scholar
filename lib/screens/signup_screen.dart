@@ -363,24 +363,24 @@ class _SignupScreenState extends State<SignupScreen> {
       filled: true,
       fillColor: colors.background,
       hintText: hint,
-      hintStyle: GoogleFonts.inter(fontSize: 14, color: colors.textBody),
+      hintStyle: GoogleFonts.inter(fontSize: 14, color: colors.hint),
       prefixIcon: Icon(icon, size: 20, color: colors.textBody),
       prefixIconConstraints: const BoxConstraints(minWidth: 48),
       suffixIcon: suffix,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       errorText: error,
       errorStyle: GoogleFonts.inter(fontSize: 12, color: colors.dangerText),
-      border: _border(colors.borderSoft),
-      enabledBorder: _border(colors.borderSoft),
+      border: _border(colors.border),
+      enabledBorder: _border(colors.border),
       focusedBorder: _border(colors.brand, width: 2),
-      errorBorder: _border(colors.danger),
-      focusedErrorBorder: _border(colors.brand, width: 2),
+      errorBorder: _border(colors.dangerBorder),
+      focusedErrorBorder: _border(colors.dangerBorder, width: 2),
     );
   }
 
   OutlineInputBorder _border(Color color, {double width = 1}) =>
       OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: color, width: width),
       );
 
@@ -812,65 +812,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _topBar(BuildContext context) {
-    final colors = context.colors;
-    return Row(
-      children: [
-        Material(
-          color: colors.surface,
-          shape: CircleBorder(
-            side: BorderSide(color: colors.borderSoft),
-          ),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () {
-              if (_step == 1) {
-                _returnToAcademicDetails();
-              } else {
-                Navigator.pop(context);
-              }
-            },
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: Icon(AppIcons.back, size: 22, color: colors.brand),
-            ),
-          ),
-        ),
-        Expanded(
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Scholar ',
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: colors.brand,
-                      ),
-                    ),
-                    TextSpan(
-                      text: 'Wallet',
-                      style: GoogleFonts.inter(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        color: colors.accentGold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 42),
-      ],
-    );
-  }
-
   Widget _progress(BuildContext context) {
     final colors = context.colors;
     final stepName = _step == 0 ? 'Academic details' : 'Account security';
@@ -1017,6 +958,38 @@ class _SignupScreenState extends State<SignupScreen> {
       },
       child: Scaffold(
         backgroundColor: colors.background,
+        appBar: AppBar(
+          backgroundColor: colors.background,
+          surfaceTintColor: Colors.transparent,
+          leadingWidth: 70,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 26),
+            child: Material(
+              color: colors.surface,
+              shape: CircleBorder(
+                side: BorderSide(color: colors.borderSoft),
+              ),
+              child: IconButton(
+                onPressed: () {
+                  if (_step == 1) {
+                    _returnToAcademicDetails();
+                  } else {
+                    Navigator.pop(context);
+                  }
+                },
+                tooltip: 'Back',
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                padding: EdgeInsets.zero,
+                icon: Icon(AppIcons.back, color: colors.textPrimary),
+              ),
+            ),
+          ),
+          title: const Text('Sign up'),
+          actions: const [SizedBox(width: 70)],
+        ),
         body: SafeArea(
           child: Column(
             children: [
@@ -1025,12 +998,10 @@ class _SignupScreenState extends State<SignupScreen> {
                   controller: _scrollController,
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _topBar(context),
-                      const SizedBox(height: 18),
                       _progress(context),
                       const SizedBox(height: 28),
                       _screenHeading(context),

@@ -33,20 +33,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
         title: const Text('Confirm password'),
         content: TextField(
           controller: controller,
           obscureText: true,
+          maxLines: 1,
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Enter your password'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(64, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(64, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
             child: const Text('Confirm'),
           ),
         ],
@@ -175,7 +191,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : [context.colors.balanceHeroStart, context.colors.balanceHeroEnd];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(20),
@@ -333,8 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool isAdmin,
   }) {
     final enabled = state.fingerprintRegistered;
-    final biometricLabel =
-        enabled ? 'Device biometrics enabled' : 'Enable device biometrics';
+    const biometricLabel = 'Device biometrics';
     final biometricSubtitle = enabled
         ? isAdmin
             ? 'Used to confirm disbursing and cancelling payouts'
@@ -400,8 +415,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: PrimaryButton(
                         label: 'Set up',
                         onPressed: () => _openScreen(const FingerprintScreen()),
-                        minHeight: 40,
-                        borderRadius: 14,
+                        minHeight: 48,
+                        borderRadius: 16,
                       ),
                     ),
                 ],
@@ -433,7 +448,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Sign in with your fingerprint',
+                        'Sign in with device biometrics',
                         style: TextStyle(
                           color: context.colors.textBody,
                           fontSize: 12,
@@ -693,7 +708,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             'Profile',
                             style: TextStyle(
                               color: context.colors.textPrimary,
-                              fontSize: 32,
+                              fontSize: 26,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -724,7 +739,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _preferencesCard(state),
                     const SizedBox(height: 20),
                     SizedBox(
-                      height: 56,
+                      height: 52,
                       child: OutlinedButton.icon(
                         onPressed: () => confirmLogout(context),
                         icon: Icon(AppIcons.logout,

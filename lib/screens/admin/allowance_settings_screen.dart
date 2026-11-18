@@ -128,7 +128,7 @@ class _AllowanceSettingsScreenState extends State<AllowanceSettingsScreen> {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final normalFieldBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: colors.border, width: 1),
     );
     final amountFieldBorder = OutlineInputBorder(
@@ -139,9 +139,9 @@ class _AllowanceSettingsScreenState extends State<AllowanceSettingsScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(
@@ -199,7 +199,7 @@ class _AllowanceSettingsScreenState extends State<AllowanceSettingsScreen> {
           const SizedBox(height: 18),
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-            radius: 24,
+            radius: 22,
             shadow: true,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

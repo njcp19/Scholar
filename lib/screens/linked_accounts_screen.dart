@@ -170,7 +170,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     final color = _providerColor(account.provider);
     return AppCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 22,
       shadow: true,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -180,7 +180,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
             height: 56,
             decoration: BoxDecoration(
               color: _providerTint(account.provider),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -312,13 +312,13 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(
-              fixedSize: const Size(42, 42),
+              fixedSize: const Size(44, 44),
               padding: EdgeInsets.zero,
               backgroundColor: context.colors.surface,
               foregroundColor: context.colors.textPrimary,
@@ -640,7 +640,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                         height: 52,
                         decoration: BoxDecoration(
                           color: selected ? colors.brand : providerTint,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         alignment: Alignment.center,
                         child: Icon(
@@ -716,7 +716,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
     List<TextInputFormatter>? inputFormatters,
   }) {
     final colors = context.colors;
-    final borderColor = error == null ? colors.borderSoft : colors.dangerText;
+    final borderColor = error == null ? colors.border : colors.dangerBorder;
     OutlineInputBorder border({double width = 1}) => OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: borderColor, width: width),
@@ -739,7 +739,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
-          vertical: 15,
+          vertical: 12,
         ),
         border: border(),
         enabledBorder: border(),
@@ -781,9 +781,9 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
 
     return AppBottomSheet(
       title: 'Link an account',
-      radius: 32,
+      radius: 28,
       maxHeightFactor: .92,
-      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       showDragHandle: true,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

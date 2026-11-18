@@ -53,11 +53,17 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         _loading = false;
       });
     } on WalletException catch (error) {
+      debugPrint('Funding account load failed: $error');
       _setLoadError(error.message);
     } on FormatException catch (error) {
+      debugPrint('Funding account load failed: $error');
       _setLoadError(error.message);
     } on TypeError catch (error) {
+      debugPrint('Funding account load failed: $error');
       _setLoadError('Could not read the funding account data: $error');
+    } catch (error) {
+      debugPrint('Funding account load failed: $error');
+      _setLoadError('Could not load the funding account. Try again.');
     }
   }
 
@@ -120,16 +126,16 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.only(left: 26),
           child: Material(
             color: colors.surface,
             shape: CircleBorder(side: BorderSide(color: colors.borderSoft)),
             child: IconButton(
               onPressed: () => Navigator.maybePop(context),
               tooltip: 'Back',
-              constraints: const BoxConstraints.tightFor(width: 42, height: 42),
+              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
               padding: EdgeInsets.zero,
               icon: Icon(AppIcons.back, color: colors.textPrimary, size: 21),
             ),
@@ -139,7 +145,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
           'Funding account',
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -275,8 +281,9 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
         ErrorCard(
-          message: 'Could not load funding account data.\n$_error',
+          message: _error!,
           onRetry: () => _load(showLoading: true),
+          prominent: true,
         ),
       ],
     );
@@ -1092,7 +1099,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ),
           const SizedBox(height: 8),
           AppCard(
-            radius: 16,
+            radius: 22,
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
@@ -1157,7 +1164,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
                 fontWeight: FontWeight.w800,
               ),
               hintText: '0.00',
-              hintStyle: TextStyle(color: colors.textBody, fontSize: 28),
+              hintStyle: TextStyle(color: colors.hint, fontSize: 28),
               filled: true,
               fillColor: colors.surface,
               contentPadding:
@@ -1172,11 +1179,11 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: colors.danger, width: 2),
+                borderSide: BorderSide(color: colors.dangerBorder, width: 2),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: colors.danger, width: 2),
+                borderSide: BorderSide(color: colors.dangerBorder, width: 2),
               ),
             ),
           ),
@@ -1197,7 +1204,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ),
           const SizedBox(height: 14),
           AppCard(
-            radius: 16,
+            radius: 22,
             padding: const EdgeInsets.all(14),
             child: Row(
               children: [
@@ -1271,23 +1278,23 @@ InputDecoration _formDecoration(
     labelText: label,
     errorText: errorText,
     labelStyle: TextStyle(color: colors.textBody),
-    hintStyle: TextStyle(color: colors.textBody),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+    hintStyle: TextStyle(color: colors.hint),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: colors.border),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: colors.brand, width: 1.5),
     ),
     errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: colors.danger),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: colors.dangerBorder),
     ),
     focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: colors.danger, width: 1.5),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: colors.dangerBorder, width: 1.5),
     ),
   );
 }

@@ -195,7 +195,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       ),
       builder: (sheetContext) => AppBottomSheet(
         title: 'Confirm disbursement',
-        radius: 32,
+        radius: 28,
         contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         showDragHandle: true,
         dragHandleSize: const Size(44, 5),
@@ -322,7 +322,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     final colors = context.colors;
     return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-      radius: 26,
+      radius: 28,
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -465,7 +465,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }) {
     final colors = context.colors;
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(
         color: focused ? colors.brand : colors.border,
         width: focused ? 2 : 1,
@@ -520,7 +520,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
         '$selectedCount ${selectedCount == 1 ? 'scholar' : 'scholars'} selected';
     return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: 18,
+      radius: 22,
       backgroundColor: colors.brandTint,
       borderColor: colors.brandTint,
       borderWidth: 0,
@@ -754,7 +754,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     return Semantics(
       liveRegion: true,
       child: AppCard(
-        radius: 18,
+        radius: 22,
         padding: EdgeInsets.zero,
         backgroundColor: colors.dangerBg,
         borderColor: colors.danger.withValues(alpha: .35),
@@ -778,7 +778,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
-          block(206, radius: 26),
+          block(206, radius: 28),
           const SizedBox(height: 20),
           block(72),
           const SizedBox(height: 16),
@@ -823,9 +823,9 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(
@@ -900,7 +900,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   PrimaryButton(
                     label: 'Link bank account',
                     icon: AppIcons.link,
-                    minHeight: 54,
+                    minHeight: 56,
                     borderRadius: 18,
                     onPressed: _openFundingAccount,
                   ),
@@ -1011,7 +1011,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   SecondaryButton(
                     label: 'Top up fund',
                     onPressed: _openFundingAccount,
-                    minHeight: 54,
+                    minHeight: 52,
                     borderRadius: 18,
                   ),
                 ],
@@ -1034,7 +1034,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 Text(
                   'Generating reserves the amount for each selected scholar. '
                   'The money is only released once the scholar scans their QR '
-                  'code and verifies their fingerprint.',
+                  'code and verifies with device biometrics.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: colors.textBody,
@@ -1065,7 +1065,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
         onTap: () => setState(() => s.selected = !s.selected),
         minHeight: 68,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        radius: 18,
+        radius: 22,
         backgroundColor: colors.surface,
         borderColor: s.selected ? colors.brand : colors.border,
         borderWidth: s.selected ? 2 : 1,
@@ -1132,8 +1132,8 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
             const SizedBox(width: 8),
             Tooltip(
               message: s.fingerprintRegistered
-                  ? 'Fingerprint registered'
-                  : 'Fingerprint not registered',
+                  ? 'Device biometrics registered'
+                  : 'Device biometrics not registered',
               child: Icon(
                 AppIcons.fingerprint,
                 size: 18,
@@ -1172,7 +1172,7 @@ class _QrSheetScreen extends StatelessWidget {
     final colors = context.colors;
     return AppCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1233,7 +1233,7 @@ class _QrSheetScreen extends StatelessWidget {
                 aspectRatio: 1,
                 child: AppCard(
                   padding: EdgeInsets.zero,
-                  radius: 20,
+                  radius: 22,
                   backgroundColor: colors.qrFrame,
                   borderColor: colors.border,
                   child: Center(
@@ -1273,9 +1273,9 @@ class _QrSheetScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(

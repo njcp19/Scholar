@@ -80,7 +80,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   actions: [
                     TextButton(
                       style: TextButton.styleFrom(
-                        minimumSize: const Size(0, 50),
+                        minimumSize: const Size(64, 52),
                         foregroundColor: context.colors.textBody,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),
@@ -92,7 +92,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     ),
                     FilledButton(
                       style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 50),
+                        minimumSize: const Size(64, 52),
                         backgroundColor: context.colors.brand,
                         foregroundColor: context.colors.onHeader,
                         shape: RoundedRectangleBorder(
@@ -182,21 +182,24 @@ class _VerificationScreenState extends State<VerificationScreen> {
         elevation: 0,
         centerTitle: true,
         titleSpacing: 0,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: widget.gate || Navigator.of(context).canPop()
-            ? IconButton(
-                tooltip: widget.gate ? 'Back to login' : 'Back',
-                style: IconButton.styleFrom(
-                  fixedSize: const Size.square(42),
-                  padding: EdgeInsets.zero,
-                  backgroundColor: context.colors.surface,
-                  side: BorderSide(color: context.colors.borderSoft),
-                  shape: const CircleBorder(),
+            ? Padding(
+                padding: const EdgeInsets.only(left: 26),
+                child: IconButton(
+                  tooltip: widget.gate ? 'Back to login' : 'Back',
+                  style: IconButton.styleFrom(
+                    fixedSize: const Size.square(44),
+                    padding: EdgeInsets.zero,
+                    backgroundColor: context.colors.surface,
+                    side: BorderSide(color: context.colors.borderSoft),
+                    shape: const CircleBorder(),
+                  ),
+                  icon: const Icon(AppIcons.back),
+                  onPressed: widget.gate
+                      ? () => confirmLogout(context)
+                      : () => Navigator.maybePop(context),
                 ),
-                icon: const Icon(AppIcons.back),
-                onPressed: widget.gate
-                    ? () => confirmLogout(context)
-                    : () => Navigator.maybePop(context),
               )
             : null,
         title: const Text(

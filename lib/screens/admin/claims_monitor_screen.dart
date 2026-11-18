@@ -196,7 +196,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                 icon: AppIcons.cancel,
                 danger: true,
                 minHeight: 52,
-                borderRadius: 16,
+                borderRadius: 18,
                 onPressed: () {
                   Navigator.pop(sheetContext);
                   _void(claim);
@@ -206,7 +206,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
               PrimaryButton(
                 label: 'Close',
                 minHeight: 52,
-                borderRadius: 16,
+                borderRadius: 18,
                 onPressed: () => Navigator.pop(sheetContext),
               ),
           ],
@@ -258,7 +258,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
 
   Widget _hero(int receivedCount, double totalPaid) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(22),
@@ -658,7 +658,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
         const SkeletonCard(
-          radius: 26,
+          radius: 28,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -671,11 +671,11 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         const SizedBox(height: 16),
         const Row(
           children: [
-            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            Expanded(child: SkeletonBox(height: 72, radius: 22)),
             SizedBox(width: 10),
-            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            Expanded(child: SkeletonBox(height: 72, radius: 22)),
             SizedBox(width: 10),
-            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            Expanded(child: SkeletonBox(height: 72, radius: 22)),
           ],
         ),
         const SizedBox(height: 14),
@@ -761,7 +761,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -802,14 +802,15 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: !widget.embedded,
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: widget.embedded ? null : _roundBackButton(),
-        centerTitle: true,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
         title: Text(
           'Payout Monitor',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: widget.embedded ? 26 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -898,8 +899,8 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                   SearchField(
                     controller: _searchController,
                     hintText: 'Search scholar name',
-                    radius: 18,
-                    minHeight: 48,
+                    radius: 16,
+                    minHeight: 50,
                     onChanged: (value) => setState(() => _query = value),
                     suffixIcon: _query.isEmpty
                         ? null

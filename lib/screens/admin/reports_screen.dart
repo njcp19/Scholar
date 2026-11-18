@@ -95,9 +95,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.only(left: 26),
           child: _roundAction(
             icon: AppIcons.back,
             tooltip: 'Back',
@@ -109,7 +109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'Disbursement Reports',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -718,7 +718,7 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
       label: '$label, $description',
       child: AppCard(
         onTap: _exporting ? null : () => setState(() => _format = format),
-        radius: 18,
+        radius: 22,
         padding: const EdgeInsets.all(14),
         backgroundColor:
             selected ? context.colors.brandTint : context.colors.surface,

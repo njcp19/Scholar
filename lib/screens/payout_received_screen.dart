@@ -118,7 +118,7 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
         : DateFormat('MMM d, yyyy · h:mm a').format(claimedAt.toLocal());
 
     return AppCard(
-      radius: 26,
+      radius: 22,
       shadow: true,
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
       child: Column(
@@ -161,7 +161,7 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
   Widget _hero(BuildContext context) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(
-        bottom: Radius.circular(38),
+        bottom: Radius.circular(28),
       ),
       child: Container(
         width: double.infinity,

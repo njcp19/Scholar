@@ -44,10 +44,23 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
   }
 
   String _label(String raw) {
-    if (raw.contains('finger')) return 'Fingerprint';
+    if (raw.contains('finger')) return 'Device biometrics';
     if (raw.contains('face')) return 'Face';
     if (raw.contains('iris')) return 'Iris';
     return 'Device biometric';
+  }
+
+  String _displayRegistrationError(String error) {
+    if (error == 'Sign in again to register your fingerprint.') {
+      return 'Sign in again to set up device biometrics.';
+    }
+    if (error ==
+        'Fingerprint registration cancelled or failed. Add a fingerprint in '
+            'your phone settings, then try again.') {
+      return 'Device biometrics setup was cancelled or failed. Enable '
+          'biometrics in your phone settings, then try again.';
+    }
+    return error;
   }
 
   Future<void> _register() async {
@@ -62,7 +75,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
         Navigator.pop(context, true);
       }
     } else {
-      showMsg(context, error, error: true);
+      showMsg(context, _displayRegistrationError(error), error: true);
       _probe();
     }
   }
@@ -78,12 +91,12 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
     );
     if (ok != true || !mounted) return;
     await context.read<AppState>().removeFingerprint();
-    if (mounted) showMsg(context, 'Fingerprint removed.');
+    if (mounted) showMsg(context, 'Device biometrics removed.');
   }
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -121,7 +134,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
             : 'It’s required before you can receive an allowance.';
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.fromLTRB(22, 28, 22, 30),
@@ -182,7 +195,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
                 Text(
                   registered
                       ? 'Device biometrics enabled'
-                      : 'Enable device biometrics',
+                      : 'Set up device biometrics',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: textColor,
@@ -217,8 +230,8 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
   Widget _stepsCard() {
     const steps = [
       (
-        title: 'Touch the sensor',
-        subtitle: "Use the finger you'll use every time",
+        title: 'Confirm with device biometrics',
+        subtitle: 'Use biometrics already enabled on your phone',
       ),
       (
         title: 'Confirm on your device',
@@ -299,7 +312,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
   Widget _statusInfo() {
     if (_probing) {
       return AppCard(
-        radius: 18,
+        radius: 22,
         child: Row(
           children: [
             SizedBox(
@@ -323,7 +336,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
       return InfoBanner(
         icon: AppIcons.error,
         message:
-            'This device reports no biometric hardware. Add a fingerprint in Android Settings > Security > Fingerprint first.',
+            'This device reports no biometric hardware. Enable biometrics in your device settings, then try again.',
         maxLines: 5,
         backgroundColor: context.colors.dangerBg,
         iconColor: context.colors.dangerText,
@@ -334,7 +347,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
       return InfoBanner(
         icon: AppIcons.warning,
         message:
-            'No fingerprint is enrolled on this phone yet. Add one in Android Settings > Security > Fingerprint, then come back.',
+            'No biometrics are enrolled on this device yet. Add one in your device settings, then come back.',
         maxLines: 5,
         backgroundColor: context.colors.warningBg,
         iconColor: context.colors.warningText,
@@ -343,7 +356,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
     }
 
     return AppCard(
-      radius: 18,
+      radius: 22,
       padding: const EdgeInsets.all(14),
       child: Wrap(
         spacing: 8,
@@ -378,7 +391,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
           children: [
             if (!registered)
               PrimaryButton(
-                label: 'Start scan',
+                label: 'Set up now',
                 icon: AppIcons.fingerprint,
                 loading: _busy,
                 onPressed: canRegister && !_busy ? _register : null,
@@ -393,7 +406,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
                 icon: AppIcons.fingerprint,
                 loading: _busy,
                 onPressed: canRegister && !_busy ? _register : null,
-                minHeight: 56,
+                minHeight: 52,
                 borderRadius: 18,
               ),
               const SizedBox(height: 4),
@@ -401,7 +414,10 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
                 onPressed: _busy ? null : _remove,
                 style: TextButton.styleFrom(
                   foregroundColor: context.colors.dangerText,
-                  minimumSize: const Size.fromHeight(44),
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text('Remove device biometrics'),
               ),
@@ -412,7 +428,10 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
                 onPressed: _busy ? null : () => Navigator.maybePop(context),
                 style: TextButton.styleFrom(
                   foregroundColor: context.colors.textBody,
-                  minimumSize: const Size.fromHeight(44),
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
                 child: const Text('Not now'),
               ),
@@ -435,14 +454,14 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
       backgroundColor: context.colors.background,
       resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: _roundBackButton(),
         centerTitle: true,
         title: Text(
-          'Device Biometrics',
+          'Device biometrics',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -473,7 +492,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
                   _statusInfo(),
                   const SizedBox(height: 16),
                   Text(
-                    'Scholar Wallet uses the biometrics already enrolled on your phone. It does not capture or store your fingerprint.',
+                    'Scholar Wallet uses biometrics already enrolled on your device. It does not capture or store biometric data.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: context.colors.textBody,

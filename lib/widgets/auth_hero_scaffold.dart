@@ -27,9 +27,8 @@ class AuthHeroScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final topInset = MediaQuery.paddingOf(context).top;
     final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final heroHeight = 290.0 + topInset + (textScale - 1).clamp(0.0, 1.3) * 480;
+    final heroHeight = 290.0 + (textScale - 1).clamp(0.0, 1.3) * 480;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -42,6 +41,38 @@ class AuthHeroScaffold extends StatelessWidget {
       ),
       child: Scaffold(
         backgroundColor: colors.background,
+        appBar: AppBar(
+          backgroundColor: colors.background,
+          surfaceTintColor: Colors.transparent,
+          leadingWidth: 70,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 26),
+            child: Material(
+              color: colors.surface,
+              shape: CircleBorder(
+                side: BorderSide(color: colors.borderSoft),
+              ),
+              child: IconButton(
+                onPressed: onBack ?? () => Navigator.maybePop(context),
+                tooltip: 'Back',
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                padding: EdgeInsets.zero,
+                icon: Icon(AppIcons.back, color: colors.textPrimary),
+              ),
+            ),
+          ),
+          title: Text(
+            title,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
         body: SafeArea(
           top: false,
           child: SingleChildScrollView(
@@ -61,7 +92,7 @@ class AuthHeroScaffold extends StatelessWidget {
                       height: heroHeight,
                       child: ClipRRect(
                         borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(40),
+                          bottom: Radius.circular(28),
                         ),
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -92,33 +123,11 @@ class AuthHeroScaffold extends StatelessWidget {
                                   colors.onHeader.withValues(alpha: .14),
                                 ),
                               ),
-                              Positioned(
-                                top: topInset + 24,
-                                left: 20,
-                                child: Material(
-                                  color: colors.onHeader.withValues(alpha: .2),
-                                  shape: const CircleBorder(),
-                                  child: InkWell(
-                                    onTap: onBack ??
-                                        () => Navigator.maybePop(context),
-                                    customBorder: const CircleBorder(),
-                                    child: SizedBox(
-                                      width: 42,
-                                      height: 42,
-                                      child: Icon(
-                                        AppIcons.back,
-                                        color: colors.onHeader,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
                               Positioned.fill(
                                 child: Padding(
-                                  padding: EdgeInsets.fromLTRB(
+                                  padding: const EdgeInsets.fromLTRB(
                                     24,
-                                    topInset + 40,
+                                    24,
                                     24,
                                     16,
                                   ),
@@ -127,16 +136,6 @@ class AuthHeroScaffold extends StatelessWidget {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         leading,
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          title,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: colors.onHeader,
-                                            fontSize: 28,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
                                         const SizedBox(height: 8),
                                         ConstrainedBox(
                                           constraints: const BoxConstraints(
@@ -172,7 +171,7 @@ class AuthHeroScaffold extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: AppCard(
                           padding: const EdgeInsets.all(24),
-                          radius: 32,
+                          radius: 22,
                           shadow: true,
                           borderColor:
                               isDark ? colors.border : colors.borderSoft,

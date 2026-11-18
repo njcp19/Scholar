@@ -196,13 +196,25 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        centerTitle: true,
-        title: const Text('Manage Scholars'),
+        leadingWidth: widget.embedded ? null : 70,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
+        title: Text(
+          'Manage Scholars',
+          style: TextStyle(
+            color: context.colors.textPrimary,
+            fontSize: widget.embedded ? 26 : 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         leading: widget.embedded
             ? null
-            : _RoundToolbarButton(
-                icon: AppIcons.back,
-                onPressed: () => Navigator.maybePop(context),
+            : Padding(
+                padding: const EdgeInsets.only(left: 26),
+                child: _RoundToolbarButton(
+                  icon: AppIcons.back,
+                  onPressed: () => Navigator.maybePop(context),
+                ),
               ),
         actions: [
           Padding(
@@ -241,8 +253,8 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
               SearchField(
                 controller: _searchController,
                 hintText: 'Search by name or ID',
-                radius: 18,
-                minHeight: 52,
+                radius: 16,
+                minHeight: 50,
                 onChanged: (value) => setState(() => _query = value),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -299,7 +311,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
         const SkeletonCard(
-          radius: 26,
+          radius: 22,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -373,7 +385,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(28),
       ),
       child: Stack(
         children: [

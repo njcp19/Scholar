@@ -544,7 +544,7 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                           child: AppCard(
-                            radius: 26,
+                            radius: 22,
                             shadow: true,
                             padding: const EdgeInsets.all(18),
                             child: Column(

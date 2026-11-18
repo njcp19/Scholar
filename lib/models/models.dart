@@ -409,9 +409,12 @@ class LinkedAccount {
           : provider.label;
 
   /// Only the last 4 digits are shown in lists.
-  String get masked => accountNumber.length <= 4
-      ? accountNumber
-      : '•••• ${accountNumber.substring(accountNumber.length - 4)}';
+  String get masked {
+    final last4 = accountNumber.length <= 4
+        ? accountNumber
+        : accountNumber.substring(accountNumber.length - 4);
+    return last4.isEmpty ? '' : '•••• $last4';
+  }
 }
 
 enum WithdrawalStatus { pending, completed, rejected, cancelled }

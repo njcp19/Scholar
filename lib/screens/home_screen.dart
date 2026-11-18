@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           maxHeightFactor: .8,
-          radius: 32,
+          radius: 28,
           contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           showDragHandle: true,
           child: _pending.isEmpty
@@ -261,7 +261,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 )
               : AppCard(
-                  radius: 24,
+                  radius: 22,
                   padding: EdgeInsets.zero,
                   backgroundColor: cardBackground,
                   borderColor: colors.borderSoft,
@@ -731,7 +731,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             waitingCount: _pending.length,
                             waitingTotal: waitingTotal,
                             statusOnRight: true,
-                            radius: 26,
+                            radius: 22,
                             iconTileSize: 48,
                             amountFontSize: 36,
                           ),
@@ -806,7 +806,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     if (transactions.isEmpty) {
       return AppCard(
-        radius: 24,
+        radius: 22,
         shadow: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -835,7 +835,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return AppCard(
-      radius: 24,
+      radius: 22,
       shadow: true,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -876,7 +876,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return ListRowCard(
       minHeight: 92,
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 22,
       shadow: true,
       onTap: () => Navigator.push(
         context,

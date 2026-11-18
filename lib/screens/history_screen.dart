@@ -465,6 +465,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               label: 'Clear filters',
               onPressed: _clearFilters,
               minHeight: 48,
+              borderRadius: 16,
             ),
           ],
         ],
@@ -519,7 +520,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -545,14 +546,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: !widget.embedded,
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: widget.embedded ? null : _roundBackButton(),
-        centerTitle: true,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
         title: Text(
           'Transaction History',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: widget.embedded ? 26 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -571,8 +573,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: SearchField(
                 controller: _searchController,
                 hintText: 'Search transactions',
-                radius: 18,
-                minHeight: 52,
+                radius: 16,
+                minHeight: 50,
                 onChanged: (value) => setState(() => _query = value),
                 suffixIcon: _query.isEmpty
                     ? null

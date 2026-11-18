@@ -494,18 +494,21 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
           : null,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leadingWidth: 62,
-        leading: IconButton(
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-          style: IconButton.styleFrom(
-            fixedSize: const Size.square(42),
-            padding: EdgeInsets.zero,
-            backgroundColor: context.colors.surface,
-            side: BorderSide(color: context.colors.borderSoft),
-            shape: const CircleBorder(),
+        leadingWidth: 70,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 26),
+          child: IconButton(
+            tooltip: 'Back',
+            onPressed: () => Navigator.maybePop(context),
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(44),
+              padding: EdgeInsets.zero,
+              backgroundColor: context.colors.surface,
+              side: BorderSide(color: context.colors.borderSoft),
+              shape: const CircleBorder(),
+            ),
+            icon: const Icon(AppIcons.back),
           ),
-          icon: const Icon(AppIcons.back),
         ),
         centerTitle: true,
         titleSpacing: 0,

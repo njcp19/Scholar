@@ -118,7 +118,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
     required VoidCallback onPressed,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -137,7 +137,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
 
   Widget _hero(double total, int receivedCount) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
+      borderRadius: BorderRadius.circular(28),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.all(22),
@@ -317,7 +317,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
       children: [
         const SkeletonCard(
-          radius: 26,
+          radius: 28,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -651,13 +651,14 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         backgroundColor: context.colors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
-        leadingWidth: 60,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
+        leadingWidth: 70,
         title: Text(
           'My Payouts',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: widget.embedded ? 26 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),

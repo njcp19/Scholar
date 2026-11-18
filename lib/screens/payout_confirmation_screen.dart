@@ -13,17 +13,35 @@ class PayoutConfirmationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(
-          leading: IconButton(
-            onPressed: () => Navigator.maybePop(context),
-            icon: Icon(
-              AppIcons.back,
-              color: context.colors.textPrimary,
+          backgroundColor: context.colors.background,
+          surfaceTintColor: Colors.transparent,
+          leadingWidth: 70,
+          leading: Padding(
+            padding: const EdgeInsets.only(left: 26),
+            child: Material(
+              color: context.colors.surface,
+              shape: CircleBorder(
+                side: BorderSide(color: context.colors.borderSoft),
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.maybePop(context),
+                tooltip: 'Back',
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  AppIcons.back,
+                  color: context.colors.textPrimary,
+                ),
+              ),
             ),
           ),
           title: const Text('Review Allowance Amount'),
         ),
         body: SafeArea(
-            child: ListView(padding: const EdgeInsets.all(24), children: [
+            child: ListView(padding: const EdgeInsets.all(20), children: [
           Center(
             child: Container(
               width: 56,
@@ -50,19 +68,22 @@ class PayoutConfirmationScreen extends StatelessWidget {
                   .headlineLarge
                   ?.copyWith(fontWeight: FontWeight.bold)),
           const SizedBox(height: 24),
-          Card(
-              child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Payout event: ${claim.batchTitle}'),
-                        Text('Recipient: ${claim.scholarName}'),
-                        Text('Claim reference: ${claim.id}'),
-                        const SizedBox(height: 8),
-                        const Text(
-                            'The amount comes from the payout record, not from the scanned QR text. It cannot be edited here.'),
-                      ]))),
+          AppCard(
+            radius: 22,
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Payout event: ${claim.batchTitle}'),
+                Text('Recipient: ${claim.scholarName}'),
+                Text('Payout reference: ${claim.id}'),
+                const SizedBox(height: 8),
+                const Text(
+                  'The amount comes from the payout record, not from the scanned QR text. It cannot be edited here.',
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 20),
           const Text(
               'Next: confirm using your device biometrics. If you cancel or verification fails, the payout will not be marked received.'),
@@ -70,17 +91,23 @@ class PayoutConfirmationScreen extends StatelessWidget {
           const Text(
               'This records allowance receipt in Scholar Wallet and adds it to your balance. You can try the demo Cash Out afterwards (simulation only).'),
           const SizedBox(height: 28),
-          FilledButton.icon(
-              onPressed: () => Navigator.pop(context, true),
-              icon: Icon(
-                AppIcons.fingerprint,
-                color: context.colors.onHeader,
-                size: 18,
-              ),
-              label: const Text('Continue to Biometrics')),
+          PrimaryButton(
+            label: 'Continue to Biometrics',
+            icon: AppIcons.fingerprint,
+            onPressed: () => Navigator.pop(context, true),
+            minHeight: 56,
+            borderRadius: 18,
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(context, false),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(64, 48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: const Text('Cancel'),
+          ),
         ])),
       );
 }

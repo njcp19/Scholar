@@ -227,18 +227,21 @@ AppBar _registrationAppBar(BuildContext context) => AppBar(
       elevation: 0,
       centerTitle: true,
       titleSpacing: 0,
-      leadingWidth: 62,
-      leading: IconButton(
-        tooltip: 'Back',
-        onPressed: () => Navigator.maybePop(context),
-        style: IconButton.styleFrom(
-          fixedSize: const Size.square(42),
-          padding: EdgeInsets.zero,
-          backgroundColor: context.colors.surface,
-          side: BorderSide(color: context.colors.borderSoft),
-          shape: const CircleBorder(),
+      leadingWidth: 70,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 26),
+        child: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+          style: IconButton.styleFrom(
+            fixedSize: const Size.square(44),
+            padding: EdgeInsets.zero,
+            backgroundColor: context.colors.surface,
+            side: BorderSide(color: context.colors.borderSoft),
+            shape: const CircleBorder(),
+          ),
+          icon: const Icon(AppIcons.back),
         ),
-        icon: const Icon(AppIcons.back),
       ),
       title: const Text(
         'Registration Verification',
@@ -369,7 +372,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
       context,
       title: _statusLabel(status),
       message:
-          '${widget.user.fullName}\n\n${status == VerificationStatus.approved ? "Approve this verified registration and enable payout access" : "Save this registration review"}?',
+          '${widget.user.fullName}\n\n${status == VerificationStatus.approved ? "Approve this verified registration and enable payout access" : "Save this registration verification"}?',
       confirmLabel: 'Save decision',
       danger: status == VerificationStatus.rejected,
     );
@@ -381,7 +384,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
     try {
       await _service.review(widget.user, status, _notes.text);
       if (mounted) {
-        showMsg(context, 'Registration review recorded.');
+        showMsg(context, 'Registration verification recorded.');
         Navigator.pop(context, true);
       }
     } catch (e) {
@@ -647,15 +650,15 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                     alignLabelWithHint: true,
                     contentPadding: const EdgeInsets.all(14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.colors.brand),
                     ),
                   ),

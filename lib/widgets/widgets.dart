@@ -500,7 +500,7 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.radius = 16,
+    this.radius = 22,
     this.shadow = false,
     this.backgroundColor,
     this.gradient,
@@ -613,7 +613,7 @@ class ListRowCard extends StatelessWidget {
     this.onTap,
     this.minHeight = 76,
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-    this.radius = 16,
+    this.radius = 22,
     this.shadow = false,
     this.backgroundColor,
     this.borderColor,
@@ -688,25 +688,38 @@ class InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final warningNote = backgroundColor == context.colors.warningBg;
+    final effectiveBorderColor =
+        borderColor ?? (warningNote ? context.colors.warningBorder : null);
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
         color: backgroundColor ?? context.colors.brandTint,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: borderColor == null ? null : Border.all(color: borderColor!),
+        border: effectiveBorderColor == null
+            ? null
+            : Border.all(color: effectiveBorderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           leading ??
-              Icon(icon, color: iconColor ?? context.colors.brand, size: 20),
+              Icon(
+                icon,
+                color: warningNote
+                    ? context.colors.goldTintText
+                    : iconColor ?? context.colors.brand,
+                size: 20,
+              ),
           SizedBox(width: leading == null ? 10 : 12),
           Expanded(
             child: Text.rich(
               TextSpan(
                 style: TextStyle(
-                  color: textColor ?? context.colors.textPrimary,
+                  color: warningNote
+                      ? context.colors.goldTintText
+                      : textColor ?? context.colors.textPrimary,
                   fontSize: fontSize,
                   height: textHeight,
                 ),
@@ -750,8 +763,8 @@ class SearchField extends StatelessWidget {
     required this.hintText,
     this.onChanged,
     this.suffixIcon,
-    this.radius = 14,
-    this.minHeight = 48,
+    this.radius = 16,
+    this.minHeight = 50,
     this.hintColor,
     this.iconColor,
     this.borderColor,
@@ -787,12 +800,12 @@ class SearchField extends StatelessWidget {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
             borderSide:
-                BorderSide(color: borderColor ?? context.colors.borderSoft),
+                BorderSide(color: borderColor ?? context.colors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
             borderSide:
-                BorderSide(color: borderColor ?? context.colors.borderSoft),
+                BorderSide(color: borderColor ?? context.colors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
@@ -848,8 +861,8 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      minLines: minLines,
-      maxLines: maxLines,
+      minLines: obscureText ? null : minLines,
+      maxLines: obscureText ? 1 : maxLines,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
@@ -1178,6 +1191,9 @@ class ErrorCard extends StatelessWidget {
         radius: 28,
         padding: const EdgeInsets.fromLTRB(40, 24, 40, 24),
         shadow: true,
+        borderColor: offline
+            ? context.colors.borderSoft
+            : context.colors.dangerBorder,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1231,6 +1247,7 @@ class ErrorCard extends StatelessWidget {
       );
     }
     return AppCard(
+      borderColor: context.colors.dangerBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1360,6 +1377,9 @@ class ConfirmDialog extends StatelessWidget {
 
     return AlertDialog(
       backgroundColor: context.colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
       icon: icon == null
           ? null
           : Icon(
@@ -1379,6 +1399,12 @@ class ConfirmDialog extends StatelessWidget {
           onPressed: loading
               ? null
               : (onCancel ?? () => Navigator.pop(context, false)),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(64, 52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
+          ),
           child: Text(cancelLabel),
         ),
         FilledButton(
@@ -1389,6 +1415,10 @@ class ConfirmDialog extends StatelessWidget {
             backgroundColor:
                 danger ? context.colors.danger : context.colors.brand,
             foregroundColor: context.colors.onHeader,
+            minimumSize: const Size(64, 52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+            ),
           ),
           child: loading
               ? SizedBox(
@@ -1446,13 +1476,13 @@ class ConfirmDialog extends StatelessWidget {
                       color: colors.warningBg,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: colors.warning.withValues(alpha: .38),
+                        color: colors.warningBorder,
                       ),
                     ),
                     child: Text(
                       note!,
                       style: TextStyle(
-                        color: colors.warningText,
+                        color: colors.goldTintText,
                         fontSize: 12.5,
                         height: 1.5,
                       ),
@@ -1470,8 +1500,8 @@ class ConfirmDialog extends StatelessWidget {
                             ? null
                             : (onCancel ?? () => Navigator.pop(context, false)),
                         foregroundColor: colors.brand,
-                        minHeight: 50,
-                        borderRadius: 16,
+                        minHeight: 52,
+                        borderRadius: 18,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1483,8 +1513,8 @@ class ConfirmDialog extends StatelessWidget {
                             ? null
                             : (onConfirm ?? () => Navigator.pop(context, true)),
                         loading: loading,
-                        minHeight: 50,
-                        borderRadius: 16,
+                        minHeight: 52,
+                        borderRadius: 18,
                         shadow: true,
                       ),
                     ),
@@ -1733,7 +1763,7 @@ class AppBottomSheet extends StatelessWidget {
     required this.child,
     this.header,
     this.maxHeightFactor = .85,
-    this.radius = 26,
+    this.radius = 28,
     this.contentPadding = const EdgeInsets.fromLTRB(20, 12, 20, 20),
     this.showDragHandle = false,
     this.dragHandleSize = const Size(64, 6),
@@ -2689,7 +2719,7 @@ class BiometricStatusCard extends StatelessWidget {
     super.key,
     required this.onTap,
     this.highlighted = false,
-    this.radius = 20,
+    this.radius = 22,
     this.iconTileSize = 44,
   });
 
@@ -2706,7 +2736,7 @@ class BiometricStatusCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
             color: highlighted
-                ? context.colors.warning.withValues(alpha: .38)
+                ? context.colors.warningBorder
                 : context.colors.borderSoft,
           ),
           boxShadow: [
@@ -2911,8 +2941,8 @@ class PrimaryButton extends StatelessWidget {
     this.foregroundColor,
     this.disabledBackgroundColor,
     this.disabledForegroundColor,
-    this.minHeight = 52,
-    this.borderRadius = 14,
+    this.minHeight = 56,
+    this.borderRadius = 18,
     this.shadow = false,
     this.iconSize = 24,
     this.iconSpacing = 8,
@@ -3041,7 +3071,7 @@ class SecondaryButton extends StatelessWidget {
     this.loading = false,
     this.danger = false,
     this.minHeight = 52,
-    this.borderRadius = 14,
+    this.borderRadius = 18,
   });
 
   @override

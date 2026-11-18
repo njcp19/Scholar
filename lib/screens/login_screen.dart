@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final colors = context.colors;
     OutlineInputBorder border(Color color, {double width = 1}) =>
         OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: color, width: width),
         );
 
@@ -155,13 +155,13 @@ class _LoginScreenState extends State<LoginScreen> {
       filled: true,
       fillColor: colors.background,
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 14, color: colors.textBody),
+      hintStyle: TextStyle(fontSize: 14, color: colors.hint),
       prefixIcon: Icon(icon, size: 20, color: colors.textBody),
       prefixIconConstraints: const BoxConstraints(minWidth: 48),
       suffixIcon: suffix,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      border: border(colors.borderSoft),
-      enabledBorder: border(colors.borderSoft),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: border(colors.border),
+      enabledBorder: border(colors.border),
       focusedBorder: border(colors.brand, width: 2),
     );
   }
@@ -171,8 +171,8 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           Text(label, style: _fieldLabelStyle(context)),
           const SizedBox(height: 7),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
+          SizedBox(
+            height: 50,
             child: input,
           ),
         ],
@@ -216,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(40),
+          bottom: Radius.circular(28),
         ),
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -339,7 +339,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             _heroPill(
                               context,
                               icon: AppIcons.fingerprint,
-                              label: 'Biometrics secured',
+                              label: 'Device biometrics',
                             ),
                           ],
                         ),
@@ -359,7 +359,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final colors = context.colors;
     return AppCard(
       padding: const EdgeInsets.all(24),
-      radius: 28,
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,6 +383,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'Email address',
             AppTextField(
               controller: _email,
+              maxLines: 1,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               style: TextStyle(fontSize: 14, color: colors.textPrimary),
@@ -400,6 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
             AppTextField(
               controller: _password,
               obscureText: _obscure,
+              maxLines: 1,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _login(),
               style: TextStyle(fontSize: 14, color: colors.textPrimary),
@@ -482,6 +484,7 @@ class _LoginScreenState extends State<LoginScreen> {
               label: 'Login',
               onPressed: _busy ? null : _login,
               loading: _busy,
+              backgroundColor: colors.brand,
               minHeight: 56,
               borderRadius: 18,
             ),
@@ -489,10 +492,11 @@ class _LoginScreenState extends State<LoginScreen> {
           if (_bioAvailable) ...[
             const SizedBox(height: 12),
             SecondaryButton(
-              label: 'Login with biometrics',
+              label: 'Sign in with biometrics',
               onPressed: _bioBusy ? null : _bioLogin,
               icon: AppIcons.fingerprint,
               iconColor: colors.brand,
+              foregroundColor: colors.brand,
               loading: _bioBusy,
               minHeight: 56,
               borderRadius: 18,

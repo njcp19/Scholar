@@ -136,8 +136,13 @@ class AuthService {
     return AppUser.fromMap(row);
   }
 
-  Future<void> sendPasswordReset(String email) =>
-      _auth.sendPasswordResetEmail(email: email.trim());
+  Future<void> sendPasswordReset(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      if (e.code != 'user-not-found') rethrow;
+    }
+  }
 
   Future<void> signOut() => _auth.signOut();
 

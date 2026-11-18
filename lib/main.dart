@@ -194,7 +194,7 @@ class _AuthGateState extends State<AuthGate> {
                         ),
                         const SizedBox(height: 8),
                         TextButton(
-                          onPressed: () => state.auth.signOut(),
+                          onPressed: () => state.logout(),
                           child: const Text('Sign out'),
                         ),
                       ],

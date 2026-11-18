@@ -12,6 +12,11 @@ class WalletException implements Exception {
   String toString() => message;
 }
 
+class ClaimNotPendingException extends WalletException {
+  ClaimNotPendingException()
+      : super("This payout is no longer waiting and can't be cancelled.");
+}
+
 /// ALL money movement lives here.
 ///
 /// v2 rules (scholar wallet only):
@@ -219,11 +224,13 @@ class WalletService {
 
   /// Admin: cancel a claim that was never scanned.
   Future<void> voidClaim(String claimId) async {
-    await _db
+    final updated = await _db
         .from('allowance_claims')
         .update({'status': 'voided'})
         .eq('id', claimId)
-        .eq('status', 'issued');
+        .eq('status', 'issued')
+        .select('id');
+    if (updated.isEmpty) throw ClaimNotPendingException();
   }
 
   /// Read the claim behind a scanned token without redeeming it, so the

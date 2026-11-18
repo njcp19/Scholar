@@ -31,6 +31,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   bool _fundingAccountLoaded = false;
   bool _loading = true;
   bool _busy = false;
+  bool _generating = false;
 
   @override
   void initState() {
@@ -104,6 +105,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }
 
   Future<void> _generate() async {
+    if (_generating) return;
     final state = context.read<AppState>();
     final selected = _scholars.where((s) => s.selected).toList();
     if (selected.isEmpty) {
@@ -115,37 +117,38 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       showMsg(context, 'Select a distribution date.', error: true);
       return;
     }
-    // FR-29: the admin confirms the disbursement with the device biometric
-    // prompt before any QR is generated or any amount is reserved.
-    if (!state.fingerprintRegistered) {
-      await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const FingerprintScreen(required: true)));
-      if (!mounted || !state.fingerprintRegistered) return;
-    }
-    final selectedCount = selected.length;
-    final total = selectedCount * state.allowance.allowanceAmount;
-    final scholarWord = selectedCount == 1 ? 'scholar' : 'scholars';
-    final confirmationMessage =
-        'Disburse PHP ${fmtPhp(total)} to $selectedCount $scholarWord?';
-    final confirmed = await _confirmDisbursement(
-      selectedCount: selectedCount,
-      total: total,
-      amountPerScholar: state.allowance.allowanceAmount,
-      batchTitle: _batchTitle.text.trim(),
-      confirmationMessage: confirmationMessage,
-    );
-    if (!confirmed || !mounted) return;
-    final verified = await state.verifyFingerprint(confirmationMessage);
-    if (!mounted) return;
-    if (!verified) {
-      showMsg(context, 'Biometrics not verified. No payout was issued.',
-          error: true);
-      return;
-    }
-    setState(() => _busy = true);
+    setState(() => _generating = true);
     try {
+      // FR-29: the admin confirms the disbursement with the device biometric
+      // prompt before any QR is generated or any amount is reserved.
+      if (!state.fingerprintRegistered) {
+        await Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const FingerprintScreen(required: true)));
+        if (!mounted || !state.fingerprintRegistered) return;
+      }
+      final selectedCount = selected.length;
+      final total = selectedCount * state.allowance.allowanceAmount;
+      final scholarWord = selectedCount == 1 ? 'scholar' : 'scholars';
+      final confirmationMessage =
+          'Disburse PHP ${fmtPhp(total)} to $selectedCount $scholarWord?';
+      final confirmed = await _confirmDisbursement(
+        selectedCount: selectedCount,
+        total: total,
+        amountPerScholar: state.allowance.allowanceAmount,
+        batchTitle: _batchTitle.text.trim(),
+        confirmationMessage: confirmationMessage,
+      );
+      if (!confirmed || !mounted) return;
+      final verified = await state.verifyFingerprint(confirmationMessage);
+      if (!mounted) return;
+      if (!verified) {
+        showMsg(context, 'Biometrics not verified. No payout was issued.',
+            error: true);
+        return;
+      }
+      setState(() => _busy = true);
       final claims = await state.wallet.generatePayoutBatch(
         batchTitle: _batchTitle.text.trim(),
         recipients: selected,
@@ -168,7 +171,12 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     } catch (e) {
       if (mounted) showMsg(context, 'Failed: $e', error: true);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _generating = false;
+        });
+      }
     }
   }
 
@@ -1018,9 +1026,10 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 const SizedBox(height: 18),
                 PrimaryButton(
                   label: 'Generate QR Codes',
-                  onPressed: _busy || fundingAccountMissing || insufficientFunds
-                      ? null
-                      : _generate,
+                  onPressed:
+                      _generating || fundingAccountMissing || insufficientFunds
+                          ? null
+                          : _generate,
                   icon: AppIcons.qrCode,
                   loading: _busy,
                   loadingLabel: 'Generate QR Codes',

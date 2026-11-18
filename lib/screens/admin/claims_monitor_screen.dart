@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/wallet_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/shell_tab_controller.dart';
@@ -148,6 +149,10 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       if (!mounted) return;
       showMsg(context, 'Payout cancelled.');
       _load();
+    } on ClaimNotPendingException catch (error) {
+      if (!mounted) return;
+      showMsg(context, error.message, error: true);
+      await _load();
     } catch (error) {
       if (mounted) showMsg(context, 'Failed: $error', error: true);
     }

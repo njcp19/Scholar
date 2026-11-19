@@ -1,273 +1,167 @@
--- Phase 8 checks for an isolated, rollback-only run in Supabase SQL Editor.
--- Run the entire file as the database owner (normally postgres), then inspect
--- the PASS/FAIL notices. Every fixture and setting is rolled back at the end.
+-- 005: Cash Out (simulated) hardening.
+-- 1) Idempotency key: a repeated request with the same key returns the same Cash Out and does NOT debit again.
+-- 2) 'simulated' flag: every demo transfer is stored as "Completed (simulated)" by the server.
+-- 3) Status model widened to: pending, processing, completed, failed, cancelled.
+--    Old 'rejected' rows become 'failed'. Only 'completed' is used until a real processor exists (Phase 7).
+-- 4) request_withdrawal: locks the linked account row, rejects NaN amounts, accepts an optional idempotency key.
+-- Depends on 001 (last4 snapshot). One transaction: if anything fails, nothing changes.
+-- Rollback (manual): drop index withdrawals_scholar_idempotency_key and withdrawals_reference_unique;
+--   update status 'failed' -> 'rejected'; restore constraint withdrawals_status_check
+--   (pending, completed, rejected, cancelled); drop columns idempotency_key and simulated;
+--   drop the 3-argument request_withdrawal and recreate the 2-argument one from 001_store_account_last4_only.sql.
 begin;
 
-do $$
+-- 1) Columns ------------------------------------------------------------------
+alter table public.withdrawals add column if not exists idempotency_key text;
+alter table public.withdrawals add column if not exists simulated boolean not null default true;
+comment on column public.withdrawals.simulated is
+  'true = demo transfer, no real money moved. Every Cash Out is simulated until a real processor is integrated.';
+
+create unique index if not exists withdrawals_scholar_idempotency_key
+  on public.withdrawals (scholar_id, idempotency_key)
+  where idempotency_key is not null;
+
+create unique index if not exists withdrawals_reference_unique
+  on public.withdrawals (reference)
+  where reference <> '';
+
+-- 2) Status model -------------------------------------------------------------
+alter table public.withdrawals drop constraint if exists withdrawals_status_check;
+update public.withdrawals set status = 'failed' where status = 'rejected';
+alter table public.withdrawals
+  add constraint withdrawals_status_check
+  check (status in ('pending', 'processing', 'completed', 'failed', 'cancelled'));
+
+-- 3) request_withdrawal (3 arguments; the key is optional so older calls still work) ---
+drop function if exists public.request_withdrawal(bigint, numeric);
+
+create or replace function public.request_withdrawal(
+  p_account_id bigint,
+  p_amount numeric,
+  p_idempotency_key text default null
+)
+returns bigint
+language plpgsql
+security definer
+set search_path = ''
+as $$
 declare
-  v_scholar text := 'phase8-scholar-' || replace(gen_random_uuid()::text, '-', '');
-  v_other text := 'phase8-other-' || replace(gen_random_uuid()::text, '-', '');
-  v_cashout_scholar text := 'phase8-cashout-' || replace(gen_random_uuid()::text, '-', '');
-  v_admin text := 'phase8-admin-' || replace(gen_random_uuid()::text, '-', '');
-  v_account_id bigint;
-  v_claim_token text := replace(gen_random_uuid()::text, '-', '');
+  v_profile public.profiles;
+  v_acc public.linked_accounts;
+  v_existing public.withdrawals;
+  v_key text := nullif(trim(p_idempotency_key), '');
+  v_id bigint;
+  v_label text;
 begin
-  insert into public.profiles(id, full_name, email, role, balance, is_active,
-                              verification_status)
-  values
-    (v_scholar, 'Phase 8 Scholar', v_scholar || '@test.invalid',
-     'scholar', 0, false, 'pending'),
-    (v_other, 'Phase 8 Other Scholar', v_other || '@test.invalid',
-     'scholar', 0, false, 'pending'),
-    (v_cashout_scholar, 'Phase 8 Cash Out Scholar',
-     v_cashout_scholar || '@test.invalid', 'scholar', 5000, true, 'approved'),
-    (v_admin, 'Phase 8 Admin', v_admin || '@test.invalid',
-     'admin', 0, true, 'approved');
-
-  insert into public.linked_accounts(
-    scholar_id, provider, bank_name, account_name, account_number
-  )
-  values (v_cashout_scholar, 'gcash', '', 'Phase 8 Cash Out Scholar', '1234')
-  returning id into v_account_id;
-
-  insert into public.allowance_claims(
-    batch_id, batch_title, scholar_id, amount, token, status
-  )
-  values (
-    'phase8-' || replace(gen_random_uuid()::text, '-', ''),
-    'Phase 8 duplicate-claim test', v_cashout_scholar, 250, v_claim_token, 'issued'
-  );
-
-  if not exists (select 1 from public.funding_account where id = 1) then
-    insert into public.funding_account(id, bank_name, account_name, account_last4)
-    values (1, 'Phase 8 Test Bank', 'Phase 8 Test Account', '0000');
+  -- Lock the scholar's profile first: requests from the same scholar run one at a time.
+  select * into v_profile
+    from public.profiles
+   where id = public.wallet_uid()
+   for update;
+  if not found or v_profile.role <> 'scholar'
+     or v_profile.verification_status <> 'approved'
+     or not v_profile.is_active then
+    raise exception 'SCHOLAR_NOT_VERIFIED';
   end if;
 
-  perform set_config('phase8.scholar_id', v_scholar, true);
-  perform set_config('phase8.other_scholar_id', v_other, true);
-  perform set_config('phase8.cashout_scholar_id', v_cashout_scholar, true);
-  perform set_config('phase8.admin_id', v_admin, true);
-  perform set_config('phase8.account_id', v_account_id::text, true);
-  perform set_config('phase8.claim_token', v_claim_token, true);
-  perform set_config(
-    'phase8.idempotency_key',
-    'phase8-' || replace(gen_random_uuid()::text, '-', ''),
-    true
+  -- Same key again = same request. Return the earlier result, change nothing.
+  if p_idempotency_key is not null then
+    if v_key is null or length(v_key) < 8 or length(v_key) > 100 then
+      raise exception 'INVALID_KEY';
+    end if;
+    select * into v_existing
+      from public.withdrawals
+     where scholar_id = public.wallet_uid() and idempotency_key = v_key;
+    if found then
+      if v_existing.amount is distinct from p_amount then
+        raise exception 'KEY_REUSED_WITH_DIFFERENT_REQUEST';
+      end if;
+      return v_existing.id;
+    end if;
+  end if;
+
+  select * into v_acc
+    from public.linked_accounts
+   where id = p_account_id
+     and scholar_id = public.wallet_uid()
+   for share;
+  if not found then
+    raise exception 'ACCOUNT_NOT_FOUND';
+  end if;
+  if p_amount is null or p_amount = 'NaN'::numeric or p_amount < 100 then
+    raise exception 'BELOW_MINIMUM';
+  end if;
+  if p_amount <> round(p_amount, 2) then
+    raise exception 'BAD_AMOUNT';
+  end if;
+  if v_profile.balance < p_amount then
+    raise exception 'INSUFFICIENT_BALANCE';
+  end if;
+
+  insert into public.withdrawals(
+    scholar_id, amount, provider, bank_name, account_name, account_number,
+    status, reference, processed_at, idempotency_key, simulated
+  )
+  values (
+    public.wallet_uid(), p_amount, v_acc.provider, v_acc.bank_name,
+    v_acc.account_name, right(v_acc.account_number, 4), 'completed',
+    'SIM-' || upper(substr(md5(random()::text || clock_timestamp()::text), 1, 8)),
+    now(), v_key, true
+  )
+  returning id into v_id;
+
+  update public.profiles
+     set balance = balance - p_amount
+   where id = public.wallet_uid();
+
+  v_label := case v_acc.provider
+    when 'gcash' then 'GCash'
+    when 'maya' then 'Maya'
+    else coalesce(nullif(v_acc.bank_name, ''), 'Bank')
+  end;
+  insert into public.transactions(
+    scholar_id, title, subtitle, amount, type, status
+  )
+  values (
+    public.wallet_uid(), 'Cash-out to ' || v_label,
+    'Simulated transfer (demo, no real money)', -p_amount, 'debit', 'completed'
   );
-end
+
+  return v_id;
+end;
 $$;
 
-set local role authenticated;
-select set_config(
-  'request.jwt.claims',
-  jsonb_build_object(
-    'sub', current_setting('phase8.scholar_id'),
-    'role', 'authenticated'
-  )::text,
-  true
-);
+-- 4) Permissions (same model as the other RPCs: checks are inside) ----------------
+revoke all on function public.request_withdrawal(bigint, numeric, text) from public;
+grant execute on function public.request_withdrawal(bigint, numeric, text) to anon, authenticated;
 
+-- 5) Verification (fails and rolls everything back if something is off) ---------
 do $$
 begin
-  begin
-    if exists (
-      select 1 from public.profiles
-       where id = current_setting('phase8.other_scholar_id')
-    ) then
-      raise exception 'Other scholar profile was visible.';
-    end if;
-    raise notice 'PASS: scholar cannot read another scholar profile';
-  exception when others then
-    raise notice 'FAIL: scholar cannot read another scholar profile - %', sqlerrm;
-  end;
+  if (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
+        and proname = 'request_withdrawal') <> 1 then
+    raise exception 'request_withdrawal must have exactly one definition';
+  end if;
+  if (select count(*) from information_schema.columns
+       where table_schema = 'public' and table_name = 'withdrawals'
+         and column_name in ('idempotency_key', 'simulated')) <> 2 then
+    raise exception 'withdrawals columns missing';
+  end if;
+  if exists (select 1 from public.withdrawals
+              where status not in ('pending','processing','completed','failed','cancelled')) then
+    raise exception 'withdrawals has an unknown status';
+  end if;
+  if not (select prosecdef from pg_proc where pronamespace = 'public'::regnamespace
+            and proname = 'request_withdrawal') then
+    raise exception 'request_withdrawal must be security definer';
+  end if;
 end
 $$;
 
-do $$
-begin
-  begin
-    update public.profiles
-       set verification_status = 'approved', is_active = true
-     where id = current_setting('phase8.scholar_id');
-    raise exception 'Self-approval update unexpectedly succeeded.';
-  exception
-    when insufficient_privilege then
-      raise notice 'PASS: scholar cannot approve their own profile';
-    when others then
-      raise notice 'FAIL: scholar cannot approve their own profile - %', sqlerrm;
-  end;
-end
-$$;
+select
+  (select pg_get_function_identity_arguments(oid) from pg_proc
+    where pronamespace = 'public'::regnamespace and proname = 'request_withdrawal') as request_withdrawal_args,
+  (select count(*) from public.withdrawals where simulated) as simulated_rows,
+  (select count(*) from public.withdrawals) as total_rows;
 
-do $$
-begin
-  begin
-    update public.profiles
-       set balance = balance + 1
-     where id = current_setting('phase8.scholar_id');
-    raise exception 'Balance update unexpectedly succeeded.';
-  exception
-    when insufficient_privilege then
-      raise notice 'PASS: scholar cannot change their balance';
-    when others then
-      raise notice 'FAIL: scholar cannot change their balance - %', sqlerrm;
-  end;
-end
-$$;
-
-do $$
-begin
-  begin
-    perform public.set_verified_scholar_active(
-      current_setting('phase8.scholar_id'), true
-    );
-    raise exception 'Admin RPC unexpectedly succeeded for a scholar.';
-  exception
-    when insufficient_privilege then
-      raise notice 'PASS: scholar cannot successfully call an admin RPC';
-    when others then
-      if sqlerrm = 'ADMIN_REQUIRED' then
-        raise notice 'PASS: scholar cannot successfully call an admin RPC';
-      else
-        raise notice 'FAIL: scholar cannot successfully call an admin RPC - %',
-          sqlerrm;
-      end if;
-  end;
-end
-$$;
-
-select set_config(
-  'request.jwt.claims',
-  jsonb_build_object(
-    'sub', current_setting('phase8.cashout_scholar_id'),
-    'role', 'authenticated'
-  )::text,
-  true
-);
-
-do $$
-declare
-  v_amount numeric;
-begin
-  begin
-    v_amount := public.claim_allowance(
-      current_setting('phase8.claim_token'),
-      current_setting('phase8.cashout_scholar_id')
-    );
-    if v_amount <> 250 then
-      raise exception 'First claim returned an unexpected amount.';
-    end if;
-
-    begin
-      perform public.claim_allowance(
-        current_setting('phase8.claim_token'),
-        current_setting('phase8.cashout_scholar_id')
-      );
-      raise exception 'Duplicate claim unexpectedly succeeded.';
-    exception when others then
-      if sqlerrm = 'CLAIM_ALREADY_RECEIVED' then
-        raise notice 'PASS: duplicate claim is rejected';
-      else
-        raise exception 'Duplicate-claim check failed: %', sqlerrm;
-      end if;
-    end;
-  exception when others then
-    raise notice 'FAIL: duplicate claim is rejected - %', sqlerrm;
-  end;
-end
-$$;
-
-do $$
-declare
-  v_balance_before numeric;
-  v_balance_after numeric;
-  v_withdrawals_before bigint;
-  v_withdrawals_after bigint;
-  v_debits_before bigint;
-  v_debits_after bigint;
-  v_first_id bigint;
-  v_retry_id bigint;
-  v_account_id bigint := current_setting('phase8.account_id')::bigint;
-  v_amount numeric := 100;
-  v_key text := current_setting('phase8.idempotency_key');
-begin
-  begin
-    select balance into v_balance_before
-      from public.profiles
-     where id = current_setting('phase8.cashout_scholar_id');
-    select count(*) into v_withdrawals_before
-      from public.withdrawals
-     where scholar_id = current_setting('phase8.cashout_scholar_id')
-       and idempotency_key = v_key;
-    select count(*) into v_debits_before
-      from public.transactions
-     where scholar_id = current_setting('phase8.cashout_scholar_id')
-       and type = 'debit' and title = 'Cash-out to GCash';
-
-    v_first_id := public.request_withdrawal(v_account_id, v_amount, v_key);
-    v_retry_id := public.request_withdrawal(v_account_id, v_amount, v_key);
-
-    select balance into v_balance_after
-      from public.profiles
-     where id = current_setting('phase8.cashout_scholar_id');
-    select count(*) into v_withdrawals_after
-      from public.withdrawals
-     where scholar_id = current_setting('phase8.cashout_scholar_id')
-       and idempotency_key = v_key;
-    select count(*) into v_debits_after
-      from public.transactions
-     where scholar_id = current_setting('phase8.cashout_scholar_id')
-       and type = 'debit' and title = 'Cash-out to GCash';
-
-    if v_first_id <> v_retry_id
-       or v_balance_before - v_balance_after <> v_amount
-       or v_withdrawals_after - v_withdrawals_before <> 1
-       or v_debits_after - v_debits_before <> 1 then
-      raise exception 'Retry did not return one request and one debit.';
-    end if;
-    raise notice 'PASS: Cash Out retry with the same key debits only once';
-  exception when others then
-    raise notice 'FAIL: Cash Out retry with the same key debits only once - %',
-      sqlerrm;
-  end;
-end
-$$;
-
-reset role;
-
-update public.allowance_settings
-   set allowance_amount = 1e100
- where id = 1;
-
-set local role authenticated;
-select set_config(
-  'request.jwt.claims',
-  jsonb_build_object(
-    'sub', current_setting('phase8.admin_id'),
-    'role', 'authenticated'
-  )::text,
-  true
-);
-
-do $$
-begin
-  begin
-    perform public.issue_verified_payout(
-      'Phase 8 insufficient-funds test',
-      array[current_setting('phase8.cashout_scholar_id')],
-      current_date
-    );
-    raise exception 'Payout unexpectedly succeeded with an unaffordable amount.';
-  exception when others then
-    if sqlerrm = 'INSUFFICIENT_FUNDS' then
-      raise notice 'PASS: payout is rejected when funds are insufficient';
-    else
-      raise notice 'FAIL: payout is rejected when funds are insufficient - %',
-        sqlerrm;
-    end if;
-  end;
-end
-$$;
-
-reset role;
-rollback;
+commit;

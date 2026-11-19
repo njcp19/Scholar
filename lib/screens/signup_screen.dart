@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import '../services/scholarship_catalog_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/widgets.dart';
 import 'selfie_flow_screen.dart';
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  final ScholarshipCatalogService? catalogService;
+
+  const SignupScreen({
+    super.key,
+    this.catalogService,
+  });
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
@@ -62,8 +68,14 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscureConfirm = true;
   bool _agreed = false;
   bool _busy = false;
+  bool _catalogLoading = false;
+  bool _catalogAttempted = false;
+  bool _scholarshipTextFallback = false;
   int _step = 0;
+  List<ScholarshipCatalogItem> _scholarshipPrograms = [];
   final Map<String, String> _fieldErrors = {};
+  late final ScholarshipCatalogService _catalogService =
+      widget.catalogService ?? ScholarshipCatalogService();
 
   @override
   void dispose() {
@@ -573,15 +585,7 @@ class _SignupScreenState extends State<SignupScreen> {
           ],
           if (_declaredScholar) ...[
             const SizedBox(height: 12),
-            _text(
-              context,
-              'Scholarship name',
-              'scholarshipName',
-              _scholarshipName,
-              'e.g. CHED Merit Scholarship',
-              AppIcons.award,
-              capitalization: TextCapitalization.words,
-            ),
+            _scholarshipField(context),
             _text(
               context,
               'Award reference or ID',
@@ -596,6 +600,117 @@ class _SignupScreenState extends State<SignupScreen> {
         ],
       ),
     );
+  }
+
+  Widget _scholarshipField(BuildContext context) {
+    if (_scholarshipTextFallback) {
+      return _text(
+        context,
+        'Scholarship name',
+        'scholarshipName',
+        _scholarshipName,
+        'e.g. CHED Merit Scholarship',
+        AppIcons.award,
+        capitalization: TextCapitalization.words,
+      );
+    }
+
+    return _field(
+      context,
+      'Scholarship',
+      InkWell(
+        key: const ValueKey('scholarship-picker-field'),
+        onTap: _catalogLoading ? null : _openScholarshipPicker,
+        borderRadius: BorderRadius.circular(16),
+        child: InputDecorator(
+          decoration: _decoration(
+            context,
+            '',
+            AppIcons.award,
+            error: _fieldErrors['scholarshipName'],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _catalogLoading
+                      ? 'Loading scholarships...'
+                      : _scholarshipName.text.isEmpty
+                          ? 'Select your scholarship'
+                          : _scholarshipName.text,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: _scholarshipName.text.isEmpty
+                        ? context.colors.hint
+                        : context.colors.textPrimary,
+                  ),
+                ),
+              ),
+              if (_catalogLoading)
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: context.colors.brand,
+                  ),
+                )
+              else
+                Icon(
+                  AppIcons.chevronDown,
+                  size: 18,
+                  color: context.colors.textBody,
+                ),
+            ],
+          ),
+        ),
+      ),
+      fieldKey: 'scholarshipName',
+    );
+  }
+
+  Future<void> _openScholarshipPicker() async {
+    if (_catalogLoading) return;
+    if (!_catalogAttempted) {
+      setState(() => _catalogLoading = true);
+      try {
+        final programs = await _catalogService.list(includeInactive: false);
+        if (!mounted) return;
+        setState(() {
+          _scholarshipPrograms = programs;
+          _catalogAttempted = true;
+          _scholarshipTextFallback = programs.isEmpty;
+        });
+      } catch (_) {
+        if (!mounted) return;
+        // Manual entry remains available if the catalog cannot be loaded.
+        setState(() {
+          _catalogAttempted = true;
+          _scholarshipTextFallback = true;
+        });
+      } finally {
+        if (mounted) setState(() => _catalogLoading = false);
+      }
+    }
+
+    if (!mounted || _scholarshipTextFallback) return;
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ScholarshipPickerSheet(
+        programs: _scholarshipPrograms,
+        selectedName: _scholarshipName.text,
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _scholarshipName.text = selected;
+      _fieldErrors.remove('scholarshipName');
+    });
   }
 
   Widget _securityCard(BuildContext context) {
@@ -1024,6 +1139,108 @@ class _SignupScreenState extends State<SignupScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ScholarshipPickerSheet extends StatefulWidget {
+  final List<ScholarshipCatalogItem> programs;
+  final String selectedName;
+
+  const _ScholarshipPickerSheet({
+    required this.programs,
+    required this.selectedName,
+  });
+
+  @override
+  State<_ScholarshipPickerSheet> createState() =>
+      _ScholarshipPickerSheetState();
+}
+
+class _ScholarshipPickerSheetState extends State<_ScholarshipPickerSheet> {
+  String? _selectedName;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.programs.any((program) => program.name == widget.selectedName)) {
+      _selectedName = widget.selectedName;
+    }
+  }
+
+  Widget _option(ScholarshipCatalogItem program) {
+    final selected = _selectedName == program.name;
+    return Material(
+      color: selected ? context.colors.brandTint : context.colors.surface,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => setState(() => _selectedName = program.name),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color:
+                  selected ? context.colors.brand : context.colors.borderSoft,
+            ),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  program.name,
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontSize: 14,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (selected) ...[
+                const SizedBox(width: 8),
+                Icon(
+                  AppIcons.check,
+                  color: context.colors.brand,
+                  size: 22,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBottomSheet(
+      title: 'Choose your scholarship',
+      showDragHandle: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Pick the one you already belong to.',
+            style: TextStyle(
+              color: context.colors.textBody,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 18),
+          for (var index = 0; index < widget.programs.length; index++) ...[
+            if (index > 0) const SizedBox(height: 8),
+            _option(widget.programs[index]),
+          ],
+          const SizedBox(height: 18),
+          PrimaryButton(
+            label: 'Done',
+            onPressed: () => Navigator.pop(context, _selectedName),
+            minHeight: 52,
+            borderRadius: 18,
+          ),
+        ],
       ),
     );
   }

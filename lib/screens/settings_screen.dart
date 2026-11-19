@@ -10,6 +10,7 @@ import '../widgets/widgets.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/claims_monitor_screen.dart';
 import 'admin/manage_scholars_screen.dart';
+import 'admin/scholarship_programs_screen.dart';
 import 'claims_screen.dart';
 import 'fingerprint_screen.dart';
 import 'history_screen.dart';
@@ -503,7 +504,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _preferencesCard(AppState state) {
+  Widget _preferencesCard(AppState state, {required bool isAdmin}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final appearanceLabel = isDark ? 'Dark mode' : 'Light mode';
 
@@ -513,6 +514,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
+          if (isAdmin) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _openScreen(const ScholarshipProgramsScreen()),
+                child: Row(
+                  children: [
+                    _iconTile(
+                      AppIcons.award,
+                      context.colors.brandTint,
+                      context.colors.brand,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Scholarship Programs',
+                            style: TextStyle(
+                              color: context.colors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Manage options shown during Sign up',
+                            style: TextStyle(
+                              color: context.colors.textBody,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      AppIcons.chevronRight,
+                      color: context.colors.textBody,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Divider(height: 1, color: context.colors.borderSoft),
+          ],
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
@@ -717,7 +766,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 24),
                     const SectionLabel('PREFERENCES'),
                     const SizedBox(height: 10),
-                    _preferencesCard(state),
+                    _preferencesCard(state, isAdmin: isAdmin),
                     const SizedBox(height: 20),
                     SizedBox(
                       height: 52,

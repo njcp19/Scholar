@@ -2,6 +2,13 @@
 
 - **No real money movement:** every funding top-up and Cash Out is simulated.
   No bank or e-wallet is contacted.
+- **Selfie privacy and retention:** registration selfies are personal data
+  subject to the Philippine Data Privacy Act. A retention and deletion policy
+  still needs to be agreed with the school's Data Protection Officer (DPO).
+  Deleting a profile does not delete its selfie file from Storage.
+- **Scholarship catalog enforcement:** the catalog supplies names to the app,
+  but the server does not validate `profiles.scholarship_name` against it.
+  Direct API profile inserts can therefore supply a different non-empty name.
 - **Biometrics are client-side:** device biometric matching stays on the device;
   the database's `biometric_registered` value is only a profile flag and a
   scholar can set it through the client. It is not server-side proof of a
@@ -12,11 +19,12 @@
   expiry time.
 - **Payout Event status:** a batch can remain `issued` after every claim is
   voided; voiding all claims does not mark the batch complete.
-- **Legacy database objects:** the live database is reported to contain
-  `application_reviews`, `scholarship_applications`, and `scholarship_programs`,
-  plus `record_application_review` and `submit_application`. They are not
-  defined in this repository, so their behavior and lifecycle are not managed
-  here.
+- **Legacy database objects:** `application_reviews`, `scholarship_applications`,
+  `scholarship_programs`, `record_application_review`, and `submit_application`
+  are not defined in the checked-in setup or migrations, so their behavior and
+  lifecycle are not managed here. Their presence in any deployed database has
+  not been verified. Migration 008 leaves the legacy `scholarship_programs`
+  table untouched.
 - **Manual setup and drift:** SQL setup and migrations are applied manually.
   A database that differs from the checked-in scripts may behave differently;
   verify the target schema before applying changes.

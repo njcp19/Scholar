@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../data/demo_allowance_repository.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
 import '../models/models.dart';
@@ -649,13 +648,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = state.user;
     final latestPayout = _latestPayout;
     final displayedPayout = _pending.isNotEmpty ? _pending.first : latestPayout;
-    final demoData = DemoAllowanceRepository.instance;
     final activity = _recent.take(3).toList();
-    final expectedReleaseDate =
-        displayedPayout == null ? demoData.expectedReleaseDate : null;
-    final academicPeriod = demoData.academicPeriodFor(
-      displayedPayout?.batchTitle ?? 'Payout Event',
-    );
     final waitingTotal =
         _pending.fold<double>(0, (total, payout) => total + payout.amount);
 
@@ -714,33 +707,29 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 16),
                           _homeActionButtons(context),
                           const SizedBox(height: 16),
-                          MonthlyAllowanceCard(
-                            title: displayedPayout?.batchTitle ??
-                                state.allowance.label,
-                            amount: displayedPayout?.amount ??
-                                state.allowance.allowanceAmount,
-                            state: displayedPayout == null
-                                ? AllowanceCardState.notReleased
-                                : displayedPayout.isPending
-                                    ? AllowanceCardState.waiting
-                                    : displayedPayout.isReceived
-                                        ? AllowanceCardState.received
-                                        : AllowanceCardState.cancelled,
-                            issuedDate: displayedPayout == null
-                                ? null
-                                : _friendlyDate(displayedPayout.issuedAt),
-                            receivedDate: displayedPayout?.isReceived == true
-                                ? _friendlyDate(displayedPayout!.claimedAt)
-                                : null,
-                            expectedReleaseDate: expectedReleaseDate,
-                            academicPeriod: academicPeriod,
-                            waitingCount: _pending.length,
-                            waitingTotal: waitingTotal,
-                            statusOnRight: true,
-                            radius: HomeActivityRow.recentActivityRadius,
-                            iconTileSize: 40,
-                            amountFontSize: 22,
-                          ),
+                          if (displayedPayout == null)
+                            _emptyAllowanceCard(context)
+                          else
+                            MonthlyAllowanceCard(
+                              title: displayedPayout.batchTitle,
+                              amount: displayedPayout.amount,
+                              state: displayedPayout.isPending
+                                  ? AllowanceCardState.waiting
+                                  : displayedPayout.isReceived
+                                      ? AllowanceCardState.received
+                                      : AllowanceCardState.cancelled,
+                              issuedDate:
+                                  _friendlyDate(displayedPayout.issuedAt),
+                              receivedDate: displayedPayout.isReceived
+                                  ? _friendlyDate(displayedPayout.claimedAt)
+                                  : null,
+                              waitingCount: _pending.length,
+                              waitingTotal: waitingTotal,
+                              statusOnRight: true,
+                              radius: HomeActivityRow.recentActivityRadius,
+                              iconTileSize: 40,
+                              amountFontSize: 22,
+                            ),
                           if (!state.fingerprintRegistered) ...[
                             const SizedBox(height: 16),
                             BiometricStatusCard(
@@ -759,7 +748,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                           const SizedBox(height: 16),
-                          _payoutEventsRow(context),
+                          _payoutEventsRow(context,
+                              hasPayouts: _claims.isNotEmpty),
                           const SizedBox(height: 26),
                           Row(
                             children: [
@@ -806,12 +796,75 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _emptyAllowanceCard(BuildContext context) {
+    return AppCard(
+      radius: HomeActivityRow.recentActivityRadius,
+      shadow: true,
+      child: Row(
+        children: [
+          Container(
+            width: HomeActivityRow.recentActivityIconSize,
+            height: HomeActivityRow.recentActivityIconSize,
+            decoration: BoxDecoration(
+              color: context.colors.brandTint,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              AppIcons.calendar,
+              color: context.colors.brand,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'MONTHLY ALLOWANCE',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'No allowance yet',
+                  style: TextStyle(
+                    color: context.colors.textPrimary,
+                    fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Your allowance will appear here once the administrator '
+                  'releases a payout.',
+                  style: TextStyle(
+                    color: context.colors.textBody,
+                    fontSize: HomeActivityRow.recentActivityDetailFontSize,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _activityCard(
     BuildContext context,
     List<WalletTransaction> transactions,
   ) {
     if (transactions.isEmpty) {
       return AppCard(
+        key: const ValueKey('home-recent-activity-empty'),
         radius: HomeActivityRow.recentActivityRadius,
         shadow: true,
         child: Padding(
@@ -831,7 +884,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'No activity yet',
+                _claims.isEmpty ? 'No payouts yet.' : 'No activity yet',
                 style: TextStyle(color: context.colors.textBody),
               ),
             ],
@@ -880,7 +933,10 @@ class _HomeScreenState extends State<HomeScreen> {
     };
   }
 
-  Widget _payoutEventsRow(BuildContext context) {
+  Widget _payoutEventsRow(
+    BuildContext context, {
+    required bool hasPayouts,
+  }) {
     return ListRowCard(
       minHeight: 92,
       padding: const EdgeInsets.all(16),
@@ -920,7 +976,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Payout batches issued to you',
+                  hasPayouts
+                      ? 'Payout batches issued to you'
+                      : 'No payouts yet.',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style:

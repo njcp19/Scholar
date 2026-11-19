@@ -191,14 +191,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : [context.colors.balanceHeroStart, context.colors.balanceHeroEnd];
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(20),
+        constraints: const BoxConstraints(minHeight: ProfileHeroMetrics.height),
+        padding: const EdgeInsets.all(ProfileHeroMetrics.padding),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: ProfileHeroMetrics.gradientBegin,
+            end: ProfileHeroMetrics.gradientEnd,
             colors: gradient,
           ),
         ),

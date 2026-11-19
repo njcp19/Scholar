@@ -178,37 +178,6 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       );
 
-  Widget _heroPill(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-  }) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: colors.onHeader.withValues(alpha: .14),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.onHeader.withValues(alpha: .12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: colors.onHeader),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colors.onHeader,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _hero(BuildContext context, double height, double topInset) {
     final colors = context.colors;
     return SizedBox(
@@ -254,7 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               Positioned.fill(
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 12),
+                  padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 24),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -324,24 +293,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             height: 1.4,
                             color: colors.onHeader.withValues(alpha: .88),
                           ),
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _heroPill(
-                              context,
-                              icon: AppIcons.qrCode,
-                              label: 'QR payouts',
-                            ),
-                            _heroPill(
-                              context,
-                              icon: AppIcons.fingerprint,
-                              label: 'Device biometrics',
-                            ),
-                          ],
                         ),
                       ],
                     ),
@@ -422,36 +373,38 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 8,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Checkbox(
-                      value: _remember,
-                      activeColor: colors.brand,
-                      checkColor: colors.onHeader,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(7),
+              Flexible(
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Checkbox(
+                        value: _remember,
+                        activeColor: colors.brand,
+                        checkColor: colors.onHeader,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        side: BorderSide(color: colors.border),
+                        onChanged: (value) =>
+                            setState(() => _remember = value ?? true),
                       ),
-                      side: BorderSide(color: colors.border),
-                      onChanged: (value) =>
-                          setState(() => _remember = value ?? true),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Remember me',
-                    style: TextStyle(fontSize: 13, color: colors.textBody),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Remember me',
+                        style: TextStyle(fontSize: 13, color: colors.textBody),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               InkWell(
                 onTap: _forgot,
                 child: Padding(
@@ -460,7 +413,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Forgot password?',
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: colors.brand,
                     ),
                   ),

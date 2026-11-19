@@ -230,7 +230,7 @@ class HomeLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           const Row(
             children: [
@@ -250,7 +250,7 @@ class HomeLoadingSkeleton extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const SkeletonBox(height: 170, radius: 28),
+          const SkeletonBox(height: 120, radius: 22),
           const SizedBox(height: 16),
           const Row(
             children: [
@@ -594,6 +594,16 @@ class AppCard extends StatelessWidget {
       child: cardChild,
     );
   }
+}
+
+class ProfileHeroMetrics {
+  static const height = 172.0;
+  static const radius = 28.0;
+  static const padding = 20.0;
+  static const currencyPrefixFontSize = 20.0;
+  static const amountFontSize = 32.0;
+  static const gradientBegin = Alignment.topLeft;
+  static const gradientEnd = Alignment.bottomRight;
 }
 
 class ListRowCard extends StatelessWidget {
@@ -2441,30 +2451,50 @@ class MonthlyAllowanceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'MONTHLY ALLOWANCE',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textBody,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
                     if (statusOnRight)
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: context.colors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'MONTHLY ALLOWANCE',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: context.colors.textBody,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ),
+                          if (waiting || received || cancelled) ...[
+                            const SizedBox(width: 4),
+                            StatusChip(
+                              statusLabel,
+                              color: statusColor,
+                              bg: statusBackground,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 3,
+                              ),
+                            ),
+                          ],
+                        ],
                       )
                     else
+                      Text(
+                        'MONTHLY ALLOWANCE',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.colors.textBody,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    const SizedBox(height: 1),
+                    if (!statusOnRight)
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
@@ -2478,7 +2508,8 @@ class MonthlyAllowanceCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: context.colors.textPrimary,
-                                fontSize: 16,
+                                fontSize:
+                                    HomeActivityRow.recentActivityTitleFontSize,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -2494,20 +2525,9 @@ class MonthlyAllowanceCard extends StatelessWidget {
                   ],
                 ),
               ),
-              if (statusOnRight && (waiting || received || cancelled)) ...[
-                const SizedBox(width: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 132),
-                  child: StatusChip(
-                    statusLabel,
-                    color: statusColor,
-                    bg: statusBackground,
-                  ),
-                ),
-              ],
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 4),
           SizedBox(
             width: double.infinity,
             child: FittedBox(
@@ -2524,10 +2544,10 @@ class MonthlyAllowanceCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           if (received && (issuedDate != null || receivedDate != null)) ...[
             Divider(height: 1, color: context.colors.borderSoft),
-            const SizedBox(height: 12),
+            const SizedBox(height: 1),
             Row(
               children: [
                 if (issuedDate != null)
@@ -2538,7 +2558,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
                     ),
                   ),
                 if (issuedDate != null && receivedDate != null)
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                 if (receivedDate != null)
                   Expanded(
                     child: _AllowanceDateColumn(
@@ -2583,7 +2603,6 @@ class MonthlyAllowanceCard extends StatelessWidget {
             _AllowanceDateRow(
               label: 'Expected release',
               date: DateFormat('MMM d, yyyy').format(releaseDate),
-              demoData: true,
               trailing: releaseDate
                       .isBefore(DateTime(today.year, today.month, today.day))
                   ? StatusChip(
@@ -2592,7 +2611,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
                       bg: context.colors.warningBg,
                     )
                   : StatusChip(
-                      'in ${daysUntilRelease!} '
+                      'In ${daysUntilRelease!} '
                       '${daysUntilRelease == 1 ? 'day' : 'days'}',
                       color: daysUntilRelease <= 7
                           ? context.colors.warningText
@@ -2606,19 +2625,14 @@ class MonthlyAllowanceCard extends StatelessWidget {
           if (academicPeriod != null && academicPeriod!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(
-              spacing: 6,
-              runSpacing: 4,
+              spacing: 8,
+              runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 StatusChip(
                   academicPeriod!,
                   color: context.colors.textPrimary,
                   bg: context.colors.brandTint,
-                ),
-                StatusChip(
-                  'Demo data',
-                  color: context.colors.textBody,
-                  bg: context.colors.borderSoft,
                 ),
               ],
             ),
@@ -2661,13 +2675,11 @@ class _AllowanceDateColumn extends StatelessWidget {
 class _AllowanceDateRow extends StatelessWidget {
   final String label;
   final String? date;
-  final bool demoData;
   final Widget? trailing;
 
   const _AllowanceDateRow({
     required this.label,
     required this.date,
-    this.demoData = false,
     this.trailing,
   });
 
@@ -2676,8 +2688,8 @@ class _AllowanceDateRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
+        spacing: 8,
+        runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
@@ -2695,12 +2707,6 @@ class _AllowanceDateRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (demoData)
-            StatusChip(
-              'Demo data',
-              color: context.colors.textBody,
-              bg: context.colors.borderSoft,
-            ),
           if (trailing != null) trailing!,
         ],
       ),
@@ -3362,6 +3368,15 @@ class TxTile extends StatelessWidget {
 }
 
 class HomeActivityRow extends StatelessWidget {
+  static const recentActivityRadius = 22.0;
+  static const recentActivityHorizontalPadding = 16.0;
+  static const recentActivityRowVerticalPadding = 14.0;
+  static const recentActivityIconSize = 48.0;
+  static const recentActivityTitleFontSize = 15.0;
+  static const recentActivityDetailFontSize = 12.0;
+  static const recentActivityValueFontSize = 15.0;
+  static const recentActivityBorderWidth = 1.0;
+
   final WalletTransaction transaction;
   final String friendlyDate;
   final String? statusLabel;
@@ -3388,7 +3403,9 @@ class HomeActivityRow extends StatelessWidget {
     final isCredit = transaction.type == TxType.credit;
     final row = Padding(
       padding: inCard
-          ? const EdgeInsets.symmetric(vertical: 14)
+          ? const EdgeInsets.symmetric(
+              vertical: recentActivityRowVerticalPadding,
+            )
           : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
@@ -3431,7 +3448,7 @@ class HomeActivityRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textPrimary,
-                    fontSize: 15,
+                    fontSize: recentActivityTitleFontSize,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -3444,7 +3461,7 @@ class HomeActivityRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textBody,
-                    fontSize: 12,
+                    fontSize: recentActivityDetailFontSize,
                   ),
                 ),
               ],
@@ -3469,7 +3486,7 @@ class HomeActivityRow extends StatelessWidget {
                       : financialPresentation
                           ? context.colors.dangerText
                           : context.colors.textPrimary,
-                  fontSize: 15,
+                  fontSize: recentActivityValueFontSize,
                   fontWeight: FontWeight.w800,
                 ),
               ),

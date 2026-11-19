@@ -377,154 +377,162 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _balanceHero(BuildContext context, double balance) {
     final balanceText = 'PHP ${fmtPhp(balance)}';
     final heroTextColor = context.colors.balanceHeroText;
-    return AppCard(
-      padding: const EdgeInsets.all(24),
-      radius: 28,
-      shadow: true,
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          context.colors.balanceHeroStart,
-          context.colors.balanceHeroEnd,
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -82,
-            right: -44,
-            child: _balanceHeroCircle(
-              heroTextColor.withValues(alpha: .08),
-              208,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: ProfileHeroMetrics.height),
+      child: AppCard(
+        padding: const EdgeInsets.all(ProfileHeroMetrics.padding),
+        radius: ProfileHeroMetrics.radius,
+        shadow: true,
+        gradient: LinearGradient(
+          begin: ProfileHeroMetrics.gradientBegin,
+          end: ProfileHeroMetrics.gradientEnd,
+          colors: [
+            context.colors.balanceHeroStart,
+            context.colors.balanceHeroEnd,
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          children: [
+            Positioned(
+              top: -82,
+              right: -44,
+              child: _balanceHeroCircle(
+                heroTextColor.withValues(alpha: .08),
+                208,
+              ),
             ),
-          ),
-          Positioned(
-            bottom: -126,
-            right: -84,
-            child: _balanceHeroCircle(
-              heroTextColor.withValues(alpha: .07),
-              256,
+            Positioned(
+              bottom: -126,
+              right: -84,
+              child: _balanceHeroCircle(
+                heroTextColor.withValues(alpha: .07),
+                256,
+              ),
             ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'CURRENT BALANCE',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: heroTextColor,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Material(
-                    color: heroTextColor.withValues(alpha: .12),
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      onTap: () async {
-                        await Clipboard.setData(
-                          ClipboardData(text: balanceText),
-                        );
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Balance copied')),
-                          );
-                        }
-                      },
-                      customBorder: const CircleBorder(),
-                      child: SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: Icon(
-                          AppIcons.copy,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'CURRENT BALANCE',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
                           color: heroTextColor,
-                          size: 21,
+                          fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: heroTextColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'PHP ',
-                          style: TextStyle(fontSize: 28),
-                        ),
-                        TextSpan(
-                          text: fmtPhp(balance),
-                          style: const TextStyle(fontSize: 48),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: heroTextColor.withValues(alpha: .1),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: context.colors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          'Money received and verified by QR',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                    const SizedBox(width: 8),
+                    Material(
+                      color: heroTextColor.withValues(alpha: .12),
+                      shape: const CircleBorder(),
+                      child: InkWell(
+                        onTap: () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: balanceText),
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Balance copied')),
+                            );
+                          }
+                        },
+                        customBorder: const CircleBorder(),
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: Icon(
+                            AppIcons.copy,
                             color: heroTextColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
+                            size: 19,
                           ),
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                SizedBox(
+                  width: double.infinity,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text.rich(
+                      TextSpan(
+                        style: TextStyle(
+                          color: heroTextColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        children: [
+                          const TextSpan(
+                            text: 'PHP ',
+                            style: TextStyle(
+                              fontSize:
+                                  ProfileHeroMetrics.currencyPrefixFontSize,
+                            ),
+                          ),
+                          TextSpan(
+                            text: fmtPhp(balance),
+                            style: const TextStyle(
+                              fontSize: ProfileHeroMetrics.amountFontSize,
+                            ),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ],
+                const SizedBox(height: 2),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 360),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: heroTextColor.withValues(alpha: .1),
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: context.colors.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Money received and verified by QR',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: heroTextColor,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -545,26 +553,15 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Expanded(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              PrimaryButton(
-                label: 'Cash Out',
-                onPressed: _openCashOut,
-                icon: AppIcons.arrowUpRight,
-                backgroundColor: cashOutColor,
-                foregroundColor: context.colors.onHeader,
-                minHeight: buttonHeight,
-                borderRadius: 20,
-                shadow: true,
-              ),
-              const SizedBox(height: 6),
-              StatusChip(
-                'Simulated',
-                color: context.colors.brand,
-                bg: context.colors.brandTint,
-              ),
-            ],
+          child: PrimaryButton(
+            label: 'Cash Out',
+            onPressed: _openCashOut,
+            icon: AppIcons.arrowUpRight,
+            backgroundColor: cashOutColor,
+            foregroundColor: context.colors.onHeader,
+            minHeight: buttonHeight,
+            borderRadius: 20,
+            shadow: true,
           ),
         ),
         const SizedBox(width: 12),
@@ -702,7 +699,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         physics: const ClampingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                         children: [
                           _balanceHero(context, state.balance),
                           if (_loadError != null) ...[
@@ -742,9 +739,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             waitingCount: _pending.length,
                             waitingTotal: waitingTotal,
                             statusOnRight: true,
-                            radius: 22,
-                            iconTileSize: 48,
-                            amountFontSize: 36,
+                            radius: HomeActivityRow.recentActivityRadius,
+                            iconTileSize: 40,
+                            amountFontSize: 22,
                           ),
                           if (!state.fingerprintRegistered) ...[
                             const SizedBox(height: 16),
@@ -817,7 +814,7 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     if (transactions.isEmpty) {
       return AppCard(
-        radius: 22,
+        radius: HomeActivityRow.recentActivityRadius,
         shadow: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -846,9 +843,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return AppCard(
-      radius: 22,
+      radius: HomeActivityRow.recentActivityRadius,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: HomeActivityRow.recentActivityHorizontalPadding,
+      ),
       child: Column(
         children: [
           for (var index = 0; index < transactions.length; index++) ...[
@@ -860,7 +859,7 @@ class _HomeScreenState extends State<HomeScreen> {
               inCard: true,
               financialPresentation: true,
               showCurrencyCode: false,
-              iconSize: 48,
+              iconSize: HomeActivityRow.recentActivityIconSize,
               statusSeparator: '·',
             ),
           ],

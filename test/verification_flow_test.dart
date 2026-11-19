@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scholar_wallet/models/models.dart';
 import 'package:scholar_wallet/services/qr_service.dart';
 import 'package:scholar_wallet/screens/payout_confirmation_screen.dart';
+import 'package:scholar_wallet/theme/app_theme.dart';
 
 Map<String, dynamic> profile(
         {String status = 'pending',
@@ -152,13 +153,15 @@ void main() {
       'amount, recipient, payout event and biometric action are visible',
       (tester) async {
     await tester.pumpWidget(
-        MaterialApp(home: PayoutConfirmationScreen(claim: claim.build())));
+        MaterialApp(
+            theme: AppTheme.light,
+            home: PayoutConfirmationScreen(claim: claim.build())));
     expect(find.text('Review Allowance Amount'), findsOneWidget);
     expect(find.textContaining('5,000'), findsOneWidget);
     expect(find.text('Recipient: Test Scholar'), findsOneWidget);
     expect(find.text('Payout event: October Allowance'), findsOneWidget);
     expect(find.text('Continue to Biometrics'), findsOneWidget);
-    expect(find.textContaining('does not transfer cash'), findsOneWidget);
+    expect(find.textContaining('simulation only'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
   });
 
@@ -166,6 +169,7 @@ void main() {
       (tester) async {
     bool? result;
     await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light,
         home: Builder(
             builder: (context) => Scaffold(
                 body: TextButton(
@@ -191,6 +195,7 @@ void main() {
       (tester) async {
     bool? result;
     await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light,
         home: Builder(
             builder: (context) => Scaffold(
                 body: TextButton(

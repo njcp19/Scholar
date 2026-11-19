@@ -86,4 +86,4 @@ select
       and tgname in ('trg_profile_role_guard', 'trg_profile_admin_delete_guard')) as guard_triggers_expected_2,
   to_regclass('public.profile_role_audit') as audit_table;
 
-commit;
+commit; 

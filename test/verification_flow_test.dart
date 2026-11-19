@@ -79,6 +79,29 @@ void main() {
     });
   });
 
+  group('selfie profile fields', () {
+    test('older profile defaults to no selfie and no retake request', () {
+      final user = AppUser.fromMap(profile());
+      expect(user.selfiePath, isNull);
+      expect(user.selfieSubmittedAt, isNull);
+      expect(user.selfieRetakeAllowed, isFalse);
+    });
+
+    test('maps submitted selfie fields', () {
+      final submittedAt = DateTime.parse('2026-11-19T10:30:00Z');
+      final user = AppUser.fromMap({
+        ...profile(),
+        'selfie_path': 'student-1/123.jpg',
+        'selfie_submitted_at': submittedAt.toIso8601String(),
+        'selfie_retake_allowed': true,
+      });
+
+      expect(user.selfiePath, 'student-1/123.jpg');
+      expect(user.selfieSubmittedAt, submittedAt);
+      expect(user.selfieRetakeAllowed, isTrue);
+    });
+  });
+
   group('payout QR vs event QR', () {
     const payload = ClaimQrPayload(
         token: '1234567890abcdefghijklmnopqrstuv',

@@ -99,11 +99,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   void _notifyRegs(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
+    showAppSnackBar(
+      context,
+      msg,
+      type: AppSnackBarType.info,
       action: SnackBarAction(label: 'REVIEW', onPressed: _openRegistrations),
-      duration: const Duration(seconds: 8),
-    ));
+    );
   }
 
   Future<void> _openRegistrations() async {
@@ -304,7 +305,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 2),
                                             Text(
                                               '${_pendingRegs[index].studentNumber ?? '—'} · '
                                               '${_pendingRegs[index].university ?? '—'}',
@@ -481,7 +482,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _disbursementHero(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       radius: 28,
       shadow: true,
       gradient: LinearGradient(
@@ -514,19 +515,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   letterSpacing: 1,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Release the allowance by QR',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onHeader,
-                  fontSize: 28,
-                  height: 1.15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 'Generate a payout batch and scholars scan their QR to receive it.',
                 style: TextStyle(
@@ -535,20 +524,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   height: 1.45,
                 ),
               ),
-              const SizedBox(height: 18),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  child: PrimaryButton(
-                    label: 'Start disbursement',
-                    onPressed: _openDisbursement,
-                    icon: AppIcons.send,
-                    backgroundColor: colors.onHeader,
-                    foregroundColor: colors.brand,
-                    minHeight: 56,
-                    borderRadius: 18,
-                  ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: 'Start disbursement',
+                  onPressed: _openDisbursement,
+                  icon: AppIcons.send,
+                  backgroundColor: colors.onHeader,
+                  foregroundColor: colors.brand,
+                  minHeight: 52,
+                  borderRadius: 18,
                 ),
               ),
             ],
@@ -579,7 +565,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Standard allowance',
+                      'STANDARD ALLOWANCE',
                       style: TextStyle(
                         color: colors.textBody,
                         fontSize: 13,
@@ -789,70 +775,71 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _quickActionTiles(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          height: 132,
-          child: Row(
-            children: [
-              Expanded(
-                child: _quickActionTile(
-                  context,
-                  icon: AppIcons.calendar,
-                  tileColor: context.colors.brandTint,
-                  iconColor: context.colors.brand,
-                  title: 'Payout Events',
-                  subtitle: 'Allowance batches',
-                  onTap: _openPayoutEvents,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.calendar,
+                    tileColor: context.colors.brandTint,
+                    iconColor: context.colors.brand,
+                    title: 'Payout Events',
+                    subtitle: 'Allowance batches',
+                    onTap: _openPayoutEvents,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _quickActionTile(
-                  context,
-                  icon: AppIcons.chart,
-                  tileColor: context.colors.successBg,
-                  iconColor: context.colors.successText,
-                  title: 'Reports',
-                  subtitle: 'Totals, history, exports',
-                  onTap: _openReports,
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.clock,
+                    tileColor: context.colors.brandTint,
+                    iconColor: context.colors.brand,
+                    title: 'Activity Log',
+                    subtitle: 'Read-only payout records',
+                    onTap: _openActivityLog,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 132,
-          child: Row(
-            children: [
-              Expanded(
-                child: _quickActionTile(
-                  context,
-                  icon: AppIcons.clock,
-                  tileColor: context.colors.brandTint,
-                  iconColor: context.colors.brand,
-                  title: 'Activity Log',
-                  subtitle: 'Read-only payout records',
-                  onTap: _openActivityLog,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.chart,
+                    tileColor: context.colors.successBg,
+                    iconColor: context.colors.successText,
+                    title: 'Reports',
+                    subtitle: 'Totals, history, exports',
+                    onTap: _openReports,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _quickActionTile(
-                  context,
-                  icon: AppIcons.bankAccount,
-                  tileColor: context.colors.warningBg,
-                  iconColor: context.colors.warningText,
-                  title: 'Funding account',
-                  subtitle: 'Available fund and activity',
-                  onTap: _openFundingAccount,
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.bankAccount,
+                    tileColor: context.colors.warningBg,
+                    iconColor: context.colors.warningText,
+                    title: 'Funding account',
+                    subtitle: 'Available fund and activity',
+                    onTap: _openFundingAccount,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -866,7 +853,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required VoidCallback onTap,
   }) {
     return AppCard(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       radius: 22,
       backgroundColor: context.colors.surface,
       borderColor: context.colors.borderSoft,
@@ -886,7 +873,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             alignment: Alignment.center,
             child: Icon(icon, color: iconColor, size: 22),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Text(
             title,
             maxLines: 1,
@@ -897,7 +884,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               fontSize: 14.5,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             subtitle,
             maxLines: 2,
@@ -966,16 +953,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 6,
+          Row(
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 280),
+              Expanded(
                 child: Text(
                   first.batchTitle,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textPrimary,
@@ -984,12 +967,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ),
               ),
-              if (status != null)
+              if (status != null) ...[
+                const SizedBox(width: 8),
                 StatusChip(
                   status.toUpperCase(),
                   color: statusColor!,
                   bg: statusBackground,
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 6),
@@ -1129,17 +1114,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const SizedBox(width: 8),
           Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
+            child: Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                'PHP ${fmtPhp(claim.amount)}',
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                  color: context.colors.success,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'PHP ${fmtPhp(claim.amount)}',
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: context.colors.success,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),

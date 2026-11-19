@@ -47,6 +47,9 @@ class AppUser {
   final VerificationStatus verificationStatus;
   final String reviewNotes;
   final bool isActive;
+  final String? selfiePath;
+  final DateTime? selfieSubmittedAt;
+  final bool selfieRetakeAllowed;
 
   bool get canReceiveAllowance =>
       role == UserRole.scholar &&
@@ -72,6 +75,9 @@ class AppUser {
     this.verificationStatus = VerificationStatus.pending,
     this.reviewNotes = '',
     this.isActive = false,
+    this.selfiePath,
+    this.selfieSubmittedAt,
+    this.selfieRetakeAllowed = false,
     this.biometricRegistered = false,
     this.biometricEnrolledAt,
   });
@@ -98,6 +104,11 @@ class AppUser {
         verificationStatus: verificationStatusFrom(m['verification_status']),
         reviewNotes: (m['review_notes'] ?? '') as String,
         isActive: m['is_active'] == true,
+        selfiePath: m['selfie_path'] as String?,
+        selfieSubmittedAt: m['selfie_submitted_at'] is String
+            ? DateTime.tryParse(m['selfie_submitted_at'] as String)
+            : null,
+        selfieRetakeAllowed: (m['selfie_retake_allowed'] as bool?) ?? false,
         biometricRegistered: (m['biometric_registered'] as bool?) ?? false,
         biometricEnrolledAt: m['biometric_enrolled_at'] is String
             ? DateTime.tryParse(m['biometric_enrolled_at'] as String)

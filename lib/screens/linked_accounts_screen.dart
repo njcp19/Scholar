@@ -530,8 +530,11 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
             accountNumber: _digits,
           );
       if (mounted) Navigator.pop(context, true);
-    } on WalletException catch (e) {
-      if (mounted) setState(() => _saveError = e.message);
+    } on WalletException {
+      if (mounted) {
+        setState(
+            () => _saveError = 'Could not link this account. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

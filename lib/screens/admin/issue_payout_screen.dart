@@ -168,8 +168,11 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   distributionDate: distributionDate,
                 )),
       );
-    } catch (e) {
-      if (mounted) showMsg(context, 'Failed: $e', error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not issue the Payout. Please try again.',
+            error: true);
+      }
     } finally {
       if (mounted) {
         setState(() {

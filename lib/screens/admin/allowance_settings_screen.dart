@@ -94,8 +94,11 @@ class _AllowanceSettingsScreenState extends State<AllowanceSettingsScreen> {
       showMsg(context,
           'Standard allowance set to PHP ${fmtPhp(amount)} for all scholars.');
       Navigator.pop(context);
-    } catch (e) {
-      if (mounted) showMsg(context, 'Failed: $e', error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not save Allowance settings. Please try again.',
+            error: true);
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

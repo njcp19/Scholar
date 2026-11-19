@@ -40,7 +40,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _error = null;
       _offline = false;
     } catch (e) {
-      _error = '$e';
+      _error = 'Could not load reports. Please try again.';
       _offline = isOfflineLoadError(e);
     }
     if (mounted) {
@@ -600,9 +600,10 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
       } else if (result.status == ShareResultStatus.success) {
         Navigator.of(context).pop();
       }
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
-        showMsg(context, 'Could not export the report: $error', error: true);
+        showMsg(context, 'Could not export the report. Please try again.',
+            error: true);
       }
     } finally {
       if (mounted) setState(() => _exporting = false);

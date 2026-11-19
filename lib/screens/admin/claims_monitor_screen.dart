@@ -72,7 +72,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = '$error';
+        _error = 'Could not load Payouts. Please try again.';
         _offline = isOfflineLoadError(error);
         _hasLoaded = true;
       });
@@ -149,12 +149,19 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       if (!mounted) return;
       showMsg(context, 'Payout cancelled.');
       _load();
-    } on ClaimNotPendingException catch (error) {
+    } on ClaimNotPendingException {
       if (!mounted) return;
-      showMsg(context, error.message, error: true);
+      showMsg(
+        context,
+        'This Payout is no longer waiting. Refresh the list and try again.',
+        error: true,
+      );
       await _load();
-    } catch (error) {
-      if (mounted) showMsg(context, 'Failed: $error', error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not cancel this Payout. Please try again.',
+            error: true);
+      }
     }
   }
 
@@ -524,7 +531,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 44,
@@ -615,43 +622,16 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
             ),
           ),
           const SizedBox(width: 6),
-          Column(
-            children: [
-              Material(
-                color: context.colors.brandTint,
-                borderRadius: BorderRadius.circular(14),
-                child: IconButton(
-                  onPressed: () => _showQr(claim),
-                  tooltip: 'View QR',
-                  constraints:
-                      const BoxConstraints.tightFor(width: 44, height: 44),
-                  padding: EdgeInsets.zero,
-                  icon: Icon(AppIcons.qrCode, color: context.colors.brand),
-                ),
-              ),
-              if (claim.isPending)
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: PopupMenuButton<String>(
-                    tooltip: 'Payout actions',
-                    padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints.tightFor(width: 28, height: 28),
-                    iconSize: 18,
-                    onSelected: (action) {
-                      if (action == 'cancel') _void(claim);
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'cancel',
-                        child: Text('Cancel payout'),
-                      ),
-                    ],
-                    icon: Icon(AppIcons.menu, color: context.colors.textBody),
-                  ),
-                ),
-            ],
+          Material(
+            color: context.colors.brandTint,
+            borderRadius: BorderRadius.circular(14),
+            child: IconButton(
+              onPressed: () => _showQr(claim),
+              tooltip: 'View QR',
+              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+              padding: EdgeInsets.zero,
+              icon: Icon(AppIcons.qrCode, color: context.colors.brand),
+            ),
           ),
         ],
       ),

@@ -97,8 +97,8 @@ class _CheckEmailScreenState extends State<CheckEmailScreen> {
       ),
       child: Text(
         widget.email,
-        maxLines: 2,
-        softWrap: true,
+        maxLines: 1,
+        softWrap: false,
         overflow: TextOverflow.ellipsis,
         textAlign: TextAlign.center,
         style: TextStyle(

@@ -47,7 +47,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       if (!mounted) return;
       setState(() {
         _claims = [];
-        _error = '$error';
+        _error = 'Could not load activity. Please try again.';
         _loading = false;
       });
     }

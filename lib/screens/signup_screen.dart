@@ -5,6 +5,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/widgets.dart';
+import 'selfie_flow_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -252,8 +253,6 @@ class _SignupScreenState extends State<SignupScreen> {
     setState(() => _busy = true);
     try {
       final state = context.read<AppState>();
-      final messenger = ScaffoldMessenger.of(context);
-      final successColor = context.colors.success;
       await state.auth.signUp(
         fullName: _name.text,
         email: _email.text,
@@ -266,15 +265,17 @@ class _SignupScreenState extends State<SignupScreen> {
         scholarshipName: _scholarshipName.text,
         scholarshipReference: _scholarshipReference.text,
       );
-      // AuthGate opens the verification status screen for this signed-in account.
       if (mounted) {
-        Navigator.pop(context);
+        await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SelfieIntroScreen(
+              onSubmitted: state.refreshProfile,
+            ),
+          ),
+        );
+        if (mounted) Navigator.pop(context);
       }
-      messenger.showSnackBar(SnackBar(
-        content: const Text('Registration submitted for admin verification.'),
-        backgroundColor: successColor,
-        behavior: SnackBarBehavior.floating,
-      ));
     } catch (e) {
       if (mounted) {
         final message = context.read<AppState>().auth.friendlyError(e);
@@ -821,7 +822,7 @@ class _SignupScreenState extends State<SignupScreen> {
           children: [
             Expanded(
               child: Text(
-                'Step ${_step + 1} of 2',
+                'Step ${_step + 1} of 3',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
@@ -859,6 +860,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 _step == 1 ? colors.brand : colors.border,
               ),
             ),
+            const SizedBox(width: 8),
+            Expanded(child: _progressBar(colors.border)),
           ],
         ),
       ],

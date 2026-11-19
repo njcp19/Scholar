@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../services/selfie_service.dart';
 import '../../services/verification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
+import '../selfie_flow_screen.dart';
 
 class RegistrationReviewScreen extends StatefulWidget {
   const RegistrationReviewScreen({super.key});
@@ -342,8 +344,11 @@ class _RegistrationDetail extends StatefulWidget {
 class _RegistrationDetailState extends State<_RegistrationDetail> {
   final _notes = TextEditingController();
   final _service = VerificationService();
+  final _selfieService = SelfieService();
   late Future<List<Map<String, dynamic>>> _history;
+  Future<String>? _selfieUrl;
   bool _rosterChecked = false;
+  bool _askForNewSelfie = false;
   bool _busy = false;
   VerificationStatus? _busyStatus;
 
@@ -351,6 +356,10 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
   void initState() {
     super.initState();
     _history = _service.history(widget.user.id);
+    final path = widget.user.selfiePath;
+    if (path != null && path.isNotEmpty) {
+      _selfieUrl = _selfieService.signedUrl(path);
+    }
   }
 
   @override
@@ -383,15 +392,25 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
     });
     try {
       await _service.review(widget.user, status, _notes.text);
+      String? selfieRequestError;
+      if (status == VerificationStatus.needsInfo && _askForNewSelfie) {
+        try {
+          await _selfieService.requestRetake(widget.user.id);
+        } catch (error) {
+          selfieRequestError = selfieFriendlyErrorMessage(error);
+        }
+      }
       if (mounted) {
-        showMsg(context, 'Registration verification recorded.');
+        showMsg(
+          context,
+          selfieRequestError ?? 'Registration verification recorded.',
+          error: selfieRequestError != null,
+        );
         Navigator.pop(context, true);
       }
-    } catch (e) {
+    } catch (error) {
       if (mounted) {
-        showMsg(context,
-            'Review was not saved. The status may have changed; reopen the registration and try again. ($e)',
-            error: true);
+        showMsg(context, selfieFriendlyErrorMessage(error), error: true);
       }
     } finally {
       if (mounted) {
@@ -459,9 +478,138 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
         : DateFormat('MMM d, yyyy • h:mm a').format(date.toLocal());
   }
 
+  void _viewSelfie(String signedUrl) {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelfieFullScreenViewer(signedUrl: signedUrl),
+      ),
+    );
+  }
+
+  Widget _selfieSection() {
+    final path = widget.user.selfiePath;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(
+          'SELFIE',
+          labelColor: context.colors.textBody,
+          fontSize: 11.5,
+          letterSpacing: 1.2,
+        ),
+        const SizedBox(height: 8),
+        if (path == null || path.isEmpty)
+          AppCard(
+            radius: 22,
+            shadow: true,
+            child: Text(
+              'No selfie submitted yet',
+              style: TextStyle(
+                color: context.colors.textBody,
+                fontSize: 14,
+              ),
+            ),
+          )
+        else
+          AppCard(
+            radius: 22,
+            shadow: true,
+            padding: const EdgeInsets.all(14),
+            child: FutureBuilder<String>(
+              future: _selfieUrl,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return AppSkeletonizer(
+                    enabled: true,
+                    child: Container(
+                      height: 110,
+                      decoration: BoxDecoration(
+                        color: context.colors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  );
+                }
+                if (snapshot.hasError || snapshot.data == null) {
+                  return Text(
+                    'Could not load this selfie.',
+                    style: TextStyle(
+                      color: context.colors.dangerText,
+                      fontSize: 12,
+                    ),
+                  );
+                }
+                final signedUrl = snapshot.data!;
+                return Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 88,
+                        height: 104,
+                        child: Image.network(
+                          signedUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color: context.colors.brandTint,
+                            child: Icon(
+                              AppIcons.image,
+                              color: context.colors.brand,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Submitted by the scholar',
+                            style: TextStyle(
+                              color: context.colors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: () => _viewSelfie(signedUrl),
+                            icon: Icon(
+                              AppIcons.image,
+                              size: 18,
+                              color: context.colors.brand,
+                            ),
+                            label: Text(
+                              'View full size',
+                              style: TextStyle(
+                                color: context.colors.brand,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.centerLeft,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final u = widget.user;
+    final hasSelfie = u.selfiePath?.isNotEmpty == true;
     final status = u.verificationStatus;
     final undecided = status != VerificationStatus.approved &&
         status != VerificationStatus.rejected;
@@ -544,6 +692,8 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              _selfieSection(),
               const SizedBox(height: 16),
               SectionLabel(
                 'SCHOLAR DETAILS',
@@ -664,6 +814,23 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                   ),
                 ),
                 const SizedBox(height: 16),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: context.colors.brand,
+                  title: Text(
+                    'Ask for a new selfie',
+                    style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  value: _askForNewSelfie,
+                  onChanged: _busy || !hasSelfie
+                      ? null
+                      : (value) => setState(() => _askForNewSelfie = value),
+                ),
+                const SizedBox(height: 8),
                 PrimaryButton(
                   label: 'Approve verified scholar',
                   icon: AppIcons.shieldCheck,
@@ -673,11 +840,22 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                   onPressed: !_busy &&
                           _rosterChecked &&
                           u.declaredScholar &&
-                          u.scholarshipName.isNotEmpty
+                          u.scholarshipName.isNotEmpty &&
+                          hasSelfie
                       ? () => _decide(VerificationStatus.approved)
                       : null,
                   loading: _busyStatus == VerificationStatus.approved,
                 ),
+                if (!hasSelfie) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'A selfie is required before approval.',
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 if (status == VerificationStatus.pending) ...[
                   SecondaryButton(

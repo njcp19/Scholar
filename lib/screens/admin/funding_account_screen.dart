@@ -54,13 +54,13 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
       });
     } on WalletException catch (error) {
       debugPrint('Funding account load failed: $error');
-      _setLoadError(error.message);
+      _setLoadError('Could not load the funding account. Try again.');
     } on FormatException catch (error) {
       debugPrint('Funding account load failed: $error');
-      _setLoadError(error.message);
+      _setLoadError('Could not load the funding account. Try again.');
     } on TypeError catch (error) {
       debugPrint('Funding account load failed: $error');
-      _setLoadError('Could not read the funding account data: $error');
+      _setLoadError('Could not read the funding account data. Try again.');
     } catch (error) {
       debugPrint('Funding account load failed: $error');
       _setLoadError('Could not load the funding account. Try again.');
@@ -876,8 +876,11 @@ class _LinkFundingAccountSheetState extends State<_LinkFundingAccountSheet> {
             accountNumber: _digits,
           );
       linked = true;
-    } on WalletException catch (error) {
-      if (mounted) setState(() => _saveError = error.message);
+    } on WalletException {
+      if (mounted) {
+        setState(
+            () => _saveError = 'Could not link the funding account. Try again.');
+      }
     } finally {
       if (mounted) {
         _accountNumber.clear();
@@ -1043,8 +1046,10 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
     try {
       await context.read<AppState>().wallet.topUpFund(amount);
       toppedUp = true;
-    } on WalletException catch (error) {
-      if (mounted) setState(() => _topUpError = error.message);
+    } on WalletException {
+      if (mounted) {
+        setState(() => _topUpError = 'Could not add funds. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

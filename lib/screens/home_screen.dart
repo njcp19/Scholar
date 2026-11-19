@@ -82,11 +82,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final fresh = pending.where((c) => !seen.contains(c.id)).toList();
         if (fresh.isNotEmpty) {
           final total = fresh.fold<double>(0, (s, c) => s + c.amount);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'New allowance from admin: PHP ${fmtPhp(total)}. Scan the QR to receive it.'),
-            duration: const Duration(seconds: 10),
-          ));
+          showAppSnackBar(
+            context,
+            'New Allowance from admin: PHP ${fmtPhp(total)}. Scan the QR to receive it.',
+            type: AppSnackBarType.info,
+          );
         }
         if (seen.length != ids.length || fresh.isNotEmpty) _load();
       }
@@ -124,11 +124,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final total = _pending.fold<double>(0, (s, c) => s + c.amount);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'You have ${_pending.length} allowance(s) waiting: PHP ${fmtPhp(total)}. Scan the QR from the admin to receive it.'),
-            duration: const Duration(seconds: 10),
-          ));
+          showAppSnackBar(
+            context,
+            'You have ${_pending.length} Allowance(s) waiting: PHP ${fmtPhp(total)}. Scan the QR from the admin to receive it.',
+            type: AppSnackBarType.info,
+          );
         });
       }
     } catch (error) {
@@ -438,9 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ClipboardData(text: balanceText),
                           );
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Balance copied')),
-                            );
+                            showAppSnackBar(context, 'Balance copied.');
                           }
                         },
                         customBorder: const CircleBorder(),

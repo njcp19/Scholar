@@ -809,13 +809,11 @@ class SearchField extends StatelessWidget {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
-            borderSide:
-                BorderSide(color: borderColor ?? context.colors.border),
+            borderSide: BorderSide(color: borderColor ?? context.colors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
-            borderSide:
-                BorderSide(color: borderColor ?? context.colors.border),
+            borderSide: BorderSide(color: borderColor ?? context.colors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
@@ -1201,9 +1199,8 @@ class ErrorCard extends StatelessWidget {
         radius: 28,
         padding: const EdgeInsets.fromLTRB(40, 24, 40, 24),
         shadow: true,
-        borderColor: offline
-            ? context.colors.borderSoft
-            : context.colors.dangerBorder,
+        borderColor:
+            offline ? context.colors.borderSoft : context.colors.dangerBorder,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1991,69 +1988,59 @@ class AppHeader extends StatelessWidget {
                   ),
                   themeToggle,
                   const SizedBox(width: 8),
-                  Tooltip(
-                    message: 'Notifications',
-                    child: Container(
-                      width: roundActionButtons ? actionButtonSize : 48,
-                      height: roundActionButtons ? actionButtonSize : 48,
-                      decoration: softBackground || roundActionButtons
-                          ? BoxDecoration(
-                              color: context.colors.surface,
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: context.colors.borderSoft),
-                            )
-                          : null,
-                      child: IconButton(
-                        onPressed: onNotifications,
-                        constraints: roundActionButtons
-                            ? BoxConstraints.tightFor(
-                                width: actionButtonSize,
-                                height: actionButtonSize,
+                  Semantics(
+                    label: 'Notifications, $notificationCount unread',
+                    child: Tooltip(
+                      message: 'Notifications',
+                      child: Container(
+                        width: roundActionButtons ? actionButtonSize : 48,
+                        height: roundActionButtons ? actionButtonSize : 48,
+                        decoration: softBackground || roundActionButtons
+                            ? BoxDecoration(
+                                color: context.colors.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: context.colors.borderSoft,
+                                ),
                               )
                             : null,
-                        padding: roundActionButtons ? EdgeInsets.zero : null,
-                        icon: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(
-                              AppIcons.bell,
-                              color: actionColor,
-                              size: 22,
-                            ),
-                            if (notificationCount > 0)
-                              Positioned(
-                                top: 3,
-                                right: 3,
-                                child: Container(
-                                  width: 18,
-                                  height: 18,
-                                  decoration: BoxDecoration(
-                                    color: context.colors.danger,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(2),
-                                      child: Text(
-                                        '$notificationCount',
-                                        maxLines: 1,
-                                        style: TextStyle(
-                                          color: softBackground
-                                              ? context.colors.onHeader
-                                              : context.colors.background,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                        child: IconButton(
+                          onPressed: onNotifications,
+                          constraints: roundActionButtons
+                              ? BoxConstraints.tightFor(
+                                  width: actionButtonSize,
+                                  height: actionButtonSize,
+                                )
+                              : null,
+                          padding: roundActionButtons ? EdgeInsets.zero : null,
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(
+                                AppIcons.bell,
+                                color: actionColor,
+                                size: 22,
+                              ),
+                              if (notificationCount > 0)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFA52A2A),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.5,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -2260,9 +2247,7 @@ class BalanceCard extends StatelessWidget {
     Future<void> copyBalance() async {
       await Clipboard.setData(ClipboardData(text: amount));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Balance copied')),
-        );
+        showAppSnackBar(context, 'Balance copied.');
       }
     }
 
@@ -2433,7 +2418,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: iconTileSize,
@@ -2446,42 +2431,38 @@ class MonthlyAllowanceCard extends StatelessWidget {
                 child: Icon(AppIcons.calendar,
                     color: context.colors.brand, size: 24),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (statusOnRight)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'MONTHLY ALLOWANCE',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: context.colors.textBody,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1,
-                              ),
-                            ),
-                          ),
-                          if (waiting || received || cancelled) ...[
-                            const SizedBox(width: 4),
-                            StatusChip(
-                              statusLabel,
-                              color: statusColor,
-                              bg: statusBackground,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 3,
-                              ),
-                            ),
-                          ],
-                        ],
-                      )
-                    else
+              SizedBox(width: statusOnRight ? 10 : 12),
+              if (statusOnRight) ...[
+                Expanded(
+                  child: Text(
+                    'MONTHLY ALLOWANCE',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                if (waiting || received || cancelled) ...[
+                  const SizedBox(width: 4),
+                  StatusChip(
+                    statusLabel,
+                    color: statusColor,
+                    bg: statusBackground,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                  ),
+                ],
+              ] else
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
                         'MONTHLY ALLOWANCE',
                         maxLines: 1,
@@ -2493,8 +2474,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
                           letterSpacing: 1,
                         ),
                       ),
-                    const SizedBox(height: 1),
-                    if (!statusOnRight)
+                      const SizedBox(height: 1),
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
@@ -2522,9 +2502,9 @@ class MonthlyAllowanceCard extends StatelessWidget {
                             ),
                         ],
                       ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 4),
@@ -3468,28 +3448,23 @@ class HomeActivityRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: Text(
-                '${isCredit ? '+' : '-'}'
-                '${showCurrencyCode ? 'PHP ' : ''}'
-                '${fmtPhp(financialPresentation ? transaction.amount.abs() : transaction.amount)}',
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                  color: isCredit
-                      ? financialPresentation
-                          ? context.colors.successText
-                          : context.colors.success
-                      : financialPresentation
-                          ? context.colors.dangerText
-                          : context.colors.textPrimary,
-                  fontSize: recentActivityValueFontSize,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+          Text(
+            '${isCredit ? '+' : '-'}'
+            '${showCurrencyCode ? 'PHP ' : ''}'
+            '${fmtPhp(financialPresentation ? transaction.amount.abs() : transaction.amount)}',
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: isCredit
+                  ? financialPresentation
+                      ? context.colors.successText
+                      : context.colors.success
+                  : financialPresentation
+                      ? context.colors.dangerText
+                      : context.colors.textPrimary,
+              fontSize: recentActivityValueFontSize,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -3718,13 +3693,94 @@ class ClaimQrPanel extends StatelessWidget {
   }
 }
 
-/// Snackbar helper.
-void showMsg(BuildContext context, String msg, {bool error = false}) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content: Text(msg),
-    backgroundColor: error ? AppTheme.dangerRed : AppTheme.successGreen,
-    behavior: SnackBarBehavior.floating,
-  ));
+enum AppSnackBarType { success, error, info }
+
+ScaffoldMessengerState appSnackBarMessengerOf(BuildContext context) =>
+    ScaffoldMessenger.of(context);
+
+void showAppSnackBar(
+  BuildContext context,
+  String message, {
+  AppSnackBarType type = AppSnackBarType.success,
+  SnackBarAction? action,
+  ScaffoldMessengerState? messenger,
+}) {
+  final (backgroundColor, foregroundColor, borderColor, icon) = switch (type) {
+    AppSnackBarType.success => (
+        const Color(0xFFE5F8F0),
+        const Color(0xFF08734D),
+        null,
+        AppIcons.checkCircle,
+      ),
+    AppSnackBarType.error => (
+        const Color(0xFFFDECEC),
+        const Color(0xFFA52A2A),
+        const Color(0xFFF0B8B8),
+        AppIcons.error,
+      ),
+    AppSnackBarType.info => (
+        const Color(0xFFEAF2FE),
+        const Color(0xFF1E5AA8),
+        null,
+        AppIcons.info,
+      ),
+  };
+  final scaffoldMessenger = messenger ?? appSnackBarMessengerOf(context);
+  scaffoldMessenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, size: 20, color: foregroundColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: borderColor == null
+              ? BorderSide.none
+              : BorderSide(color: borderColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        action: action == null
+            ? null
+            : SnackBarAction(
+                label: action.label,
+                onPressed: action.onPressed,
+                textColor: foregroundColor,
+              ),
+      ),
+    );
+}
+
+void showMsg(
+  BuildContext context,
+  String msg, {
+  bool error = false,
+  AppSnackBarType? type,
+}) {
+  showAppSnackBar(
+    context,
+    msg,
+    type: type ?? (error ? AppSnackBarType.error : AppSnackBarType.success),
+  );
 }
 
 /// Shows a confirmation dialog before signing out.

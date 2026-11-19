@@ -107,7 +107,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       });
     } catch (_) {
       if (mounted) {
-        showMsg(context, 'Could not load cash-out details.', error: true);
+        showMsg(context, 'Could not load Cash Out details.', error: true);
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -162,7 +162,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
     if (amount == null || amount < WalletService.minCashout) {
       showMsg(
         context,
-        'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.',
+        'Minimum Cash Out is PHP ${fmtPhp(WalletService.minCashout)}.',
         error: true,
       );
       return;
@@ -251,7 +251,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
         if (!mounted || !state.fingerprintRegistered) return;
       }
       final verified = await state
-          .verifyFingerprint('Confirm cash-out: PHP ${fmtPhp(amount)}');
+          .verifyFingerprint('Confirm Cash Out: PHP ${fmtPhp(amount)}');
       if (!mounted) return;
       if (!verified) {
         throw WalletException('Biometrics not verified. Nothing was deducted.');
@@ -270,10 +270,16 @@ class _CashoutScreenState extends State<CashoutScreen> {
         _successAnimationTimer = Timer(const Duration(seconds: 2), () {
           if (mounted) setState(() => _showSuccessAnimation = false);
         });
-        showMsg(context, 'Demo cash-out completed. No real money was sent.');
+        showMsg(context, 'Demo Cash Out completed. No real money was sent.');
       }
-    } on WalletException catch (e) {
-      if (mounted) showMsg(context, e.message, error: true);
+    } on WalletException {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not complete the Cash Out. Please try again.',
+          error: true,
+        );
+      }
     } catch (_) {
       if (mounted) {
         showMsg(

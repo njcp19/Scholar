@@ -65,7 +65,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       _error = null;
       _offline = false;
     } catch (e) {
-      _error = '$e';
+      _error = 'Could not load scholars. Please try again.';
       _offline = isOfflineLoadError(e);
     }
     if (mounted) {
@@ -106,11 +106,11 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         context,
         active ? '${scholar.name} activated.' : '${scholar.name} deactivated.',
       );
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         showMsg(
           context,
-          'Failed to update the scholar account. ($e)',
+          'Could not update the scholar account. Please try again.',
           error: true,
         );
       }
@@ -148,8 +148,11 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       if (!mounted) return;
       setState(() => _scholars.removeWhere((item) => item.id == scholar.id));
       showMsg(context, '${scholar.name} deleted.');
-    } catch (e) {
-      if (mounted) showMsg(context, '$e', error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not delete the scholar. Please try again.',
+            error: true);
+      }
     }
   }
 
@@ -181,7 +184,11 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       showMsg(context, '$deletedCount inactive account(s) deleted.');
       await _load();
     } catch (e) {
-      if (mounted) showMsg(context, '$e', error: true);
+      if (mounted) {
+        showMsg(
+            context, 'Could not delete inactive accounts. Please try again.',
+            error: true);
+      }
     }
   }
 

@@ -93,39 +93,56 @@ class PasswordResetScaffold extends StatelessWidget {
                                 Padding(
                                   padding:
                                       const EdgeInsets.fromLTRB(22, 30, 22, 26),
-                                  child: Column(
-                                    children: [
-                                      icon,
-                                      const SizedBox(height: 20),
-                                      Text(
-                                        title,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          color: foreground,
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: -.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      ConstrainedBox(
-                                        constraints:
-                                            const BoxConstraints(maxWidth: 280),
-                                        child: Text(
-                                          subtitle,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(
-                                            color: foreground,
-                                            fontSize: 14,
-                                            height: 1.5,
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        icon,
+                                        const SizedBox(height: 20),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: Text(
+                                            title,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: foreground,
+                                              fontSize: 26,
+                                              fontWeight: FontWeight.w800,
+                                              letterSpacing: -.5,
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      if (heroDetail != null) ...[
-                                        const SizedBox(height: 14),
-                                        heroDetail!,
+                                        const SizedBox(height: 8),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 280),
+                                          child: SizedBox(
+                                            width: double.infinity,
+                                            child: Text(
+                                              subtitle,
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: foreground,
+                                                fontSize: 14,
+                                                height: 1.5,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                        if (heroDetail != null) ...[
+                                          const SizedBox(height: 14),
+                                          SizedBox(
+                                            width: double.infinity,
+                                            child: Center(child: heroDetail!),
+                                          ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ],

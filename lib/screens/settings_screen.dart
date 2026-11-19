@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/app_state.dart';
@@ -26,8 +25,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static const _kRememberEmail = 'remember_email';
-
   Future<String?> _askPassword() {
     final controller = TextEditingController();
     return showDialog<String>(
@@ -189,6 +186,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final gradient = isAdmin
         ? [context.colors.header, context.colors.heroGradientEnd]
         : [context.colors.balanceHeroStart, context.colors.balanceHeroEnd];
+    final chipLineHeight = MediaQuery.textScalerOf(context).scale(12) * 1.4;
+    final chipAreaHeight = ((chipLineHeight + 16) * 2 + 8).ceilToDouble();
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
@@ -284,18 +283,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 18),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: isAdmin
-                      ? [
-                          _heroChip('Administrator account', foreground),
-                        ]
-                      : [
-                          if (user?.studentNumber?.isNotEmpty == true)
-                            _heroChip('ID: ${user!.studentNumber}', foreground),
-                          _heroChip('Scholar account', foreground),
-                        ],
+                SizedBox(
+                  height: chipAreaHeight,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: isAdmin
+                          ? [
+                              _heroChip('Administrator account', foreground),
+                            ]
+                          : [
+                              if (user?.studentNumber?.isNotEmpty == true)
+                                _heroChip(
+                                  'ID: ${user!.studentNumber}',
+                                  foreground,
+                                ),
+                              _heroChip('Scholar account', foreground),
+                            ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -411,13 +419,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       bg: context.colors.successBg,
                     )
                   else
-                    SizedBox(
-                      width: 74,
-                      child: PrimaryButton(
-                        label: 'Set up',
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 72),
+                      child: ElevatedButton(
                         onPressed: () => _openScreen(const FingerprintScreen()),
-                        minHeight: 48,
-                        borderRadius: 16,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(72, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? context.colors.header
+                                  : context.colors.brand,
+                          foregroundColor: context.colors.onHeader,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Set up',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                 ],
@@ -524,56 +548,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 _themeSegment(state, isDark),
               ],
-            ),
-          ),
-          Divider(height: 1, color: context.colors.borderSoft),
-          InkWell(
-            onTap: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove(_kRememberEmail);
-              if (mounted) showMsg(context, 'Saved email cleared.');
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                children: [
-                  _iconTile(
-                    AppIcons.mail,
-                    context.colors.brandTint,
-                    context.colors.brand,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Forget saved email',
-                          style: TextStyle(
-                            color: context.colors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Clears the email prefilled on the login screen',
-                          style: TextStyle(
-                            color: context.colors.textBody,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    AppIcons.chevronRight,
-                    color: context.colors.textBody,
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -707,6 +681,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           child: Text(
                             'Profile',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: context.colors.textPrimary,
                               fontSize: 26,
@@ -714,16 +690,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Flexible(
-                          child: _rolePill(
-                            label: roleLabel,
-                            color: roleColor,
-                            background: roleBackground,
-                            icon: isAdmin
-                                ? AppIcons.shieldCheck
-                                : isVerifiedScholar
-                                    ? AppIcons.check
-                                    : null,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: _rolePill(
+                              label: roleLabel,
+                              color: roleColor,
+                              background: roleBackground,
+                              icon: isAdmin
+                                  ? AppIcons.shieldCheck
+                                  : isVerifiedScholar
+                                      ? AppIcons.check
+                                      : null,
+                            ),
                           ),
                         ),
                       ],

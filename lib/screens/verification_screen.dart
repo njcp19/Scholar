@@ -6,6 +6,7 @@ import '../services/verification_service.dart';
 import '../widgets/widgets.dart';
 import '../widgets/app_icons.dart';
 import '../theme/app_theme.dart';
+import 'selfie_flow_screen.dart';
 
 class VerificationScreen extends StatefulWidget {
   final bool gate;
@@ -33,6 +34,15 @@ class _VerificationScreenState extends State<VerificationScreen> {
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  Future<void> _openSelfieFlow() async {
+    await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelfieIntroScreen(onSubmitted: _refresh),
+      ),
+    );
   }
 
   Widget _requestedInformationField(
@@ -220,8 +230,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
           yearLevel: changedValue(yearLevelValue, user.yearLevel));
       if (!mounted) return;
       await _refresh();
-    } on VerificationServiceException catch (e) {
-      if (mounted) showMsg(context, e.message, error: true);
+    } on VerificationServiceException {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not resubmit your verification. Refresh the status and try again.',
+          error: true,
+        );
+      }
     } catch (_) {
       if (mounted) {
         showMsg(
@@ -258,6 +274,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     final adminVerificationDone = status == VerificationStatus.rejected ||
         status == VerificationStatus.approved;
     final approvedScholarCurrent = status == VerificationStatus.approved;
+    final selfieRequired = u.selfiePath == null || u.selfieRetakeAllowed;
     final registrationRows = <MapEntry<String, String>>[
       MapEntry('Name', u.fullName),
       MapEntry('Student number', u.studentNumber ?? 'Not provided'),
@@ -315,54 +332,59 @@ class _VerificationScreenState extends State<VerificationScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
             children: [
-              AppCard(
-                radius: 28,
-                shadow: true,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        color: _statusTint(context, status),
-                        shape: BoxShape.circle,
+              if (selfieRequired)
+                _SelfieRequiredCard(
+                  retakeRequested: u.selfieRetakeAllowed,
+                )
+              else
+                AppCard(
+                  radius: 28,
+                  shadow: true,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          color: _statusTint(context, status),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          _statusIcon(status),
+                          size: 36,
+                          color: _statusColor(context, status),
+                        ),
                       ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        _statusIcon(status),
-                        size: 36,
+                      const SizedBox(height: 16),
+                      StatusChip(
+                        status.label,
                         color: _statusColor(context, status),
+                        bg: _statusTint(context, status),
+                        borderRadius: 12,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 7,
+                        ),
+                        fontSize: 14,
+                        letterSpacing: 0,
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    StatusChip(
-                      status.label,
-                      color: _statusColor(context, status),
-                      bg: _statusTint(context, status),
-                      borderRadius: 12,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 7,
+                      const SizedBox(height: 14),
+                      Text(
+                        _explanation(u),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: context.colors.textBody,
+                          fontSize: 13.5,
+                          height: 1.55,
+                        ),
                       ),
-                      fontSize: 14,
-                      letterSpacing: 0,
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      _explanation(u),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: context.colors.textBody,
-                        fontSize: 13.5,
-                        height: 1.55,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
               const SizedBox(height: 16),
               AppCard(
                 radius: 22,
@@ -418,6 +440,55 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   message: u.reviewNotes,
                 ),
               ],
+              if (selfieRequired) ...[
+                const SizedBox(height: 24),
+                SectionLabel(
+                  'YOUR SELFIE',
+                  labelColor: context.colors.textBody,
+                  fontSize: 11.5,
+                  letterSpacing: 1.2,
+                ),
+                const SizedBox(height: 8),
+                AppCard(
+                  radius: 22,
+                  shadow: true,
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 60,
+                        height: 94,
+                        child: SelfiePlaceholder(),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'No selfie yet',
+                              style: TextStyle(
+                                color: context.colors.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Required before an administrator can approve your registration.',
+                              style: TextStyle(
+                                color: context.colors.textBody,
+                                fontSize: 13.5,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
               SectionLabel(
                 'YOUR REGISTRATION',
@@ -451,6 +522,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   minHeight: 56,
                   borderRadius: 18,
                   shadow: true,
+                ),
+              ],
+              if (selfieRequired) ...[
+                const SizedBox(height: 16),
+                PrimaryButton(
+                  label: 'Take selfie',
+                  icon: Icons.camera_alt_outlined,
+                  minHeight: 56,
+                  borderRadius: 18,
+                  shadow: true,
+                  onPressed: _busy ? null : _openSelfieFlow,
                 ),
               ],
               const SizedBox(height: 10),
@@ -505,6 +587,63 @@ Color _statusTint(BuildContext context, VerificationStatus status) =>
       VerificationStatus.rejected => context.colors.dangerBg,
       VerificationStatus.approved => context.colors.successBg,
     };
+
+class _SelfieRequiredCard extends StatelessWidget {
+  final bool retakeRequested;
+
+  const _SelfieRequiredCard({required this.retakeRequested});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AppCard(
+      radius: 28,
+      shadow: true,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 76,
+            height: 76,
+            decoration: BoxDecoration(
+              color: colors.avatarTint,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.camera_alt_outlined,
+              size: 36,
+              color: colors.warningText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          StatusChip(
+            'Selfie required',
+            color: colors.warningText,
+            bg: colors.warningBg,
+            borderRadius: 12,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            fontSize: 14,
+            letterSpacing: 0,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            retakeRequested
+                ? 'An administrator asked for a new selfie.'
+                : 'Take a selfie so the administrator can confirm that you are the registered student. You can submit it once.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.textBody,
+              fontSize: 13.5,
+              height: 1.55,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _VerificationProgressStep extends StatelessWidget {
   final int number;

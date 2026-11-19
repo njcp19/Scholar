@@ -174,8 +174,14 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
         ),
         result: true,
       );
-    } on WalletException catch (e) {
-      if (mounted) showMsg(context, e.message, error: true);
+    } on WalletException {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not receive this Payout. Refresh My Payouts and try again.',
+          error: true,
+        );
+      }
     } catch (_) {
       if (mounted) {
         showMsg(context,

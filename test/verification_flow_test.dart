@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:scholar_wallet/models/models.dart';
+import 'package:scholar_wallet/providers/app_state.dart';
 import 'package:scholar_wallet/services/qr_service.dart';
 import 'package:scholar_wallet/screens/payout_confirmation_screen.dart';
+import 'package:scholar_wallet/screens/verification_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 
 Map<String, dynamic> profile(
@@ -152,16 +155,30 @@ void main() {
   testWidgets(
       'amount, recipient, payout event and biometric action are visible',
       (tester) async {
-    await tester.pumpWidget(
-        MaterialApp(
-            theme: AppTheme.light,
-            home: PayoutConfirmationScreen(claim: claim.build())));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.light,
+        home: PayoutConfirmationScreen(claim: claim.build())));
     expect(find.text('Review Allowance Amount'), findsOneWidget);
-    expect(find.textContaining('5,000'), findsOneWidget);
-    expect(find.text('Recipient: Test Scholar'), findsOneWidget);
-    expect(find.text('Payout event: October Allowance'), findsOneWidget);
+    expect(find.text('AMOUNT TO RECEIVE'), findsOneWidget);
+    expect(find.text('PHP 5,000.00'), findsOneWidget);
+    expect(find.text('Payout event'), findsOneWidget);
+    expect(find.text('October Allowance'), findsOneWidget);
+    expect(find.text('Recipient'), findsOneWidget);
+    expect(find.text('Test Scholar'), findsOneWidget);
+    expect(find.text('Payout reference'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Continue to Biometrics'),
+      200,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Continue to Biometrics'), findsOneWidget);
-    expect(find.textContaining('simulation only'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'This records allowance receipt in Scholar Wallet and adds it to your balance.',
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(TextField), findsNothing);
   });
 
@@ -215,6 +232,85 @@ void main() {
     await tester.pumpAndSettle();
     expect(result, true);
   });
+
+  testWidgets('payout confirmation fits 320dp at 1.3 text scale',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.3),
+          ),
+          child: child!,
+        ),
+        home: PayoutConfirmationScreen(claim: claim.build()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('AMOUNT TO RECEIVE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    expect(find.text('Payout event'), findsOneWidget);
+    expect(find.text('Recipient'), findsOneWidget);
+    expect(find.text('Payout reference'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Continue to Biometrics'),
+      200,
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('pending verification screen does not show the old sequence',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final state = _VerificationFixtureAppState(
+      AppUser.fromMap({
+        ...profile(),
+        'verification_status': 'pending',
+        'selfie_path': 'student-1/selfie.jpg',
+        'selfie_retake_allowed': false,
+      }),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const VerificationScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('Registration'), findsOneWidget);
+    expect(find.text('Admin verification'), findsOneWidget);
+    expect(find.text('Approved scholar'), findsOneWidget);
+    expect(find.textContaining('Then: Payout QR'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+}
+
+class _VerificationFixtureAppState extends ChangeNotifier implements AppState {
+  _VerificationFixtureAppState(this.user);
+
+  @override
+  AppUser? user;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _ClaimFixture {

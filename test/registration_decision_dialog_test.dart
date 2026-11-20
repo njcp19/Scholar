@@ -30,8 +30,7 @@ void main() {
     (
       status: VerificationStatus.needsInfo,
       title: 'Request more information?',
-      message: 'Your review note will be shown to the scholar.\n'
-          'The scholar will also be asked for a new selfie.',
+      message: 'Your review note will be shown to the scholar.',
       confirmLabel: 'Send request',
       askForNewSelfie: true,
     ),
@@ -72,6 +71,10 @@ void main() {
       expect(find.text(prompt.message), findsOneWidget);
       expect(find.text('Jamie Scholar'), findsOneWidget);
       expect(find.text(prompt.confirmLabel), findsOneWidget);
+      expect(
+        find.text('The scholar will also be asked for a new selfie.'),
+        prompt.askForNewSelfie ? findsOneWidget : findsNothing,
+      );
 
       await tester.tap(find.text(prompt.confirmLabel));
       await tester.pumpAndSettle();
@@ -109,5 +112,55 @@ void main() {
       find.text('The scholar will also be asked for a new selfie.'),
       findsNothing,
     );
+  });
+
+  testWidgets(
+      'under-review action fits one line and has the wider button at 360dp',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    late BuildContext context;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.3),
+          ),
+          child: child!,
+        ),
+        home: Builder(
+          builder: (builderContext) {
+            context = builderContext;
+            return const Scaffold();
+          },
+        ),
+      ),
+    );
+
+    final result = showRegistrationDecisionDialog(
+      context,
+      status: VerificationStatus.underReview,
+      scholarName: 'Jamie Scholar',
+    );
+    await tester.pumpAndSettle();
+
+    final confirmLabel = tester.widget<Text>(find.text('Mark under review'));
+    expect(confirmLabel.maxLines, 1);
+    expect(confirmLabel.softWrap, isFalse);
+    final confirmWidth =
+        tester.getSize(find.byKey(const ValueKey('decision-confirm'))).width;
+    final cancelWidth =
+        tester.getSize(find.byKey(const ValueKey('decision-cancel'))).width;
+    expect(confirmWidth, greaterThan(cancelWidth));
+    expect(confirmWidth / cancelWidth, closeTo(14 / 8, 0.02));
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.byKey(const ValueKey('decision-cancel')));
+    await tester.pumpAndSettle();
+    expect(await result, isFalse);
   });
 }

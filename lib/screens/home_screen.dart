@@ -928,12 +928,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _activityStatus(WalletTransaction transaction) {
-    final description = '${transaction.title} ${transaction.subtitle}'
-        .toLowerCase()
-        .replaceAll('-', ' ');
-    if (description.contains('cash out') || description.contains('cashout')) {
-      return 'Simulated';
-    }
     return switch (transaction.status) {
       TxStatus.completed => 'Completed',
       TxStatus.pending => 'Pending',

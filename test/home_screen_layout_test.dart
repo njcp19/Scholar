@@ -87,9 +87,8 @@ void main() {
       findsNothing,
     );
     final homeList = find.byType(ListView).first;
-    final homeScrollable = find
-        .descendant(of: homeList, matching: find.byType(Scrollable))
-        .first;
+    final homeScrollable =
+        find.descendant(of: homeList, matching: find.byType(Scrollable)).first;
     await tester.scrollUntilVisible(
       find.text('Payout Events'),
       240,
@@ -229,7 +228,7 @@ void main() {
       );
       expect(find.text('In 12 days'), findsOneWidget);
       expect(find.text('1st Semester AY 2026-2027'), findsOneWidget);
-      expect(find.text('Demo data'), findsNothing);
+      expect(find.textContaining('Demo'), findsNothing);
       expect(
         tester.widget<AppCard>(find.byType(AppCard)).padding,
         const EdgeInsets.all(16),

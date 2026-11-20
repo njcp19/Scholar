@@ -137,33 +137,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
   }
 
   Widget _infoCard() {
-    return InfoBanner(
-      icon: AppIcons.info,
-      message: 'DEMO ONLY: Linking an account only saves the details in this app. '
-          'No GCash, Maya or bank account is verified, and no real money is '
-          'sent. Do not enter real account details; use fictional test data.',
-      maxLines: 8,
-      backgroundColor: context.colors.brandTint,
-      textColor: Theme.of(context).brightness == Brightness.dark
-          ? context.colors.textBody
-          : context.colors.brand,
-      borderRadius: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          AppIcons.info,
-          color: context.colors.brand,
-          size: 21,
-        ),
-      ),
-    );
+    return const PrototypeNotice(message: prototypeLinkedAccountNotice);
   }
 
   Widget _accountCard(LinkedAccount account) {
@@ -532,8 +506,8 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
       if (mounted) Navigator.pop(context, true);
     } on WalletException {
       if (mounted) {
-        setState(
-            () => _saveError = 'Could not link this account. Please try again.');
+        setState(() =>
+            _saveError = 'Could not link this account. Please try again.');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -898,18 +872,6 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
             ),
           ],
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Icon(AppIcons.lock, color: colors.textBody, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Demo only: details are stored by this app and are not verified. Do not enter real account numbers.',
-                  style: TextStyle(color: colors.textBody, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 14),
           PrimaryButton(
             label: 'Save account',

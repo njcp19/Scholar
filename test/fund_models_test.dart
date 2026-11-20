@@ -40,7 +40,6 @@ void main() {
         'status': status.name,
         'created_at': '2026-11-17T06:00:00Z',
       });
-
       expect(withdrawal.status, status);
       expect(withdrawal.isPending, status == WithdrawalStatus.pending);
     }
@@ -50,6 +49,22 @@ void main() {
     expect(WithdrawalStatus.completed.label, 'Completed');
     expect(WithdrawalStatus.failed.label, 'Failed');
     expect(WithdrawalStatus.cancelled.label, 'Cancelled');
+  });
+
+  test('withdrawal model maps the server simulation flag', () {
+    final withdrawal = Withdrawal.fromMap({
+      'id': 42,
+      'scholar_id': 'scholar-1',
+      'amount': 100,
+      'provider': 'gcash',
+      'account_name': 'Alex Scholar',
+      'account_number': '1234',
+      'status': 'completed',
+      'simulated': true,
+      'created_at': '2026-11-17T06:00:00Z',
+    });
+
+    expect(withdrawal.simulated, isTrue);
   });
 
   test('fund summary parses numeric JSON values', () {

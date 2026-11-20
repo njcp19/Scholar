@@ -420,16 +420,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Then: Payout QR → Review amount → Biometrics → Allowance received',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: context.colors.textBody,
-                        fontSize: 13.5,
-                        height: 1.45,
-                      ),
-                    ),
                   ],
                 ),
               ),

@@ -14,27 +14,55 @@ Future<bool?> showRegistrationDecisionDialog(
   required String scholarName,
   bool askForNewSelfie = false,
 }) {
-  final (title, message, confirmLabel) = switch (status) {
+  final (
+    title,
+    message,
+    confirmLabel,
+    icon,
+    iconBackground,
+    iconForeground,
+    iconHalo,
+    confirmColor,
+  ) = switch (status) {
     VerificationStatus.approved => (
         'Approve this scholar?',
         'They will be able to receive allowances once their account is active.',
         'Approve',
+        AppIcons.check,
+        const Color(0xFFE5F8F0),
+        const Color(0xFF08734D),
+        const Color(0xFFF2FBF7),
+        const Color(0xFF1E5AA8),
       ),
     VerificationStatus.underReview => (
         'Mark as under review?',
         'The scholar stays pending while you check the details.',
         'Mark under review',
+        AppIcons.eye,
+        const Color(0xFFEAF2FE),
+        const Color(0xFF1E5AA8),
+        const Color(0xFFF4F8FE),
+        const Color(0xFF1E5AA8),
       ),
     VerificationStatus.needsInfo => (
         'Request more information?',
-        'Your review note will be shown to the scholar.'
-            '${askForNewSelfie ? '\nThe scholar will also be asked for a new selfie.' : ''}',
+        'Your review note will be shown to the scholar.',
         'Send request',
+        AppIcons.error,
+        const Color(0xFFFFF6E3),
+        const Color(0xFF8A5A00),
+        const Color(0xFFFFFBF2),
+        const Color(0xFF1E5AA8),
       ),
     VerificationStatus.rejected => (
         'Reject this registration?',
         'Your review note will be shown to the scholar.',
         'Reject',
+        AppIcons.cancel,
+        const Color(0xFFFDECEC),
+        const Color(0xFFB83232),
+        const Color(0xFFFFF4F4),
+        const Color(0xFFC41E1E),
       ),
     VerificationStatus.pending => throw ArgumentError.value(
         status,
@@ -43,15 +71,237 @@ Future<bool?> showRegistrationDecisionDialog(
       ),
   };
 
-  return ConfirmDialog.show(
-    context,
-    title: title,
-    titleDetail: scholarName,
-    message: message,
-    confirmLabel: confirmLabel,
-    danger: status == VerificationStatus.rejected,
-    actionRadius: 16,
+  return showDialog<bool>(
+    context: context,
+    builder: (_) => _RegistrationDecisionDialog(
+      title: title,
+      scholarName: scholarName,
+      message: message,
+      confirmLabel: confirmLabel,
+      icon: icon,
+      iconBackground: iconBackground,
+      iconForeground: iconForeground,
+      iconHalo: iconHalo,
+      confirmColor: confirmColor,
+      showSelfieInfo: status == VerificationStatus.needsInfo && askForNewSelfie,
+    ),
   );
+}
+
+class _RegistrationDecisionDialog extends StatelessWidget {
+  final String title;
+  final String scholarName;
+  final String message;
+  final String confirmLabel;
+  final IconData icon;
+  final Color iconBackground;
+  final Color iconForeground;
+  final Color iconHalo;
+  final Color confirmColor;
+  final bool showSelfieInfo;
+
+  const _RegistrationDecisionDialog({
+    required this.title,
+    required this.scholarName,
+    required this.message,
+    required this.confirmLabel,
+    required this.icon,
+    required this.iconBackground,
+    required this.iconForeground,
+    required this.iconHalo,
+    required this.confirmColor,
+    required this.showSelfieInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const textColor = Color(0xFF1A2530);
+    final innerWidth = MediaQuery.sizeOf(context).width - 24 * 2 - 22 * 2;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(22, 28, 22, 22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: iconHalo,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: iconForeground, size: 28),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: textColor,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: innerWidth),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    scholarName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: textColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF4A5568),
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            if (showSelfieInfo) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF2FE),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'The scholar will also be asked for a new selfie.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF123F86),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  flex: 8,
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton(
+                      key: const ValueKey('decision-cancel'),
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: textColor,
+                        side: const BorderSide(
+                          color: Color(0xFFE3E8EF),
+                          width: 1,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 14,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: confirmColor.withValues(alpha: .3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      key: const ValueKey('decision-confirm'),
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: confirmColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        confirmLabel,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class RegistrationReviewScreen extends StatefulWidget {

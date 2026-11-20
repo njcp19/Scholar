@@ -126,13 +126,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _friendlyDate(DateTime date) =>
       DateFormat('MMM d, yyyy · h:mm a').format(_localDate(date));
 
-  bool _isCashOut(WalletTransaction transaction) {
-    final description = '${transaction.title} ${transaction.subtitle}'
-        .toLowerCase()
-        .replaceAll('-', ' ');
-    return description.contains('cash out') || description.contains('cashout');
-  }
-
   List<Widget> _grouped(List<WalletTransaction> transactions) {
     final groups = <String, List<WalletTransaction>>{};
     for (final transaction in transactions) {
@@ -171,7 +164,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _transactionRow(WalletTransaction transaction) {
     final isCredit = transaction.type == TxType.credit;
     final isPending = transaction.status == TxStatus.pending;
-    final isCashOut = !isCredit && _isCashOut(transaction);
     final statusColor = isPending
         ? context.colors.warningText
         : transaction.status == TxStatus.rejected
@@ -186,8 +178,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             : isCredit
                 ? context.colors.successBg
                 : context.colors.brandTint;
-    final chipLabel =
-        isCashOut ? 'Simulated' : _statusLabel(transaction.status);
+    final chipLabel = _statusLabel(transaction.status);
     final amount = '${isCredit ? '+' : '-'}${fmtPhp(transaction.amount.abs())}';
 
     return Padding(

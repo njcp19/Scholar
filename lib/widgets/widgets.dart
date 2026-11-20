@@ -16,6 +16,38 @@ import 'app_icons.dart';
 
 final _php = NumberFormat('#,##0.00', 'en_PH');
 String fmtPhp(double v) => _php.format(v.abs());
+const prototypeCashOutNotice =
+    'Prototype: this is not connected to a real bank or e-wallet. No real money moves.';
+const prototypeLinkedAccountNotice =
+    'Prototype: accounts are not verified and no real money is sent. Do not enter real account numbers; use test data.';
+
+class PrototypeNotice extends StatelessWidget {
+  final String message;
+
+  const PrototypeNotice({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6E3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3D9A0)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Color(0xFF4A3200),
+          fontSize: 12.5,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
 Future<Uint8List?> _loadProfileSelfie(String path) =>
     SelfieService().loadOwn(path);
 

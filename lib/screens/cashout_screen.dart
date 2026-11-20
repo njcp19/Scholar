@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -11,13 +10,13 @@ import '../providers/app_state.dart';
 import '../services/wallet_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import 'cashout_receipt_screen.dart';
 import '../widgets/success_animation.dart';
 import '../widgets/widgets.dart';
 import 'fingerprint_screen.dart';
 import 'linked_accounts_screen.dart';
 
 /// Scholar: Cash Out.
-/// The transfer is simulated: the balance is reduced and a reference is shown.
 class CashoutScreen extends StatefulWidget {
   const CashoutScreen({super.key});
 
@@ -36,7 +35,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
   String? _cashoutIdempotencyKey;
   int? _cashoutKeyAccountId;
   double? _cashoutKeyAmount;
-  Timer? _successAnimationTimer;
 
   @override
   void initState() {
@@ -47,7 +45,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
 
   @override
   void dispose() {
-    _successAnimationTimer?.cancel();
     _amount.removeListener(_invalidateCashoutKey);
     _amount.dispose();
     super.dispose();
@@ -77,24 +74,24 @@ class _CashoutScreenState extends State<CashoutScreen> {
     return _cashoutIdempotencyKey!;
   }
 
-  Future<void> _load() async {
+  Future<bool> _load({bool silent = false}) async {
     final state = context.read<AppState>();
     try {
       final user = state.user ?? await state.auth.currentAppUser();
       if (user == null) {
-        if (!mounted) return;
+        if (!mounted) return false;
         setState(() {
           _accounts = [];
           _history = [];
           _selected = null;
         });
-        return;
+        return false;
       }
       state.user = user;
       await state.refreshBalance();
       final accounts = await state.wallet.getLinkedAccounts(user.id);
       final history = await state.wallet.getMyWithdrawals(user.id);
-      if (!mounted) return;
+      if (!mounted) return false;
       final selectedAccount = _selected != null &&
               accounts.any((account) => account.id == _selected)
           ? _selected
@@ -105,10 +102,12 @@ class _CashoutScreenState extends State<CashoutScreen> {
         _history = history;
         _selected = selectedAccount;
       });
+      return true;
     } catch (_) {
-      if (mounted) {
+      if (mounted && !silent) {
         showMsg(context, 'Could not load Cash Out details.', error: true);
       }
+      return false;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -201,15 +200,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
               'Name: ${acc.accountName}',
               style: TextStyle(color: context.colors.textBody),
             ),
-            const SizedBox(height: 14),
-            InfoBanner(
-              icon: AppIcons.demo,
-              message:
-                  'Demo mode: The amount is deducted from your balance, but no real money is sent to the account.',
-              emphasizedPrefix: 'Demo mode:',
-              backgroundColor: context.colors.warningBg,
-              iconColor: context.colors.warningText,
-            ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -263,14 +253,21 @@ class _CashoutScreenState extends State<CashoutScreen> {
       );
       _invalidateCashoutKey();
       _amount.clear();
-      await _load();
+      final historyLoaded = await _load(silent: true);
       if (mounted) {
-        _successAnimationTimer?.cancel();
         setState(() => _showSuccessAnimation = true);
-        _successAnimationTimer = Timer(const Duration(seconds: 2), () {
-          if (mounted) setState(() => _showSuccessAnimation = false);
-        });
-        showMsg(context, 'Demo Cash Out completed. No real money was sent.');
+        showMsg(context, 'Cash Out completed.');
+      }
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      setState(() => _showSuccessAnimation = false);
+      if (historyLoaded && _history.isNotEmpty) {
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CashoutReceiptScreen(withdrawal: _history.first),
+          ),
+        );
       }
     } on WalletException {
       if (mounted) {
@@ -792,6 +789,12 @@ class _CashoutScreenState extends State<CashoutScreen> {
         padding: const EdgeInsets.all(16),
         radius: 22,
         shadow: true,
+        onTap: () => Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CashoutReceiptScreen(withdrawal: withdrawal),
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -836,7 +839,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   if (withdrawal.reference.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      'Simulated reference: ${withdrawal.reference}',
+                      'Reference: ${withdrawal.reference}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -850,11 +853,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      StatusChip(
-                        'Simulated',
-                        color: context.colors.brand,
-                        bg: context.colors.brandTint,
-                      ),
                       StatusChip(
                         statusLabel,
                         color: statusColor,
@@ -987,14 +985,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   else ...[
                     _balanceHero(state.balance),
                     const SizedBox(height: 16),
-                    InfoBanner(
-                      icon: AppIcons.demo,
-                      message:
-                          'Demo mode: Cash Out is a simulation. No real money is sent to GCash, Maya or a bank.',
-                      emphasizedPrefix: 'Demo mode:',
-                      backgroundColor: context.colors.warningBg,
-                      iconColor: context.colors.warningText,
-                    ),
+                    const PrototypeNotice(message: prototypeCashOutNotice),
                     const SizedBox(height: 22),
                     SectionLabel(
                       'CASH OUT TO',

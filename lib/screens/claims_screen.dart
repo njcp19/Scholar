@@ -449,11 +449,6 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                   color: context.colors.warningText,
                   bg: context.colors.warningBg,
                 ),
-                StatusChip(
-                  'Demo data',
-                  color: context.colors.textBody,
-                  bg: context.colors.borderSoft,
-                ),
               ],
             ),
           ],
@@ -624,11 +619,6 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                     academicPeriod,
                     color: context.colors.textPrimary,
                     bg: context.colors.brandTint,
-                  ),
-                  StatusChip(
-                    'Demo data',
-                    color: context.colors.textBody,
-                    bg: context.colors.borderSoft,
                   ),
                 ],
               ),

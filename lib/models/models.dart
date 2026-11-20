@@ -450,6 +450,7 @@ class Withdrawal {
   final String accountName;
   final String accountNumber;
   final WithdrawalStatus status;
+  final bool simulated;
   final String reference;
   final String adminNote;
   final DateTime createdAt;
@@ -465,6 +466,7 @@ class Withdrawal {
     required this.accountName,
     required this.accountNumber,
     required this.status,
+    this.simulated = false,
     required this.reference,
     required this.adminNote,
     required this.createdAt,
@@ -484,6 +486,7 @@ class Withdrawal {
         accountNumber: (m['account_number'] ?? '') as String,
         status: WithdrawalStatus.values.firstWhere((s) => s.name == m['status'],
             orElse: () => WithdrawalStatus.pending),
+        simulated: m['simulated'] == true,
         reference: (m['reference'] ?? '') as String,
         adminNote: (m['admin_note'] ?? '') as String,
         createdAt: DateTime.parse(m['created_at'] as String).toLocal(),

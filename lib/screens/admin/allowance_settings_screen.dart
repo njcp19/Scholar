@@ -319,18 +319,6 @@ class _AllowanceSettingsScreenState extends State<AllowanceSettingsScreen> {
                         ),
                       ),
                     ),
-                    if (_expectedReleaseDate != null)
-                      StatusChip(
-                        'Demo data',
-                        color: colors.textBody,
-                        bg: colors.borderSoft,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 9,
-                          vertical: 3,
-                        ),
-                        fontSize: 10.5,
-                        letterSpacing: 0,
-                      ),
                   ],
                 ),
                 const SizedBox(height: 8),

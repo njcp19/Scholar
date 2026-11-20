@@ -8,6 +8,7 @@ import '../../services/wallet_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/widgets.dart';
+import 'fund_topup_receipt_screen.dart';
 
 class FundingAccountScreen extends StatefulWidget {
   const FundingAccountScreen({super.key});
@@ -21,6 +22,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
   FundSummary? _summary;
   List<FundEntry> _entries = [];
   bool _loading = true;
+  bool _refreshingTopUp = false;
   String? _error;
 
   @override
@@ -93,7 +95,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     final summary = _summary;
     if (account == null || summary == null) return;
 
-    final result = await showModalBottomSheet<bool>(
+    final amount = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -102,7 +104,72 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
       sheetAnimationStyle: _sheetAnimationStyle(context),
       builder: (_) => _TopUpFundSheet(account: account, summary: summary),
     );
-    if (result == true && mounted) await _load(showLoading: true);
+    if (amount == null || !mounted) return;
+
+    setState(() => _refreshingTopUp = true);
+    final receiptData = await _refreshTopUpData(amount, account.last4);
+    if (mounted) setState(() => _refreshingTopUp = false);
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => FundTopUpReceiptScreen(data: receiptData),
+      ),
+    );
+  }
+
+  Future<FundTopUpReceiptData> _refreshTopUpData(
+    double amount,
+    String accountLast4,
+  ) async {
+    final wallet = context.read<AppState>().wallet;
+    final accountFuture = wallet.getFundingAccount();
+    final summaryFuture = wallet.getFundSummary();
+    final activityFuture = wallet.getFundActivity();
+    FundingAccount? refreshedAccount;
+    FundSummary? refreshedSummary;
+    List<FundEntry>? refreshedActivity;
+
+    try {
+      refreshedAccount = await accountFuture;
+    } catch (_) {
+      debugPrint('Funding account refresh failed after successful top-up.');
+    }
+
+    try {
+      refreshedSummary = await summaryFuture;
+    } catch (_) {
+      debugPrint('Fund summary refresh failed after successful top-up.');
+    }
+
+    try {
+      refreshedActivity = await activityFuture;
+    } catch (_) {
+      debugPrint('Fund activity refresh failed after successful top-up.');
+    }
+
+    if (mounted) {
+      setState(() {
+        if (refreshedAccount != null) _account = refreshedAccount;
+        if (refreshedSummary != null) _summary = refreshedSummary;
+        if (refreshedActivity != null) _entries = refreshedActivity;
+      });
+    }
+
+    final topUps = refreshedActivity
+            ?.where((entry) => entry.kind == FundEntryKind.topup)
+            .toList() ??
+        [];
+    topUps.sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    final newestTopUp = topUps.isEmpty ? null : topUps.first;
+
+    return FundTopUpReceiptData(
+      amount: amount,
+      fundingAccountLast4: refreshedAccount?.last4 ?? accountLast4,
+      dateTime: newestTopUp?.createdAt ?? DateTime.now(),
+      entryNumber: newestTopUp?.id.toString(),
+      newAvailableFund: refreshedSummary?.available,
+    );
   }
 
   AnimationStyle _sheetAnimationStyle(BuildContext context) {
@@ -169,11 +236,16 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
                 child: PrimaryButton(
                   label: _account == null ? 'Link bank account' : 'Top up fund',
                   icon: _account == null ? AppIcons.link : AppIcons.plus,
+                  loading: _refreshingTopUp,
+                  loadingLabel: 'Updating fund',
                   minHeight: 56,
                   borderRadius: 18,
                   shadow: true,
-                  onPressed:
-                      _account == null ? _openLinkSheet : _openTopUpSheet,
+                  onPressed: _refreshingTopUp
+                      ? null
+                      : _account == null
+                          ? _openLinkSheet
+                          : _openTopUpSheet,
                 ),
               ),
             ),
@@ -421,22 +493,6 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.3,
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colors.onHeader.withValues(alpha: .2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'DEMO',
-                      style: TextStyle(
-                        color: colors.onHeader,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
                     ),
                   ),
                 ],
@@ -1050,10 +1106,12 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
         setState(() => _topUpError = 'Could not add funds. Please try again.');
       }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && !toppedUp) setState(() => _busy = false);
     }
 
-    if (toppedUp && mounted) Navigator.of(context).pop(true);
+    if (!toppedUp || !mounted) return;
+
+    if (mounted) Navigator.of(context).pop(amount);
   }
 
   @override
@@ -1089,7 +1147,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Add simulated funds to the payout balance',
+            'Add funds to the payout balance',
             style: TextStyle(color: colors.textBody, fontSize: 13),
           ),
         ],
@@ -1239,14 +1297,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
             ),
           ),
           const SizedBox(height: 12),
-          Text(
-            'Demo mode: top-up is a simulation. No real money moves from your bank.',
-            style: TextStyle(
-              color: colors.textBody,
-              fontSize: 12,
-              height: 1.4,
-            ),
-          ),
+          const PrototypeNotice(message: prototypeCashOutNotice),
           if (_topUpError != null) ...[
             const SizedBox(height: 12),
             InfoBanner(

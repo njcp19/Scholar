@@ -278,19 +278,6 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
                         ),
                         if (academicPeriod != null)
                           StatusChip(
-                            'Demo data',
-                            color: context.colors.textBody,
-                            bg: context.colors.filterCountBackground,
-                            borderRadius: 9,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            fontSize: 10,
-                            letterSpacing: 0,
-                          ),
-                        if (academicPeriod != null)
-                          StatusChip(
                             academicPeriod,
                             color: context.colors.brandTintText,
                             bg: context.colors.brandTint,

@@ -309,7 +309,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _loginCard(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       radius: 22,
       shadow: true,
       child: Column(

@@ -165,8 +165,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           showDragHandle: true,
           child: _pendingRegs.isEmpty
               ? AppCard(
-                  radius: 28,
-                  padding: const EdgeInsets.all(32),
+                  radius: 22,
+                  padding: const EdgeInsets.all(16),
                   backgroundColor: cardBackground,
                   borderColor: colors.borderSoft,
                   child: Column(
@@ -555,7 +555,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           Row(
@@ -716,7 +716,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _registrationsCard(BuildContext context) {
     return ListRowCard(
       minHeight: 88,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       radius: 22,
       shadow: true,
       backgroundColor: context.colors.warningBg,
@@ -853,7 +853,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required VoidCallback onTap,
   }) {
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.all(16),
       radius: 22,
       backgroundColor: context.colors.surface,
       borderColor: context.colors.borderSoft,

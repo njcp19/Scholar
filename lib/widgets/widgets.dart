@@ -1305,6 +1305,8 @@ class ConfirmDialog extends StatelessWidget {
   final String cancelLabel;
   final bool danger;
   final bool loading;
+  final String? titleDetail;
+  final double actionRadius;
   final IconData? icon;
   final String? errorMessage;
   final VoidCallback? onCancel;
@@ -1320,6 +1322,8 @@ class ConfirmDialog extends StatelessWidget {
     this.cancelLabel = 'Cancel',
     this.danger = false,
     this.loading = false,
+    this.titleDetail,
+    this.actionRadius = 18,
     this.icon,
     this.errorMessage,
     this.onCancel,
@@ -1335,6 +1339,8 @@ class ConfirmDialog extends StatelessWidget {
     required String confirmLabel,
     String cancelLabel = 'Cancel',
     bool danger = false,
+    String? titleDetail,
+    double actionRadius = 18,
     IconData? icon,
     List<ConfirmDialogRow>? rows,
     String? note,
@@ -1353,6 +1359,8 @@ class ConfirmDialog extends StatelessWidget {
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
         danger: danger,
+        titleDetail: titleDetail,
+        actionRadius: actionRadius,
         icon: icon,
         rows: rows,
         note: note,
@@ -1393,10 +1401,47 @@ class ConfirmDialog extends StatelessWidget {
               icon,
               color: danger ? context.colors.dangerText : context.colors.brand,
             ),
-      title: Text(
-        title,
-        style: TextStyle(color: context.colors.textPrimary),
-      ),
+      title: titleDetail == null
+          ? Text(
+              title,
+              style: TextStyle(color: context.colors.textPrimary),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(color: context.colors.textPrimary),
+                ),
+                if (titleDetail!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.colors.brandTint,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        titleDetail!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.colors.brand,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
       content: Text(
         message,
         style: TextStyle(color: context.colors.textBody),
@@ -1409,7 +1454,7 @@ class ConfirmDialog extends StatelessWidget {
           style: TextButton.styleFrom(
             minimumSize: const Size(64, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(actionRadius),
             ),
           ),
           child: Text(cancelLabel),
@@ -1424,7 +1469,7 @@ class ConfirmDialog extends StatelessWidget {
             foregroundColor: context.colors.onHeader,
             minimumSize: const Size(64, 52),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(actionRadius),
             ),
           ),
           child: loading

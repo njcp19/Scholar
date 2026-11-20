@@ -8,6 +8,52 @@ import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
 import '../selfie_flow_screen.dart';
 
+Future<bool?> showRegistrationDecisionDialog(
+  BuildContext context, {
+  required VerificationStatus status,
+  required String scholarName,
+  bool askForNewSelfie = false,
+}) {
+  final (title, message, confirmLabel) = switch (status) {
+    VerificationStatus.approved => (
+        'Approve this scholar?',
+        'They will be able to receive allowances once their account is active.',
+        'Approve',
+      ),
+    VerificationStatus.underReview => (
+        'Mark as under review?',
+        'The scholar stays pending while you check the details.',
+        'Mark under review',
+      ),
+    VerificationStatus.needsInfo => (
+        'Request more information?',
+        'Your review note will be shown to the scholar.'
+            '${askForNewSelfie ? '\nThe scholar will also be asked for a new selfie.' : ''}',
+        'Send request',
+      ),
+    VerificationStatus.rejected => (
+        'Reject this registration?',
+        'Your review note will be shown to the scholar.',
+        'Reject',
+      ),
+    VerificationStatus.pending => throw ArgumentError.value(
+        status,
+        'status',
+        'A review decision is required.',
+      ),
+  };
+
+  return ConfirmDialog.show(
+    context,
+    title: title,
+    titleDetail: scholarName,
+    message: message,
+    confirmLabel: confirmLabel,
+    danger: status == VerificationStatus.rejected,
+    actionRadius: 16,
+  );
+}
+
 class RegistrationReviewScreen extends StatefulWidget {
   const RegistrationReviewScreen({super.key});
   @override
@@ -268,7 +314,7 @@ class _RegistrationRow extends StatelessWidget {
     return ListRowCard(
       onTap: onTap,
       radius: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(16),
       shadow: true,
       child: Row(
         children: [
@@ -377,13 +423,12 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
           error: true);
       return;
     }
-    final confirm = await ConfirmDialog.show(
+    final confirm = await showRegistrationDecisionDialog(
       context,
-      title: _statusLabel(status),
-      message:
-          '${widget.user.fullName}\n\n${status == VerificationStatus.approved ? "Approve this verified registration and enable payout access" : "Save this registration verification"}?',
-      confirmLabel: 'Save decision',
-      danger: status == VerificationStatus.rejected,
+      status: status,
+      scholarName: widget.user.fullName,
+      askForNewSelfie:
+          status == VerificationStatus.needsInfo && _askForNewSelfie,
     );
     if (confirm != true || !mounted) return;
     setState(() {
@@ -515,7 +560,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
           AppCard(
             radius: 22,
             shadow: true,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: FutureBuilder<String>(
               future: _selfieUrl,
               builder: (context, snapshot) {
@@ -648,7 +693,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
               AppCard(
                 radius: 22,
                 shadow: true,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     CircleAvatar(

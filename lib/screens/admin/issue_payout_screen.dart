@@ -530,7 +530,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     final scholarLabel =
         '$selectedCount ${selectedCount == 1 ? 'scholar' : 'scholars'} selected';
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(16),
       radius: 22,
       backgroundColor: colors.brandTint,
       borderColor: colors.brandTint,
@@ -566,7 +566,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Container(
@@ -1076,7 +1076,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       child: ListRowCard(
         onTap: () => setState(() => s.selected = !s.selected),
         minHeight: 68,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.all(16),
         radius: 22,
         backgroundColor: colors.surface,
         borderColor: s.selected ? colors.brand : colors.border,

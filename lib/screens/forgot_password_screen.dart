@@ -75,8 +75,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
 
     return AppCard(
-      padding: const EdgeInsets.all(22),
-      radius: 28,
+      padding: const EdgeInsets.all(16),
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -800,57 +800,64 @@ class _HomeScreenState extends State<HomeScreen> {
     return AppCard(
       radius: HomeActivityRow.recentActivityRadius,
       shadow: true,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: HomeActivityRow.recentActivityIconSize,
-            height: HomeActivityRow.recentActivityIconSize,
-            decoration: BoxDecoration(
-              color: context.colors.brandTint,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              AppIcons.calendar,
-              color: context.colors.brand,
-              size: 24,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: HomeActivityRow.recentActivityIconSize,
+                height: HomeActivityRow.recentActivityIconSize,
+                decoration: BoxDecoration(
+                  color: context.colors.brandTint,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  AppIcons.calendar,
+                  color: context.colors.brand,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'MONTHLY ALLOWANCE',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'No allowance yet',
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'MONTHLY ALLOWANCE',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: context.colors.textBody,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'No allowance yet',
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: HomeActivityRow.recentActivityTitleFontSize,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Your allowance will appear here once the administrator '
-                  'releases a payout.',
-                  style: TextStyle(
-                    color: context.colors.textBody,
-                    fontSize: HomeActivityRow.recentActivityDetailFontSize,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            'Your allowance will appear here once the administrator '
+            'releases a payout.',
+            style: TextStyle(
+              color: context.colors.textBody,
+              fontSize: HomeActivityRow.recentActivityDetailFontSize,
             ),
           ),
         ],

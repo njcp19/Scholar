@@ -123,7 +123,7 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
   Widget _programCard(ScholarshipCatalogItem program) {
     final saving = _savingIds.contains(program.id);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: EdgeInsets.zero,
       child: Row(
         children: [
           Expanded(
@@ -197,8 +197,8 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
     }
     if (_programs.isEmpty) {
       return AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 34),
-        radius: 28,
+        padding: const EdgeInsets.all(16),
+        radius: 22,
         borderColor: context.colors.borderSoft,
         child: Column(
           children: [
@@ -231,8 +231,8 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
         SectionLabel('SCHOLARSHIPS (${_programs.length})'),
         const SizedBox(height: 10),
         AppCard(
-          padding: EdgeInsets.zero,
-          radius: 28,
+          padding: const EdgeInsets.all(16),
+          radius: 22,
           shadow: true,
           child: Column(
             children: [

@@ -378,7 +378,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: AppCard(
         radius: 22,
         shadow: true,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -720,7 +720,7 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
       child: AppCard(
         onTap: _exporting ? null : () => setState(() => _format = format),
         radius: 22,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         backgroundColor:
             selected ? context.colors.brandTint : context.colors.surface,
         borderColor: selected ? context.colors.brand : context.colors.border,

@@ -418,7 +418,7 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
       child: AppCard(
         radius: 22,
         shadow: true,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

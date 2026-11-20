@@ -393,7 +393,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,

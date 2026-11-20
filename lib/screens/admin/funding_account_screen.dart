@@ -297,7 +297,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         AppCard(
           radius: 22,
           shadow: true,
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Container(
@@ -653,7 +653,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
         children: [
           for (var index = 0; index < displayable.length; index++) ...[
@@ -835,10 +835,9 @@ class _LinkFundingAccountSheetState extends State<_LinkFundingAccountSheet> {
       ? 'Enter the name registered on the account.'
       : null;
 
-  String? get _numberError =>
-      _digits.length < 8 || _digits.length > 20
-          ? 'Enter an account number with 8 to 20 digits.'
-          : null;
+  String? get _numberError => _digits.length < 8 || _digits.length > 20
+      ? 'Enter an account number with 8 to 20 digits.'
+      : null;
 
   bool get _isValid =>
       _bankError == null && _nameError == null && _numberError == null;
@@ -878,8 +877,8 @@ class _LinkFundingAccountSheetState extends State<_LinkFundingAccountSheet> {
       linked = true;
     } on WalletException {
       if (mounted) {
-        setState(
-            () => _saveError = 'Could not link the funding account. Try again.');
+        setState(() =>
+            _saveError = 'Could not link the funding account. Try again.');
       }
     } finally {
       if (mounted) {
@@ -1107,7 +1106,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           const SizedBox(height: 8),
           AppCard(
             radius: 22,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
@@ -1212,7 +1211,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           const SizedBox(height: 14),
           AppCard(
             radius: 22,
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Expanded(

@@ -460,8 +460,8 @@ class _SignupScreenState extends State<SignupScreen> {
   Widget _academicCard(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.all(24),
-      radius: 28,
+      padding: const EdgeInsets.all(16),
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -721,8 +721,8 @@ class _SignupScreenState extends State<SignupScreen> {
             ? 'Passwords do not match.'
             : null);
     return AppCard(
-      padding: const EdgeInsets.all(24),
-      radius: 28,
+      padding: const EdgeInsets.all(16),
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

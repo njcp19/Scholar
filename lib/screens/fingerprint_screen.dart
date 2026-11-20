@@ -357,7 +357,7 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
 
     return AppCard(
       radius: 22,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Wrap(
         spacing: 8,
         runSpacing: 8,

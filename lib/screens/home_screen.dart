@@ -662,6 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
             AppHeader(
               name: user?.fullName ?? 'Scholar',
               initials: user?.initials ?? '?',
+              profileUser: user,
               subtitle: user?.studentNumber?.isNotEmpty == true
                   ? 'ID: ${user!.studentNumber}'
                   : '',

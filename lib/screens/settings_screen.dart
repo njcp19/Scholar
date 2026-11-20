@@ -228,30 +228,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
-                      child: Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          color: context.colors.avatarBackground,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: foreground.withValues(alpha: .65),
-                            width: 3,
-                          ),
-                        ),
-                        alignment: Alignment.center,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            user?.initials ?? '?',
-                            style: TextStyle(
-                              color: context.colors.onGold,
-                              fontSize: 25,
-                              fontWeight: FontWeight.w800,
+                      child: isAdmin
+                          ? Container(
+                              width: 68,
+                              height: 68,
+                              decoration: BoxDecoration(
+                                color: context.colors.avatarBackground,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: foreground.withValues(alpha: .65),
+                                  width: 3,
+                                ),
+                              ),
+                              alignment: Alignment.center,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  user?.initials ?? '?',
+                                  style: TextStyle(
+                                    color: context.colors.onGold,
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            )
+                          : ProfileAvatar(
+                              user: user,
+                              size: 68,
+                              backgroundColor: context.colors.avatarBackground,
+                              initialsColor: context.colors.onGold,
+                              initialsFontSize: 25,
+                              initialsFontWeight: FontWeight.w800,
+                              borderColor: foreground.withValues(alpha: .65),
+                              borderWidth: 3,
                             ),
-                          ),
-                        ),
-                      ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(

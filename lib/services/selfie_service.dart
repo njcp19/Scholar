@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SelfieService {
+  static const _maxCachedSelfies = 3;
+  static final Map<String, Uint8List> _ownCache = {};
+
   Future<XFile?> pick() => ImagePicker().pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: CameraDevice.front,
@@ -12,6 +16,23 @@ class SelfieService {
         maxHeight: 1024,
         imageQuality: 80,
       );
+
+  Future<Uint8List?> loadOwn(String path) async {
+    final cached = _ownCache[path];
+    if (cached != null) return cached;
+
+    try {
+      final bytes =
+          await Supabase.instance.client.storage.from('selfies').download(path);
+      _ownCache[path] = bytes;
+      if (_ownCache.length > _maxCachedSelfies) {
+        _ownCache.remove(_ownCache.keys.first);
+      }
+      return bytes;
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> upload(File file) async {
     final path =

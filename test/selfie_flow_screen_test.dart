@@ -51,6 +51,12 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.light,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.3),
+            ),
+            child: child!,
+          ),
           home: SelfieIntroScreen(onSubmitted: () async {}),
         ),
       );
@@ -79,6 +85,12 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.light,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: const TextScaler.linear(1.3),
+          ),
+          child: child!,
+        ),
         home: SelfieReviewScreen(photo: File('missing-selfie-preview.jpg')),
       ),
     );
@@ -88,7 +100,7 @@ void main() {
     await tester.scrollUntilVisible(find.text('Submit selfie'), 160);
     expect(
       find.text(
-        'You can submit your selfie only once. If it is not clear, retake it now.',
+        'Used to verify your registration and shown as your profile picture. Only you and an administrator can see it. You can submit your selfie once. If it is not clear, retake it now.',
       ),
       findsOneWidget,
     );

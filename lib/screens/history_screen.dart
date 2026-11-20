@@ -598,9 +598,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   Expanded(child: _filterChip('All', _Filter.all)),
                   const SizedBox(width: 10),
-                  Expanded(child: _filterChip('Credits', _Filter.credit)),
+                  Expanded(child: _filterChip('Received', _Filter.credit)),
                   const SizedBox(width: 10),
-                  Expanded(child: _filterChip('Debits', _Filter.debit)),
+                  Expanded(child: _filterChip('Cashed out', _Filter.debit)),
                 ],
               ),
             ),

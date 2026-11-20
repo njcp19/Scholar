@@ -145,7 +145,7 @@ class _SelfieIntroScreenState extends State<SelfieIntroScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Used only for Registration Verification. Only administrators can view your selfie.',
+                      'Used to verify your registration and shown as your profile picture. Only you and an administrator can see it.',
                       style: TextStyle(
                         color: colors.brandTintText,
                         fontSize: 14,
@@ -320,7 +320,7 @@ class _SelfieReviewScreenState extends State<SelfieReviewScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'You can submit your selfie only once. If it is not clear, retake it now.',
+                      'Used to verify your registration and shown as your profile picture. Only you and an administrator can see it. You can submit your selfie once. If it is not clear, retake it now.',
                       style: TextStyle(
                         color: colors.goldTintText,
                         fontSize: 14,

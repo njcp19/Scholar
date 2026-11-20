@@ -11,10 +11,13 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../providers/app_state.dart';
+import '../services/selfie_service.dart';
 import 'app_icons.dart';
 
 final _php = NumberFormat('#,##0.00', 'en_PH');
 String fmtPhp(double v) => _php.format(v.abs());
+Future<Uint8List?> _loadProfileSelfie(String path) =>
+    SelfieService().loadOwn(path);
 
 class AppSkeletonizer extends StatelessWidget {
   final bool enabled;
@@ -1883,9 +1886,127 @@ class AppBottomSheet extends StatelessWidget {
   }
 }
 
+class ProfileAvatar extends StatefulWidget {
+  final AppUser? user;
+  final double size;
+  final Future<Uint8List?> Function(String path) loadImage;
+  final Color? backgroundColor;
+  final Color? initialsColor;
+  final double initialsFontSize;
+  final FontWeight initialsFontWeight;
+  final Color? borderColor;
+  final double borderWidth;
+
+  const ProfileAvatar({
+    super.key,
+    required this.user,
+    required this.size,
+    this.loadImage = _loadProfileSelfie,
+    this.backgroundColor,
+    this.initialsColor,
+    this.initialsFontSize = 14,
+    this.initialsFontWeight = FontWeight.w700,
+    this.borderColor,
+    this.borderWidth = 0,
+  });
+
+  @override
+  State<ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<ProfileAvatar> {
+  Future<Uint8List?>? _imageFuture;
+  String? _path;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateImageFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user?.selfiePath != widget.user?.selfiePath ||
+        oldWidget.loadImage != widget.loadImage) {
+      _updateImageFuture();
+    }
+  }
+
+  void _updateImageFuture() {
+    _path = widget.user?.selfiePath;
+    _imageFuture = _path?.isNotEmpty == true ? widget.loadImage(_path!) : null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = widget.backgroundColor ?? colors.avatarBackground;
+    final initialsColor =
+        widget.initialsColor ?? (isDark ? colors.textPrimary : colors.onGold);
+    final borderWidth = widget.borderWidth;
+
+    Widget initials() => Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              widget.user?.initials ?? '?',
+              style: TextStyle(
+                color: initialsColor,
+                fontSize: widget.initialsFontSize,
+                fontWeight: widget.initialsFontWeight,
+              ),
+            ),
+          ),
+        );
+
+    return Semantics(
+      label: 'Profile photo',
+      image: true,
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: Container(
+          padding: EdgeInsets.all(borderWidth),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            border: borderWidth > 0
+                ? Border.all(
+                    color: widget.borderColor ?? colors.border,
+                    width: borderWidth,
+                  )
+                : null,
+          ),
+          child: ClipOval(
+            child: SizedBox.expand(
+              child: _imageFuture == null
+                  ? initials()
+                  : FutureBuilder<Uint8List?>(
+                      future: _imageFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.done &&
+                            snapshot.data != null) {
+                          return Image.memory(
+                            snapshot.data!,
+                            fit: BoxFit.cover,
+                          );
+                        }
+                        return initials();
+                      },
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class AppHeader extends StatelessWidget {
   final String name;
   final String initials;
+  final AppUser? profileUser;
   final String subtitle;
   final int notificationCount;
   final VoidCallback onNotifications;
@@ -1906,6 +2027,7 @@ class AppHeader extends StatelessWidget {
     super.key,
     required this.name,
     required this.initials,
+    this.profileUser,
     required this.subtitle,
     required this.notificationCount,
     required this.onNotifications,
@@ -1936,18 +2058,24 @@ class AppHeader extends StatelessWidget {
         softBackground ? context.colors.textPrimary : context.colors.onHeader;
     final actionColor =
         softBackground ? context.colors.brand : context.colors.onHeader;
-    final avatar = CircleAvatar(
-      radius: (avatarSize - (avatarRingWidth * 2)) / 2,
-      backgroundColor: context.colors.avatarBackground,
-      child: Text(
-        initials,
-        style: TextStyle(
-          color: isDark ? context.colors.textPrimary : context.colors.onGold,
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-        ),
-      ),
-    );
+    final avatar = profileUser == null
+        ? CircleAvatar(
+            radius: (avatarSize - (avatarRingWidth * 2)) / 2,
+            backgroundColor: context.colors.avatarBackground,
+            child: Text(
+              initials,
+              style: TextStyle(
+                color:
+                    isDark ? context.colors.textPrimary : context.colors.onGold,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          )
+        : ProfileAvatar(
+            user: profileUser,
+            size: avatarSize - (avatarRingWidth * 2),
+          );
     final avatarWidget = avatarRingWidth > 0
         ? Container(
             width: avatarSize,

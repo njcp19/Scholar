@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/models.dart';
 import '../providers/app_state.dart';
@@ -11,6 +10,7 @@ import '../widgets/widgets.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/claims_monitor_screen.dart';
 import 'admin/manage_scholars_screen.dart';
+import 'admin/scholarship_programs_screen.dart';
 import 'claims_screen.dart';
 import 'fingerprint_screen.dart';
 import 'history_screen.dart';
@@ -26,27 +26,41 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static const _kRememberEmail = 'remember_email';
-
   Future<String?> _askPassword() {
     final controller = TextEditingController();
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+        ),
         title: const Text('Confirm password'),
         content: TextField(
           controller: controller,
           obscureText: true,
+          maxLines: 1,
           autofocus: true,
           decoration: const InputDecoration(hintText: 'Enter your password'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(64, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
+            style: TextButton.styleFrom(
+              minimumSize: const Size(64, 52),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
             child: const Text('Confirm'),
           ),
         ],
@@ -173,131 +187,167 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final gradient = isAdmin
         ? [context.colors.header, context.colors.heroGradientEnd]
         : [context.colors.balanceHeroStart, context.colors.balanceHeroEnd];
+    final hasStudentNumber =
+        !isAdmin && user?.studentNumber?.isNotEmpty == true;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: gradient,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: ProfileHeroMetrics.gradientBegin,
+          end: ProfileHeroMetrics.gradientEnd,
+          colors: gradient,
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -116,
-              right: -42,
-              child: _circle(foreground.withValues(alpha: .12), 230),
-            ),
-            Positioned(
-              bottom: -132,
-              right: -112,
-              child: _circle(foreground.withValues(alpha: .1), 250),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 84,
-                      height: 84,
-                      decoration: BoxDecoration(
-                        color: foreground.withValues(alpha: .2),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          color: context.colors.avatarBackground,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: foreground.withValues(alpha: .65),
-                            width: 3,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+      ),
+      child: CardDecorShapes(
+        color: foreground,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+        circleSize: 115,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    key: const ValueKey('profile_hero_avatar'),
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: foreground.withValues(alpha: .2),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: isAdmin
+                        ? Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: context.colors.avatarBackground,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: foreground.withValues(alpha: .65),
+                                width: 3,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                user?.initials ?? '?',
+                                style: TextStyle(
+                                  color: context.colors.onGold,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          )
+                        : ProfileAvatar(
+                            user: user,
+                            size: 52,
+                            backgroundColor: context.colors.avatarBackground,
+                            initialsColor: context.colors.onGold,
+                            initialsFontSize: 25,
+                            initialsFontWeight: FontWeight.w800,
+                            borderColor: foreground.withValues(alpha: .65),
+                            borderWidth: 3,
+                          ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.fullName ?? 'Scholar',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
-                        alignment: Alignment.center,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            user?.initials ?? '?',
-                            style: TextStyle(
-                              color: context.colors.onGold,
-                              fontSize: 25,
-                              fontWeight: FontWeight.w800,
-                            ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user?.email ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 13,
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (hasStudentNumber)
+                    Flexible(
+                      flex: 1,
+                      fit: FlexFit.loose,
+                      child: _heroChip(
+                        'ID: ${user!.studentNumber}',
+                        foreground,
+                        compact: true,
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.fullName ?? 'Scholar',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: foreground,
-                              fontSize: 21,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? '',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: foreground,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+                  if (hasStudentNumber) const SizedBox(width: 8),
+                  if (isAdmin)
+                    Flexible(
+                      child: _heroChip(
+                        'Administrator account',
+                        foreground,
+                        compact: true,
+                      ),
+                    )
+                  else if (hasStudentNumber)
+                    Flexible(
+                      flex: 2,
+                      fit: FlexFit.loose,
+                      child: _heroChip(
+                        'Scholar account',
+                        foreground,
+                        compact: true,
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: _heroChip(
+                        'Scholar account',
+                        foreground,
+                        compact: true,
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: isAdmin
-                      ? [
-                          _heroChip('Administrator account', foreground),
-                        ]
-                      : [
-                          if (user?.studentNumber?.isNotEmpty == true)
-                            _heroChip('ID: ${user!.studentNumber}', foreground),
-                          _heroChip('Scholar account', foreground),
-                        ],
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
-
-  Widget _heroChip(String label, Color foreground) {
+  Widget _heroChip(
+    String label,
+    Color foreground, {
+    bool compact = false,
+  }) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 13,
+        vertical: compact ? 5 : 8,
+      ),
       decoration: BoxDecoration(
         color: foreground.withValues(alpha: .16),
         borderRadius: BorderRadius.circular(24),
@@ -333,8 +383,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool isAdmin,
   }) {
     final enabled = state.fingerprintRegistered;
-    final biometricLabel =
-        enabled ? 'Device biometrics enabled' : 'Enable device biometrics';
+    const biometricLabel = 'Device biometrics';
     final biometricSubtitle = enabled
         ? isAdmin
             ? 'Used to confirm disbursing and cancelling payouts'
@@ -395,13 +444,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       bg: context.colors.successBg,
                     )
                   else
-                    SizedBox(
-                      width: 74,
-                      child: PrimaryButton(
-                        label: 'Set up',
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 72),
+                      child: ElevatedButton(
                         onPressed: () => _openScreen(const FingerprintScreen()),
-                        minHeight: 40,
-                        borderRadius: 14,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(72, 48),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          backgroundColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? context.colors.header
+                                  : context.colors.brand,
+                          foregroundColor: context.colors.onHeader,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Set up',
+                          maxLines: 1,
+                          softWrap: false,
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                 ],
@@ -433,7 +498,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        'Sign in with your fingerprint',
+                        'Sign in with device biometrics',
                         style: TextStyle(
                           color: context.colors.textBody,
                           fontSize: 12,
@@ -463,7 +528,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _preferencesCard(AppState state) {
+  Widget _preferencesCard(AppState state, {required bool isAdmin}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final appearanceLabel = isDark ? 'Dark mode' : 'Light mode';
 
@@ -473,6 +538,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
+          if (isAdmin) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () => _openScreen(const ScholarshipProgramsScreen()),
+                child: Row(
+                  children: [
+                    _iconTile(
+                      AppIcons.award,
+                      context.colors.brandTint,
+                      context.colors.brand,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Scholarship Programs',
+                            style: TextStyle(
+                              color: context.colors.textPrimary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Manage options shown during Sign up',
+                            style: TextStyle(
+                              color: context.colors.textBody,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(
+                      AppIcons.chevronRight,
+                      color: context.colors.textBody,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Divider(height: 1, color: context.colors.borderSoft),
+          ],
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Row(
@@ -508,56 +621,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 _themeSegment(state, isDark),
               ],
-            ),
-          ),
-          Divider(height: 1, color: context.colors.borderSoft),
-          InkWell(
-            onTap: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.remove(_kRememberEmail);
-              if (mounted) showMsg(context, 'Saved email cleared.');
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Row(
-                children: [
-                  _iconTile(
-                    AppIcons.mail,
-                    context.colors.brandTint,
-                    context.colors.brand,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Forget saved email',
-                          style: TextStyle(
-                            color: context.colors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Clears the email prefilled on the login screen',
-                          style: TextStyle(
-                            color: context.colors.textBody,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    AppIcons.chevronRight,
-                    color: context.colors.textBody,
-                  ),
-                ],
-              ),
             ),
           ),
         ],
@@ -691,23 +754,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           child: Text(
                             'Profile',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: context.colors.textPrimary,
-                              fontSize: 32,
+                              fontSize: 26,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Flexible(
-                          child: _rolePill(
-                            label: roleLabel,
-                            color: roleColor,
-                            background: roleBackground,
-                            icon: isAdmin
-                                ? AppIcons.shieldCheck
-                                : isVerifiedScholar
-                                    ? AppIcons.check
-                                    : null,
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: _rolePill(
+                              label: roleLabel,
+                              color: roleColor,
+                              background: roleBackground,
+                              icon: isAdmin
+                                  ? AppIcons.shieldCheck
+                                  : isVerifiedScholar
+                                      ? AppIcons.check
+                                      : null,
+                            ),
                           ),
                         ),
                       ],
@@ -721,10 +790,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 24),
                     const SectionLabel('PREFERENCES'),
                     const SizedBox(height: 10),
-                    _preferencesCard(state),
+                    _preferencesCard(state, isAdmin: isAdmin),
                     const SizedBox(height: 20),
                     SizedBox(
-                      height: 56,
+                      height: 52,
                       child: OutlinedButton.icon(
                         onPressed: () => confirmLogout(context),
                         icon: Icon(AppIcons.logout,

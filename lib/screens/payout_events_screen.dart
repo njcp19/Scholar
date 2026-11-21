@@ -278,19 +278,6 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
                         ),
                         if (academicPeriod != null)
                           StatusChip(
-                            'Demo data',
-                            color: context.colors.textBody,
-                            bg: context.colors.filterCountBackground,
-                            borderRadius: 9,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            fontSize: 10,
-                            letterSpacing: 0,
-                          ),
-                        if (academicPeriod != null)
-                          StatusChip(
                             academicPeriod,
                             color: context.colors.brandTintText,
                             bg: context.colors.brandTint,
@@ -418,7 +405,7 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
       child: AppCard(
         radius: 22,
         shadow: true,
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -494,18 +481,21 @@ class _PayoutEventsScreenState extends State<PayoutEventsScreen> {
           : null,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        leadingWidth: 62,
-        leading: IconButton(
-          tooltip: 'Back',
-          onPressed: () => Navigator.maybePop(context),
-          style: IconButton.styleFrom(
-            fixedSize: const Size.square(42),
-            padding: EdgeInsets.zero,
-            backgroundColor: context.colors.surface,
-            side: BorderSide(color: context.colors.borderSoft),
-            shape: const CircleBorder(),
+        leadingWidth: 70,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 26),
+          child: IconButton(
+            tooltip: 'Back',
+            onPressed: () => Navigator.maybePop(context),
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(44),
+              padding: EdgeInsets.zero,
+              backgroundColor: context.colors.surface,
+              side: BorderSide(color: context.colors.borderSoft),
+              shape: const CircleBorder(),
+            ),
+            icon: const Icon(AppIcons.back),
           ),
-          icon: const Icon(AppIcons.back),
         ),
         centerTitle: true,
         titleSpacing: 0,

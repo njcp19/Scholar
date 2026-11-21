@@ -40,7 +40,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _error = null;
       _offline = false;
     } catch (e) {
-      _error = '$e';
+      _error = 'Could not load reports. Please try again.';
       _offline = isOfflineLoadError(e);
     }
     if (mounted) {
@@ -95,9 +95,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.only(left: 26),
           child: _roundAction(
             icon: AppIcons.back,
             tooltip: 'Back',
@@ -109,7 +109,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           'Disbursement Reports',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -292,7 +292,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         '${_batches.length} ${_batches.length == 1 ? 'batch' : 'batches'} recorded';
     return AppCard(
       radius: 28,
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.zero,
       shadow: true,
       clipBehavior: Clip.hardEdge,
       borderColor: Colors.transparent,
@@ -302,69 +302,50 @@ class _ReportsScreenState extends State<ReportsScreen> {
         end: Alignment.bottomRight,
         colors: [context.colors.header, context.colors.receiptHeroEnd],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -118,
-            right: -100,
-            child: _circle(context.colors.onHeader.withValues(alpha: .12), 230),
-          ),
-          Positioned(
-            bottom: -132,
-            left: -104,
-            child: _circle(context.colors.onHeader.withValues(alpha: .1), 250),
-          ),
-          Column(
+      child: CardDecorShapes(
+        color: context.colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 115,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'TOTAL DISBURSED (ALL BATCHES)',
-                style: TextStyle(
-                  color: muted,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.3,
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: context.colors.onHeader,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'PHP ',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        TextSpan(
-                          text: fmtPhp(_grandTotal),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            letterSpacing: -.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'TOTAL DISBURSED (ALL BATCHES)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(_grandTotal),
+                color: context.colors.onHeader,
+                letterSpacing: -.8,
+              ),
               const SizedBox(height: 8),
-              Text(
-                countLabel,
-                style: TextStyle(color: muted, fontSize: 12.5),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  countLabel,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: muted, fontSize: 12.5),
+                ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -378,7 +359,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       child: AppCard(
         radius: 22,
         shadow: true,
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -445,12 +426,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 }
 
 class _DisbursementBatch {
@@ -600,9 +575,10 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
       } else if (result.status == ShareResultStatus.success) {
         Navigator.of(context).pop();
       }
-    } catch (error) {
+    } catch (_) {
       if (mounted) {
-        showMsg(context, 'Could not export the report: $error', error: true);
+        showMsg(context, 'Could not export the report. Please try again.',
+            error: true);
       }
     } finally {
       if (mounted) setState(() => _exporting = false);
@@ -718,8 +694,8 @@ class _ExportReportSheetState extends State<_ExportReportSheet> {
       label: '$label, $description',
       child: AppCard(
         onTap: _exporting ? null : () => setState(() => _format = format),
-        radius: 18,
-        padding: const EdgeInsets.all(14),
+        radius: 22,
+        padding: const EdgeInsets.all(16),
         backgroundColor:
             selected ? context.colors.brandTint : context.colors.surface,
         borderColor: selected ? context.colors.brand : context.colors.border,

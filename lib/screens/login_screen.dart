@@ -147,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final colors = context.colors;
     OutlineInputBorder border(Color color, {double width = 1}) =>
         OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: color, width: width),
         );
 
@@ -155,13 +155,13 @@ class _LoginScreenState extends State<LoginScreen> {
       filled: true,
       fillColor: colors.background,
       hintText: hint,
-      hintStyle: TextStyle(fontSize: 14, color: colors.textBody),
+      hintStyle: TextStyle(fontSize: 14, color: colors.hint),
       prefixIcon: Icon(icon, size: 20, color: colors.textBody),
       prefixIconConstraints: const BoxConstraints(minWidth: 48),
       suffixIcon: suffix,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-      border: border(colors.borderSoft),
-      enabledBorder: border(colors.borderSoft),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: border(colors.border),
+      enabledBorder: border(colors.border),
       focusedBorder: border(colors.brand, width: 2),
     );
   }
@@ -171,43 +171,12 @@ class _LoginScreenState extends State<LoginScreen> {
         children: [
           Text(label, style: _fieldLabelStyle(context)),
           const SizedBox(height: 7),
-          ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 52),
+          SizedBox(
+            height: 50,
             child: input,
           ),
         ],
       );
-
-  Widget _heroPill(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-  }) {
-    final colors = context.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      decoration: BoxDecoration(
-        color: colors.onHeader.withValues(alpha: .14),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.onHeader.withValues(alpha: .12)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: colors.onHeader),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: colors.onHeader,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _hero(BuildContext context, double height, double topInset) {
     final colors = context.colors;
@@ -216,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
       width: double.infinity,
       child: ClipRRect(
         borderRadius: const BorderRadius.vertical(
-          bottom: Radius.circular(40),
+          bottom: Radius.circular(28),
         ),
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -228,122 +197,89 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: Stack(
             children: [
-              Positioned(
-                top: -72,
-                right: -54,
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.onHeader.withValues(alpha: .08),
-                  ),
+              CardDecorShapes(
+                color: colors.onHeader,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(28),
                 ),
-              ),
-              Positioned(
-                bottom: -96,
-                left: -76,
-                child: Container(
-                  width: 280,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.onHeader.withValues(alpha: .07),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 12),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(
-                            color: colors.onHeader,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    colors.textPrimary.withValues(alpha: .12),
-                                blurRadius: 18,
-                                offset: const Offset(0, 7),
-                              ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 54,
-                            height: 54,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              AppIcons.wallet,
-                              size: 40,
-                              color: colors.brand,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Scholar ',
-                                  style: TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    color: colors.onHeader,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Wallet',
-                                  style: TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    color: colors.accentGold,
-                                  ),
+                circleSize: 120,
+                blobSize: 125,
+                child: Positioned.fill(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 24),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: colors.onHeader,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      colors.textPrimary.withValues(alpha: .12),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 7),
                                 ),
                               ],
                             ),
-                            maxLines: 1,
-                            softWrap: false,
-                          ),
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          'Simplifying financial allowances and expense tracking for your scholar life.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.4,
-                            color: colors.onHeader.withValues(alpha: .88),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _heroPill(
-                              context,
-                              icon: AppIcons.qrCode,
-                              label: 'QR payouts',
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 54,
+                              height: 54,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
+                                AppIcons.wallet,
+                                size: 40,
+                                color: colors.brand,
+                              ),
                             ),
-                            _heroPill(
-                              context,
-                              icon: AppIcons.fingerprint,
-                              label: 'Biometrics secured',
+                          ),
+                          const SizedBox(height: 12),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Scholar ',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.onHeader,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: 'Wallet',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.accentGold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              maxLines: 1,
+                              softWrap: false,
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 7),
+                          Text(
+                            'Simplifying financial allowances and expense tracking for your scholar life.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: colors.onHeader.withValues(alpha: .88),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -358,8 +294,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _loginCard(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.all(24),
-      radius: 28,
+      padding: const EdgeInsets.all(16),
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,6 +319,7 @@ class _LoginScreenState extends State<LoginScreen> {
             'Email address',
             AppTextField(
               controller: _email,
+              maxLines: 1,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.next,
               style: TextStyle(fontSize: 14, color: colors.textPrimary),
@@ -400,6 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
             AppTextField(
               controller: _password,
               obscureText: _obscure,
+              maxLines: 1,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _login(),
               style: TextStyle(fontSize: 14, color: colors.textPrimary),
@@ -420,36 +358,38 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           const SizedBox(height: 10),
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 8,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: Checkbox(
-                      value: _remember,
-                      activeColor: colors.brand,
-                      checkColor: colors.onHeader,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(7),
+              Flexible(
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Checkbox(
+                        value: _remember,
+                        activeColor: colors.brand,
+                        checkColor: colors.onHeader,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(7),
+                        ),
+                        side: BorderSide(color: colors.border),
+                        onChanged: (value) =>
+                            setState(() => _remember = value ?? true),
                       ),
-                      side: BorderSide(color: colors.border),
-                      onChanged: (value) =>
-                          setState(() => _remember = value ?? true),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Remember me',
-                    style: TextStyle(fontSize: 13, color: colors.textBody),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Remember me',
+                        style: TextStyle(fontSize: 13, color: colors.textBody),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 12),
               InkWell(
                 onTap: _forgot,
                 child: Padding(
@@ -458,7 +398,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'Forgot password?',
                     style: TextStyle(
                       fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: colors.brand,
                     ),
                   ),
@@ -482,6 +422,7 @@ class _LoginScreenState extends State<LoginScreen> {
               label: 'Login',
               onPressed: _busy ? null : _login,
               loading: _busy,
+              backgroundColor: colors.brand,
               minHeight: 56,
               borderRadius: 18,
             ),
@@ -489,10 +430,11 @@ class _LoginScreenState extends State<LoginScreen> {
           if (_bioAvailable) ...[
             const SizedBox(height: 12),
             SecondaryButton(
-              label: 'Login with biometrics',
+              label: 'Sign in with biometrics',
               onPressed: _bioBusy ? null : _bioLogin,
               icon: AppIcons.fingerprint,
               iconColor: colors.brand,
+              foregroundColor: colors.brand,
               loading: _bioBusy,
               minHeight: 56,
               borderRadius: 18,

@@ -4,8 +4,10 @@ import 'package:provider/provider.dart';
 
 import '../../models/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/wallet_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/destructive_confirm_dialog.dart';
 import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 import '../fingerprint_screen.dart';
@@ -71,7 +73,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _error = '$error';
+        _error = 'Could not load Payouts. Please try again.';
         _offline = isOfflineLoadError(error);
         _hasLoaded = true;
       });
@@ -108,14 +110,15 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       DateTime.fromMillisecondsSinceEpoch(0);
 
   Future<void> _void(AllowanceClaim claim) async {
-    final confirmed = await ConfirmDialog.show(
+    final confirmed = await DestructiveConfirmDialog.show(
       context,
       title: 'Cancel this payout?',
       message: 'PHP ${fmtPhp(claim.amount)} reserved for '
           '${claim.scholarName} will be released. Their QR code will stop working.',
+      dismissLabel: 'Keep',
       confirmLabel: 'Cancel payout',
-      cancelLabel: 'Keep',
-      danger: true,
+      semanticsLabel: 'Cancel payout confirmation',
+      icon: AppIcons.cancel,
     );
     if (confirmed != true) return;
     if (!mounted) return;
@@ -148,8 +151,19 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       if (!mounted) return;
       showMsg(context, 'Payout cancelled.');
       _load();
-    } catch (error) {
-      if (mounted) showMsg(context, 'Failed: $error', error: true);
+    } on ClaimNotPendingException {
+      if (!mounted) return;
+      showMsg(
+        context,
+        'This Payout is no longer waiting. Refresh the list and try again.',
+        error: true,
+      );
+      await _load();
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not cancel this Payout. Please try again.',
+            error: true);
+      }
     }
   }
 
@@ -196,7 +210,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                 icon: AppIcons.cancel,
                 danger: true,
                 minHeight: 52,
-                borderRadius: 16,
+                borderRadius: 18,
                 onPressed: () {
                   Navigator.pop(sheetContext);
                   _void(claim);
@@ -206,7 +220,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
               PrimaryButton(
                 label: 'Close',
                 minHeight: 52,
-                borderRadius: 16,
+                borderRadius: 18,
                 onPressed: () => Navigator.pop(sheetContext),
               ),
           ],
@@ -257,83 +271,54 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   }
 
   Widget _hero(int receivedCount, double totalPaid) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [context.colors.header, context.colors.heroGradientEnd],
-          ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [context.colors.header, context.colors.heroGradientEnd],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -118,
-              right: -42,
-              child:
-                  _circle(context.colors.onHeader.withValues(alpha: .12), 230),
-            ),
-            Positioned(
-              right: -116,
-              bottom: -132,
-              child:
-                  _circle(context.colors.onHeader.withValues(alpha: .1), 250),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TOTAL PAID OUT',
-                  style: TextStyle(
-                    color: context.colors.onHeader.withValues(alpha: .92),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: CardDecorShapes(
+        color: context.colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TOTAL PAID OUT',
+                style: TextStyle(
+                  color: context.colors.onHeader.withValues(alpha: .92),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
                 ),
+              ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(totalPaid),
+                color: context.colors.onHeader,
+              ),
+              if (receivedCount > 0) ...[
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.onHeader.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          color: context.colors.onHeader,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(fontSize: 24),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(totalPaid),
-                            style: const TextStyle(fontSize: 46),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
-                ),
-                if (receivedCount > 0) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.onHeader.withValues(alpha: .14),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
                     child: Wrap(
                       spacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
@@ -357,20 +342,14 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                       ],
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _statCard({
     required String label,
@@ -378,10 +357,11 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     required Color dotColor,
     required Color valueColor,
   }) {
+    final hasCurrencyPrefix = value.startsWith('PHP ');
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
@@ -412,21 +392,10 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: value.startsWith('PHP') ? 19 : 25,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          StatNumberText(
+            prefix: hasCurrencyPrefix ? 'PHP' : null,
+            value: hasCurrencyPrefix ? value.substring(4) : value,
+            color: context.colors.textPrimary,
           ),
         ],
       ),
@@ -519,7 +488,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
             width: 44,
@@ -610,43 +579,16 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
             ),
           ),
           const SizedBox(width: 6),
-          Column(
-            children: [
-              Material(
-                color: context.colors.brandTint,
-                borderRadius: BorderRadius.circular(14),
-                child: IconButton(
-                  onPressed: () => _showQr(claim),
-                  tooltip: 'View QR',
-                  constraints:
-                      const BoxConstraints.tightFor(width: 44, height: 44),
-                  padding: EdgeInsets.zero,
-                  icon: Icon(AppIcons.qrCode, color: context.colors.brand),
-                ),
-              ),
-              if (claim.isPending)
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: PopupMenuButton<String>(
-                    tooltip: 'Payout actions',
-                    padding: EdgeInsets.zero,
-                    constraints:
-                        const BoxConstraints.tightFor(width: 28, height: 28),
-                    iconSize: 18,
-                    onSelected: (action) {
-                      if (action == 'cancel') _void(claim);
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'cancel',
-                        child: Text('Cancel payout'),
-                      ),
-                    ],
-                    icon: Icon(AppIcons.menu, color: context.colors.textBody),
-                  ),
-                ),
-            ],
+          Material(
+            color: context.colors.brandTint,
+            borderRadius: BorderRadius.circular(14),
+            child: IconButton(
+              onPressed: () => _showQr(claim),
+              tooltip: 'View QR',
+              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+              padding: EdgeInsets.zero,
+              icon: Icon(AppIcons.qrCode, color: context.colors.brand),
+            ),
           ),
         ],
       ),
@@ -658,7 +600,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
       children: [
         const SkeletonCard(
-          radius: 26,
+          radius: 28,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -671,11 +613,11 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         const SizedBox(height: 16),
         const Row(
           children: [
-            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            Expanded(child: SkeletonBox(height: 72, radius: 22)),
             SizedBox(width: 10),
-            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            Expanded(child: SkeletonBox(height: 72, radius: 22)),
             SizedBox(width: 10),
-            Expanded(child: SkeletonBox(height: 72, radius: 20)),
+            Expanded(child: SkeletonBox(height: 72, radius: 22)),
           ],
         ),
         const SizedBox(height: 14),
@@ -761,7 +703,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -802,14 +744,15 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: !widget.embedded,
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: widget.embedded ? null : _roundBackButton(),
-        centerTitle: true,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
         title: Text(
           'Payout Monitor',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: widget.embedded ? 26 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -898,8 +841,8 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                   SearchField(
                     controller: _searchController,
                     hintText: 'Search scholar name',
-                    radius: 18,
-                    minHeight: 48,
+                    radius: 16,
+                    minHeight: 50,
                     onChanged: (value) => setState(() => _query = value),
                     suffixIcon: _query.isEmpty
                         ? null

@@ -11,10 +11,45 @@ import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 import '../theme/app_theme.dart';
 import '../models/models.dart';
 import '../providers/app_state.dart';
+import '../services/selfie_service.dart';
 import 'app_icons.dart';
 
 final _php = NumberFormat('#,##0.00', 'en_PH');
 String fmtPhp(double v) => _php.format(v.abs());
+const prototypeCashOutNotice =
+    'Prototype: this is not connected to a real bank or e-wallet. No real money moves.';
+const prototypeLinkedAccountNotice =
+    'Prototype: accounts are not verified and no real money is sent. Do not enter real account numbers; use test data.';
+
+class PrototypeNotice extends StatelessWidget {
+  final String message;
+
+  const PrototypeNotice({super.key, required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF6E3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFF3D9A0)),
+      ),
+      child: Text(
+        message,
+        style: const TextStyle(
+          color: Color(0xFF4A3200),
+          fontSize: 12.5,
+          height: 1.4,
+        ),
+      ),
+    );
+  }
+}
+
+Future<Uint8List?> _loadProfileSelfie(String path) =>
+    SelfieService().loadOwn(path);
 
 class AppSkeletonizer extends StatelessWidget {
   final bool enabled;
@@ -230,7 +265,7 @@ class HomeLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListView(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           const Row(
             children: [
@@ -250,7 +285,7 @@ class HomeLoadingSkeleton extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          const SkeletonBox(height: 170, radius: 28),
+          const SkeletonBox(height: 120, radius: 22),
           const SizedBox(height: 16),
           const Row(
             children: [
@@ -500,7 +535,7 @@ class AppCard extends StatelessWidget {
     super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.radius = 16,
+    this.radius = 22,
     this.shadow = false,
     this.backgroundColor,
     this.gradient,
@@ -518,31 +553,13 @@ class AppCard extends StatelessWidget {
     final cardChild = heroCircles
         ? Stack(
             children: [
-              Positioned(
-                top: -105,
-                right: -78,
-                child: Container(
-                  width: 190,
-                  height: 190,
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .12),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              CardDecorShapes(
+                color: context.colors.onHeader,
+                borderRadius: BorderRadius.circular(radius),
+                circleSize: 95,
+                blobSize: 105,
+                child: child,
               ),
-              Positioned(
-                bottom: -116,
-                left: -92,
-                child: Container(
-                  width: 210,
-                  height: 210,
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .1),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              child,
             ],
           )
         : child;
@@ -596,6 +613,202 @@ class AppCard extends StatelessWidget {
   }
 }
 
+class CardDecorShapes extends StatelessWidget {
+  final Widget child;
+  final Color color;
+  final BorderRadius borderRadius;
+  final double circleSize;
+  final double blobSize;
+  final double circleOpacity;
+  final double blobOpacity;
+
+  const CardDecorShapes({
+    super.key,
+    required this.child,
+    required this.color,
+    required this.borderRadius,
+    this.circleSize = 115,
+    this.blobSize = 125,
+    this.circleOpacity = .12,
+    this.blobOpacity = .1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned(
+            top: -circleSize * .4,
+            right: -circleSize * .4,
+            child: IgnorePointer(
+              child: Container(
+                width: circleSize,
+                height: circleSize,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: circleOpacity),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: -blobSize * .4,
+            bottom: -blobSize * .4,
+            child: IgnorePointer(
+              child: Container(
+                width: blobSize,
+                height: blobSize,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: blobOpacity),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class CardNumberStyles {
+  static const hero = TextStyle(
+    fontSize: 30,
+    fontWeight: FontWeight.w800,
+    height: 1.1,
+  );
+  static const heroPrefix = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+  );
+  static const stat = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w800,
+    height: 1.1,
+  );
+  static const statPrefix = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+  );
+}
+
+class HeroAmountText extends StatelessWidget {
+  final String amount;
+  final Color color;
+  final String? prefix;
+  final AlignmentGeometry alignment;
+  final String? semanticsLabel;
+  final double? letterSpacing;
+
+  const HeroAmountText({
+    super.key,
+    required this.amount,
+    required this.color,
+    this.prefix,
+    this.alignment = Alignment.centerLeft,
+    this.semanticsLabel,
+    this.letterSpacing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignment,
+        child: Semantics(
+          container: true,
+          label: semanticsLabel ??
+              (prefix == null ? amount : '${prefix!.trimRight()} $amount'),
+          excludeSemantics: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (prefix != null)
+                Text(
+                  prefix!.trimRight(),
+                  style: CardNumberStyles.heroPrefix.copyWith(
+                    color: color.withValues(alpha: .9),
+                  ),
+                ),
+              if (prefix != null) const SizedBox(width: 6),
+              Text(
+                amount,
+                style: CardNumberStyles.hero.copyWith(
+                  color: color,
+                  letterSpacing: letterSpacing,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class StatNumberText extends StatelessWidget {
+  final String value;
+  final Color color;
+  final String? prefix;
+  final AlignmentGeometry alignment;
+
+  const StatNumberText({
+    super.key,
+    required this.value,
+    required this.color,
+    this.prefix,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignment,
+        child: Semantics(
+          container: true,
+          label: prefix == null ? value : '${prefix!.trimRight()} $value',
+          excludeSemantics: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (prefix != null)
+                Text(
+                  prefix!.trimRight(),
+                  style: CardNumberStyles.statPrefix.copyWith(color: color),
+                ),
+              if (prefix != null) const SizedBox(width: 4),
+              Text(value, style: CardNumberStyles.stat.copyWith(color: color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileHeroMetrics {
+  static const height = 172.0;
+  static const radius = 28.0;
+  static const padding = 20.0;
+  static const gradientBegin = Alignment.topLeft;
+  static const gradientEnd = Alignment.bottomRight;
+}
+
 class ListRowCard extends StatelessWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -613,7 +826,7 @@ class ListRowCard extends StatelessWidget {
     this.onTap,
     this.minHeight = 76,
     this.padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-    this.radius = 16,
+    this.radius = 22,
     this.shadow = false,
     this.backgroundColor,
     this.borderColor,
@@ -688,25 +901,38 @@ class InfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final warningNote = backgroundColor == context.colors.warningBg;
+    final effectiveBorderColor =
+        borderColor ?? (warningNote ? context.colors.warningBorder : null);
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
         color: backgroundColor ?? context.colors.brandTint,
         borderRadius: BorderRadius.circular(borderRadius),
-        border: borderColor == null ? null : Border.all(color: borderColor!),
+        border: effectiveBorderColor == null
+            ? null
+            : Border.all(color: effectiveBorderColor),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           leading ??
-              Icon(icon, color: iconColor ?? context.colors.brand, size: 20),
+              Icon(
+                icon,
+                color: warningNote
+                    ? context.colors.goldTintText
+                    : iconColor ?? context.colors.brand,
+                size: 20,
+              ),
           SizedBox(width: leading == null ? 10 : 12),
           Expanded(
             child: Text.rich(
               TextSpan(
                 style: TextStyle(
-                  color: textColor ?? context.colors.textPrimary,
+                  color: warningNote
+                      ? context.colors.goldTintText
+                      : textColor ?? context.colors.textPrimary,
                   fontSize: fontSize,
                   height: textHeight,
                 ),
@@ -750,8 +976,8 @@ class SearchField extends StatelessWidget {
     required this.hintText,
     this.onChanged,
     this.suffixIcon,
-    this.radius = 14,
-    this.minHeight = 48,
+    this.radius = 16,
+    this.minHeight = 50,
     this.hintColor,
     this.iconColor,
     this.borderColor,
@@ -786,13 +1012,11 @@ class SearchField extends StatelessWidget {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
-            borderSide:
-                BorderSide(color: borderColor ?? context.colors.borderSoft),
+            borderSide: BorderSide(color: borderColor ?? context.colors.border),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
-            borderSide:
-                BorderSide(color: borderColor ?? context.colors.borderSoft),
+            borderSide: BorderSide(color: borderColor ?? context.colors.border),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(radius),
@@ -848,8 +1072,8 @@ class AppTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      minLines: minLines,
-      maxLines: maxLines,
+      minLines: obscureText ? null : minLines,
+      maxLines: obscureText ? 1 : maxLines,
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       textCapitalization: textCapitalization,
@@ -1178,6 +1402,8 @@ class ErrorCard extends StatelessWidget {
         radius: 28,
         padding: const EdgeInsets.fromLTRB(40, 24, 40, 24),
         shadow: true,
+        borderColor:
+            offline ? context.colors.borderSoft : context.colors.dangerBorder,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1231,6 +1457,7 @@ class ErrorCard extends StatelessWidget {
       );
     }
     return AppCard(
+      borderColor: context.colors.dangerBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1281,6 +1508,8 @@ class ConfirmDialog extends StatelessWidget {
   final String cancelLabel;
   final bool danger;
   final bool loading;
+  final String? titleDetail;
+  final double actionRadius;
   final IconData? icon;
   final String? errorMessage;
   final VoidCallback? onCancel;
@@ -1296,6 +1525,8 @@ class ConfirmDialog extends StatelessWidget {
     this.cancelLabel = 'Cancel',
     this.danger = false,
     this.loading = false,
+    this.titleDetail,
+    this.actionRadius = 18,
     this.icon,
     this.errorMessage,
     this.onCancel,
@@ -1311,6 +1542,8 @@ class ConfirmDialog extends StatelessWidget {
     required String confirmLabel,
     String cancelLabel = 'Cancel',
     bool danger = false,
+    String? titleDetail,
+    double actionRadius = 18,
     IconData? icon,
     List<ConfirmDialogRow>? rows,
     String? note,
@@ -1329,6 +1562,8 @@ class ConfirmDialog extends StatelessWidget {
         confirmLabel: confirmLabel,
         cancelLabel: cancelLabel,
         danger: danger,
+        titleDetail: titleDetail,
+        actionRadius: actionRadius,
         icon: icon,
         rows: rows,
         note: note,
@@ -1360,16 +1595,56 @@ class ConfirmDialog extends StatelessWidget {
 
     return AlertDialog(
       backgroundColor: context.colors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
       icon: icon == null
           ? null
           : Icon(
               icon,
               color: danger ? context.colors.dangerText : context.colors.brand,
             ),
-      title: Text(
-        title,
-        style: TextStyle(color: context.colors.textPrimary),
-      ),
+      title: titleDetail == null
+          ? Text(
+              title,
+              style: TextStyle(color: context.colors.textPrimary),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(color: context.colors.textPrimary),
+                ),
+                if (titleDetail!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 280),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: context.colors.brandTint,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        titleDetail!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.colors.brand,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
       content: Text(
         message,
         style: TextStyle(color: context.colors.textBody),
@@ -1379,6 +1654,12 @@ class ConfirmDialog extends StatelessWidget {
           onPressed: loading
               ? null
               : (onCancel ?? () => Navigator.pop(context, false)),
+          style: TextButton.styleFrom(
+            minimumSize: const Size(64, 52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(actionRadius),
+            ),
+          ),
           child: Text(cancelLabel),
         ),
         FilledButton(
@@ -1389,6 +1670,10 @@ class ConfirmDialog extends StatelessWidget {
             backgroundColor:
                 danger ? context.colors.danger : context.colors.brand,
             foregroundColor: context.colors.onHeader,
+            minimumSize: const Size(64, 52),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(actionRadius),
+            ),
           ),
           child: loading
               ? SizedBox(
@@ -1446,13 +1731,13 @@ class ConfirmDialog extends StatelessWidget {
                       color: colors.warningBg,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: colors.warning.withValues(alpha: .38),
+                        color: colors.warningBorder,
                       ),
                     ),
                     child: Text(
                       note!,
                       style: TextStyle(
-                        color: colors.warningText,
+                        color: colors.goldTintText,
                         fontSize: 12.5,
                         height: 1.5,
                       ),
@@ -1470,8 +1755,8 @@ class ConfirmDialog extends StatelessWidget {
                             ? null
                             : (onCancel ?? () => Navigator.pop(context, false)),
                         foregroundColor: colors.brand,
-                        minHeight: 50,
-                        borderRadius: 16,
+                        minHeight: 52,
+                        borderRadius: 18,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1483,8 +1768,8 @@ class ConfirmDialog extends StatelessWidget {
                             ? null
                             : (onConfirm ?? () => Navigator.pop(context, true)),
                         loading: loading,
-                        minHeight: 50,
-                        borderRadius: 16,
+                        minHeight: 52,
+                        borderRadius: 18,
                         shadow: true,
                       ),
                     ),
@@ -1733,7 +2018,7 @@ class AppBottomSheet extends StatelessWidget {
     required this.child,
     this.header,
     this.maxHeightFactor = .85,
-    this.radius = 26,
+    this.radius = 28,
     this.contentPadding = const EdgeInsets.fromLTRB(20, 12, 20, 20),
     this.showDragHandle = false,
     this.dragHandleSize = const Size(64, 6),
@@ -1801,9 +2086,127 @@ class AppBottomSheet extends StatelessWidget {
   }
 }
 
+class ProfileAvatar extends StatefulWidget {
+  final AppUser? user;
+  final double size;
+  final Future<Uint8List?> Function(String path) loadImage;
+  final Color? backgroundColor;
+  final Color? initialsColor;
+  final double initialsFontSize;
+  final FontWeight initialsFontWeight;
+  final Color? borderColor;
+  final double borderWidth;
+
+  const ProfileAvatar({
+    super.key,
+    required this.user,
+    required this.size,
+    this.loadImage = _loadProfileSelfie,
+    this.backgroundColor,
+    this.initialsColor,
+    this.initialsFontSize = 14,
+    this.initialsFontWeight = FontWeight.w700,
+    this.borderColor,
+    this.borderWidth = 0,
+  });
+
+  @override
+  State<ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<ProfileAvatar> {
+  Future<Uint8List?>? _imageFuture;
+  String? _path;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateImageFuture();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.user?.selfiePath != widget.user?.selfiePath ||
+        oldWidget.loadImage != widget.loadImage) {
+      _updateImageFuture();
+    }
+  }
+
+  void _updateImageFuture() {
+    _path = widget.user?.selfiePath;
+    _imageFuture = _path?.isNotEmpty == true ? widget.loadImage(_path!) : null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = widget.backgroundColor ?? colors.avatarBackground;
+    final initialsColor =
+        widget.initialsColor ?? (isDark ? colors.textPrimary : colors.onGold);
+    final borderWidth = widget.borderWidth;
+
+    Widget initials() => Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              widget.user?.initials ?? '?',
+              style: TextStyle(
+                color: initialsColor,
+                fontSize: widget.initialsFontSize,
+                fontWeight: widget.initialsFontWeight,
+              ),
+            ),
+          ),
+        );
+
+    return Semantics(
+      label: 'Profile photo',
+      image: true,
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: Container(
+          padding: EdgeInsets.all(borderWidth),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+            border: borderWidth > 0
+                ? Border.all(
+                    color: widget.borderColor ?? colors.border,
+                    width: borderWidth,
+                  )
+                : null,
+          ),
+          child: ClipOval(
+            child: SizedBox.expand(
+              child: _imageFuture == null
+                  ? initials()
+                  : FutureBuilder<Uint8List?>(
+                      future: _imageFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.done &&
+                            snapshot.data != null) {
+                          return Image.memory(
+                            snapshot.data!,
+                            fit: BoxFit.cover,
+                          );
+                        }
+                        return initials();
+                      },
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class AppHeader extends StatelessWidget {
   final String name;
   final String initials;
+  final AppUser? profileUser;
   final String subtitle;
   final int notificationCount;
   final VoidCallback onNotifications;
@@ -1824,6 +2227,7 @@ class AppHeader extends StatelessWidget {
     super.key,
     required this.name,
     required this.initials,
+    this.profileUser,
     required this.subtitle,
     required this.notificationCount,
     required this.onNotifications,
@@ -1854,18 +2258,24 @@ class AppHeader extends StatelessWidget {
         softBackground ? context.colors.textPrimary : context.colors.onHeader;
     final actionColor =
         softBackground ? context.colors.brand : context.colors.onHeader;
-    final avatar = CircleAvatar(
-      radius: (avatarSize - (avatarRingWidth * 2)) / 2,
-      backgroundColor: context.colors.avatarBackground,
-      child: Text(
-        initials,
-        style: TextStyle(
-          color: isDark ? context.colors.textPrimary : context.colors.onGold,
-          fontWeight: FontWeight.w700,
-          fontSize: 14,
-        ),
-      ),
-    );
+    final avatar = profileUser == null
+        ? CircleAvatar(
+            radius: (avatarSize - (avatarRingWidth * 2)) / 2,
+            backgroundColor: context.colors.avatarBackground,
+            child: Text(
+              initials,
+              style: TextStyle(
+                color:
+                    isDark ? context.colors.textPrimary : context.colors.onGold,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          )
+        : ProfileAvatar(
+            user: profileUser,
+            size: avatarSize - (avatarRingWidth * 2),
+          );
     final avatarWidget = avatarRingWidth > 0
         ? Container(
             width: avatarSize,
@@ -1951,69 +2361,59 @@ class AppHeader extends StatelessWidget {
                   ),
                   themeToggle,
                   const SizedBox(width: 8),
-                  Tooltip(
-                    message: 'Notifications',
-                    child: Container(
-                      width: roundActionButtons ? actionButtonSize : 48,
-                      height: roundActionButtons ? actionButtonSize : 48,
-                      decoration: softBackground || roundActionButtons
-                          ? BoxDecoration(
-                              color: context.colors.surface,
-                              shape: BoxShape.circle,
-                              border:
-                                  Border.all(color: context.colors.borderSoft),
-                            )
-                          : null,
-                      child: IconButton(
-                        onPressed: onNotifications,
-                        constraints: roundActionButtons
-                            ? BoxConstraints.tightFor(
-                                width: actionButtonSize,
-                                height: actionButtonSize,
+                  Semantics(
+                    label: 'Notifications, $notificationCount unread',
+                    child: Tooltip(
+                      message: 'Notifications',
+                      child: Container(
+                        width: roundActionButtons ? actionButtonSize : 48,
+                        height: roundActionButtons ? actionButtonSize : 48,
+                        decoration: softBackground || roundActionButtons
+                            ? BoxDecoration(
+                                color: context.colors.surface,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: context.colors.borderSoft,
+                                ),
                               )
                             : null,
-                        padding: roundActionButtons ? EdgeInsets.zero : null,
-                        icon: Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(
-                              AppIcons.bell,
-                              color: actionColor,
-                              size: 22,
-                            ),
-                            if (notificationCount > 0)
-                              Positioned(
-                                top: 3,
-                                right: 3,
-                                child: Container(
-                                  width: 18,
-                                  height: 18,
-                                  decoration: BoxDecoration(
-                                    color: context.colors.danger,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(2),
-                                      child: Text(
-                                        '$notificationCount',
-                                        maxLines: 1,
-                                        style: TextStyle(
-                                          color: softBackground
-                                              ? context.colors.onHeader
-                                              : context.colors.background,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                        child: IconButton(
+                          onPressed: onNotifications,
+                          constraints: roundActionButtons
+                              ? BoxConstraints.tightFor(
+                                  width: actionButtonSize,
+                                  height: actionButtonSize,
+                                )
+                              : null,
+                          padding: roundActionButtons ? EdgeInsets.zero : null,
+                          icon: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              Icon(
+                                AppIcons.bell,
+                                color: actionColor,
+                                size: 22,
+                              ),
+                              if (notificationCount > 0)
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFA52A2A),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 1.5,
                                       ),
                                     ),
                                   ),
                                 ),
-                              ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -2220,9 +2620,7 @@ class BalanceCard extends StatelessWidget {
     Future<void> copyBalance() async {
       await Clipboard.setData(ClipboardData(text: amount));
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Balance copied')),
-        );
+        showAppSnackBar(context, 'Balance copied.');
       }
     }
 
@@ -2260,18 +2658,10 @@ class BalanceCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            amount,
-            maxLines: 1,
-            style: TextStyle(
-              color: context.colors.textPrimary,
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+        StatNumberText(
+          prefix: 'PHP',
+          value: fmtPhp(balance),
+          color: context.colors.textPrimary,
         ),
         const SizedBox(height: 6),
         Row(
@@ -2330,7 +2720,6 @@ class MonthlyAllowanceCard extends StatelessWidget {
   final bool statusOnRight;
   final double radius;
   final double iconTileSize;
-  final double amountFontSize;
 
   const MonthlyAllowanceCard({
     super.key,
@@ -2348,7 +2737,6 @@ class MonthlyAllowanceCard extends StatelessWidget {
     this.statusOnRight = false,
     this.radius = 22,
     this.iconTileSize = 44,
-    this.amountFontSize = 32,
   });
 
   @override
@@ -2393,7 +2781,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: iconTileSize,
@@ -2406,35 +2794,50 @@ class MonthlyAllowanceCard extends StatelessWidget {
                 child: Icon(AppIcons.calendar,
                     color: context.colors.brand, size: 24),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'MONTHLY ALLOWANCE',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: context.colors.textBody,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                      ),
+              SizedBox(width: statusOnRight ? 10 : 12),
+              if (statusOnRight) ...[
+                Expanded(
+                  child: Text(
+                    'MONTHLY ALLOWANCE',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
                     ),
-                    const SizedBox(height: 2),
-                    if (statusOnRight)
+                  ),
+                ),
+                if (waiting || received || cancelled) ...[
+                  const SizedBox(width: 4),
+                  StatusChip(
+                    statusLabel,
+                    color: statusColor,
+                    bg: statusBackground,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 3,
+                    ),
+                  ),
+                ],
+              ] else
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        title,
-                        maxLines: 2,
+                        'MONTHLY ALLOWANCE',
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: context.colors.textPrimary,
-                          fontSize: 16,
+                          color: context.colors.textBody,
+                          fontSize: 11,
                           fontWeight: FontWeight.w800,
+                          letterSpacing: 1,
                         ),
-                      )
-                    else
+                      ),
+                      const SizedBox(height: 1),
                       Wrap(
                         spacing: 8,
                         runSpacing: 4,
@@ -2448,7 +2851,8 @@ class MonthlyAllowanceCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: context.colors.textPrimary,
-                                fontSize: 16,
+                                fontSize:
+                                    HomeActivityRow.recentActivityTitleFontSize,
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
@@ -2461,43 +2865,21 @@ class MonthlyAllowanceCard extends StatelessWidget {
                             ),
                         ],
                       ),
-                  ],
-                ),
-              ),
-              if (statusOnRight && (waiting || received || cancelled)) ...[
-                const SizedBox(width: 8),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 132),
-                  child: StatusChip(
-                    statusLabel,
-                    color: statusColor,
-                    bg: statusBackground,
+                    ],
                   ),
                 ),
-              ],
             ],
           ),
-          const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'PHP ${fmtPhp(amount)}',
-                maxLines: 1,
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: amountFontSize,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          const SizedBox(height: 4),
+          StatNumberText(
+            prefix: 'PHP',
+            value: fmtPhp(amount),
+            color: context.colors.textPrimary,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 4),
           if (received && (issuedDate != null || receivedDate != null)) ...[
             Divider(height: 1, color: context.colors.borderSoft),
-            const SizedBox(height: 12),
+            const SizedBox(height: 1),
             Row(
               children: [
                 if (issuedDate != null)
@@ -2508,7 +2890,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
                     ),
                   ),
                 if (issuedDate != null && receivedDate != null)
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                 if (receivedDate != null)
                   Expanded(
                     child: _AllowanceDateColumn(
@@ -2553,7 +2935,6 @@ class MonthlyAllowanceCard extends StatelessWidget {
             _AllowanceDateRow(
               label: 'Expected release',
               date: DateFormat('MMM d, yyyy').format(releaseDate),
-              demoData: true,
               trailing: releaseDate
                       .isBefore(DateTime(today.year, today.month, today.day))
                   ? StatusChip(
@@ -2562,7 +2943,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
                       bg: context.colors.warningBg,
                     )
                   : StatusChip(
-                      'in ${daysUntilRelease!} '
+                      'In ${daysUntilRelease!} '
                       '${daysUntilRelease == 1 ? 'day' : 'days'}',
                       color: daysUntilRelease <= 7
                           ? context.colors.warningText
@@ -2576,19 +2957,14 @@ class MonthlyAllowanceCard extends StatelessWidget {
           if (academicPeriod != null && academicPeriod!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Wrap(
-              spacing: 6,
-              runSpacing: 4,
+              spacing: 8,
+              runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 StatusChip(
                   academicPeriod!,
                   color: context.colors.textPrimary,
                   bg: context.colors.brandTint,
-                ),
-                StatusChip(
-                  'Demo data',
-                  color: context.colors.textBody,
-                  bg: context.colors.borderSoft,
                 ),
               ],
             ),
@@ -2631,13 +3007,11 @@ class _AllowanceDateColumn extends StatelessWidget {
 class _AllowanceDateRow extends StatelessWidget {
   final String label;
   final String? date;
-  final bool demoData;
   final Widget? trailing;
 
   const _AllowanceDateRow({
     required this.label,
     required this.date,
-    this.demoData = false,
     this.trailing,
   });
 
@@ -2646,8 +3020,8 @@ class _AllowanceDateRow extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Wrap(
-        spacing: 6,
-        runSpacing: 4,
+        spacing: 8,
+        runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           Text(
@@ -2665,12 +3039,6 @@ class _AllowanceDateRow extends StatelessWidget {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (demoData)
-            StatusChip(
-              'Demo data',
-              color: context.colors.textBody,
-              bg: context.colors.borderSoft,
-            ),
           if (trailing != null) trailing!,
         ],
       ),
@@ -2689,7 +3057,7 @@ class BiometricStatusCard extends StatelessWidget {
     super.key,
     required this.onTap,
     this.highlighted = false,
-    this.radius = 20,
+    this.radius = 22,
     this.iconTileSize = 44,
   });
 
@@ -2706,7 +3074,7 @@ class BiometricStatusCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
             color: highlighted
-                ? context.colors.warning.withValues(alpha: .38)
+                ? context.colors.warningBorder
                 : context.colors.borderSoft,
           ),
           boxShadow: [
@@ -2911,8 +3279,8 @@ class PrimaryButton extends StatelessWidget {
     this.foregroundColor,
     this.disabledBackgroundColor,
     this.disabledForegroundColor,
-    this.minHeight = 52,
-    this.borderRadius = 14,
+    this.minHeight = 56,
+    this.borderRadius = 18,
     this.shadow = false,
     this.iconSize = 24,
     this.iconSpacing = 8,
@@ -3041,7 +3409,7 @@ class SecondaryButton extends StatelessWidget {
     this.loading = false,
     this.danger = false,
     this.minHeight = 52,
-    this.borderRadius = 14,
+    this.borderRadius = 18,
   });
 
   @override
@@ -3332,6 +3700,15 @@ class TxTile extends StatelessWidget {
 }
 
 class HomeActivityRow extends StatelessWidget {
+  static const recentActivityRadius = 22.0;
+  static const recentActivityHorizontalPadding = 16.0;
+  static const recentActivityRowVerticalPadding = 14.0;
+  static const recentActivityIconSize = 48.0;
+  static const recentActivityTitleFontSize = 15.0;
+  static const recentActivityDetailFontSize = 12.0;
+  static const recentActivityValueFontSize = 15.0;
+  static const recentActivityBorderWidth = 1.0;
+
   final WalletTransaction transaction;
   final String friendlyDate;
   final String? statusLabel;
@@ -3358,7 +3735,9 @@ class HomeActivityRow extends StatelessWidget {
     final isCredit = transaction.type == TxType.credit;
     final row = Padding(
       padding: inCard
-          ? const EdgeInsets.symmetric(vertical: 14)
+          ? const EdgeInsets.symmetric(
+              vertical: recentActivityRowVerticalPadding,
+            )
           : const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Row(
         children: [
@@ -3401,7 +3780,7 @@ class HomeActivityRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textPrimary,
-                    fontSize: 15,
+                    fontSize: recentActivityTitleFontSize,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -3414,35 +3793,30 @@ class HomeActivityRow extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textBody,
-                    fontSize: 12,
+                    fontSize: recentActivityDetailFontSize,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerRight,
-              child: Text(
-                '${isCredit ? '+' : '-'}'
-                '${showCurrencyCode ? 'PHP ' : ''}'
-                '${fmtPhp(financialPresentation ? transaction.amount.abs() : transaction.amount)}',
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                  color: isCredit
-                      ? financialPresentation
-                          ? context.colors.successText
-                          : context.colors.success
-                      : financialPresentation
-                          ? context.colors.dangerText
-                          : context.colors.textPrimary,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+          Text(
+            '${isCredit ? '+' : '-'}'
+            '${showCurrencyCode ? 'PHP ' : ''}'
+            '${fmtPhp(financialPresentation ? transaction.amount.abs() : transaction.amount)}',
+            maxLines: 1,
+            softWrap: false,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              color: isCredit
+                  ? financialPresentation
+                      ? context.colors.successText
+                      : context.colors.success
+                  : financialPresentation
+                      ? context.colors.dangerText
+                      : context.colors.textPrimary,
+              fontSize: recentActivityValueFontSize,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -3671,13 +4045,94 @@ class ClaimQrPanel extends StatelessWidget {
   }
 }
 
-/// Snackbar helper.
-void showMsg(BuildContext context, String msg, {bool error = false}) {
-  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    content: Text(msg),
-    backgroundColor: error ? AppTheme.dangerRed : AppTheme.successGreen,
-    behavior: SnackBarBehavior.floating,
-  ));
+enum AppSnackBarType { success, error, info }
+
+ScaffoldMessengerState appSnackBarMessengerOf(BuildContext context) =>
+    ScaffoldMessenger.of(context);
+
+void showAppSnackBar(
+  BuildContext context,
+  String message, {
+  AppSnackBarType type = AppSnackBarType.success,
+  SnackBarAction? action,
+  ScaffoldMessengerState? messenger,
+}) {
+  final (backgroundColor, foregroundColor, borderColor, icon) = switch (type) {
+    AppSnackBarType.success => (
+        const Color(0xFFE5F8F0),
+        const Color(0xFF08734D),
+        null,
+        AppIcons.checkCircle,
+      ),
+    AppSnackBarType.error => (
+        const Color(0xFFFDECEC),
+        const Color(0xFFA52A2A),
+        const Color(0xFFF0B8B8),
+        AppIcons.error,
+      ),
+    AppSnackBarType.info => (
+        const Color(0xFFEAF2FE),
+        const Color(0xFF1E5AA8),
+        null,
+        AppIcons.info,
+      ),
+  };
+  final scaffoldMessenger = messenger ?? appSnackBarMessengerOf(context);
+  scaffoldMessenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(icon, size: 20, color: foregroundColor),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                message,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: foregroundColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        duration: const Duration(seconds: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: borderColor == null
+              ? BorderSide.none
+              : BorderSide(color: borderColor),
+        ),
+        clipBehavior: Clip.antiAlias,
+        action: action == null
+            ? null
+            : SnackBarAction(
+                label: action.label,
+                onPressed: action.onPressed,
+                textColor: foregroundColor,
+              ),
+      ),
+    );
+}
+
+void showMsg(
+  BuildContext context,
+  String msg, {
+  bool error = false,
+  AppSnackBarType? type,
+}) {
+  showAppSnackBar(
+    context,
+    msg,
+    type: type ?? (error ? AppSnackBarType.error : AppSnackBarType.success),
+  );
 }
 
 /// Shows a confirmation dialog before signing out.

@@ -1,10 +1,308 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/models.dart';
+import '../../services/selfie_service.dart';
 import '../../services/verification_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
+import '../selfie_flow_screen.dart';
+
+Future<bool?> showRegistrationDecisionDialog(
+  BuildContext context, {
+  required VerificationStatus status,
+  required String scholarName,
+  bool askForNewSelfie = false,
+}) {
+  final (
+    title,
+    message,
+    confirmLabel,
+    icon,
+    iconBackground,
+    iconForeground,
+    iconHalo,
+    confirmColor,
+  ) = switch (status) {
+    VerificationStatus.approved => (
+        'Approve this scholar?',
+        'They will be able to receive allowances once their account is active.',
+        'Approve',
+        AppIcons.check,
+        const Color(0xFFE5F8F0),
+        const Color(0xFF08734D),
+        const Color(0xFFF2FBF7),
+        const Color(0xFF1E5AA8),
+      ),
+    VerificationStatus.underReview => (
+        'Mark as under review?',
+        'The scholar stays pending while you check the details.',
+        'Mark under review',
+        AppIcons.eye,
+        const Color(0xFFEAF2FE),
+        const Color(0xFF1E5AA8),
+        const Color(0xFFF4F8FE),
+        const Color(0xFF1E5AA8),
+      ),
+    VerificationStatus.needsInfo => (
+        'Request more information?',
+        'Your review note will be shown to the scholar.',
+        'Send request',
+        AppIcons.error,
+        const Color(0xFFFFF6E3),
+        const Color(0xFF8A5A00),
+        const Color(0xFFFFFBF2),
+        const Color(0xFF1E5AA8),
+      ),
+    VerificationStatus.rejected => (
+        'Reject this registration?',
+        'Your review note will be shown to the scholar.',
+        'Reject',
+        AppIcons.cancel,
+        const Color(0xFFFDECEC),
+        const Color(0xFFB83232),
+        const Color(0xFFFFF4F4),
+        const Color(0xFFC41E1E),
+      ),
+    VerificationStatus.pending => throw ArgumentError.value(
+        status,
+        'status',
+        'A review decision is required.',
+      ),
+  };
+
+  return showDialog<bool>(
+    context: context,
+    builder: (_) => _RegistrationDecisionDialog(
+      title: title,
+      scholarName: scholarName,
+      message: message,
+      confirmLabel: confirmLabel,
+      icon: icon,
+      iconBackground: iconBackground,
+      iconForeground: iconForeground,
+      iconHalo: iconHalo,
+      confirmColor: confirmColor,
+      showSelfieInfo: status == VerificationStatus.needsInfo && askForNewSelfie,
+    ),
+  );
+}
+
+class _RegistrationDecisionDialog extends StatelessWidget {
+  final String title;
+  final String scholarName;
+  final String message;
+  final String confirmLabel;
+  final IconData icon;
+  final Color iconBackground;
+  final Color iconForeground;
+  final Color iconHalo;
+  final Color confirmColor;
+  final bool showSelfieInfo;
+
+  const _RegistrationDecisionDialog({
+    required this.title,
+    required this.scholarName,
+    required this.message,
+    required this.confirmLabel,
+    required this.icon,
+    required this.iconBackground,
+    required this.iconForeground,
+    required this.iconHalo,
+    required this.confirmColor,
+    required this.showSelfieInfo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const textColor = Color(0xFF1A2530);
+    final innerWidth = MediaQuery.sizeOf(context).width - 24 * 2 - 22 * 2;
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(22, 28, 22, 22),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: iconHalo,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: iconBackground,
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(icon, color: iconForeground, size: 28),
+                ),
+              ),
+            ),
+            const SizedBox(height: 22),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: textColor,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: innerWidth),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F7FA),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(
+                    scholarName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: textColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Color(0xFF4A5568),
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+            if (showSelfieInfo) ...[
+              const SizedBox(height: 14),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF2FE),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Text(
+                  'The scholar will also be asked for a new selfie.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Color(0xFF123F86),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  flex: 8,
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton(
+                      key: const ValueKey('decision-cancel'),
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: textColor,
+                        side: const BorderSide(
+                          color: Color(0xFFE3E8EF),
+                          width: 1,
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        maxLines: 1,
+                        softWrap: false,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  flex: 14,
+                  child: Container(
+                    height: 52,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: confirmColor.withValues(alpha: .3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 7),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      key: const ValueKey('decision-confirm'),
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: confirmColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        confirmLabel,
+                        maxLines: 1,
+                        softWrap: false,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class RegistrationReviewScreen extends StatefulWidget {
   const RegistrationReviewScreen({super.key});
@@ -227,18 +525,21 @@ AppBar _registrationAppBar(BuildContext context) => AppBar(
       elevation: 0,
       centerTitle: true,
       titleSpacing: 0,
-      leadingWidth: 62,
-      leading: IconButton(
-        tooltip: 'Back',
-        onPressed: () => Navigator.maybePop(context),
-        style: IconButton.styleFrom(
-          fixedSize: const Size.square(42),
-          padding: EdgeInsets.zero,
-          backgroundColor: context.colors.surface,
-          side: BorderSide(color: context.colors.borderSoft),
-          shape: const CircleBorder(),
+      leadingWidth: 70,
+      leading: Padding(
+        padding: const EdgeInsets.only(left: 26),
+        child: IconButton(
+          tooltip: 'Back',
+          onPressed: () => Navigator.maybePop(context),
+          style: IconButton.styleFrom(
+            fixedSize: const Size.square(44),
+            padding: EdgeInsets.zero,
+            backgroundColor: context.colors.surface,
+            side: BorderSide(color: context.colors.borderSoft),
+            shape: const CircleBorder(),
+          ),
+          icon: const Icon(AppIcons.back),
         ),
-        icon: const Icon(AppIcons.back),
       ),
       title: const Text(
         'Registration Verification',
@@ -263,7 +564,7 @@ class _RegistrationRow extends StatelessWidget {
     return ListRowCard(
       onTap: onTap,
       radius: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(16),
       shadow: true,
       child: Row(
         children: [
@@ -336,11 +637,38 @@ class _RegistrationDetail extends StatefulWidget {
   State<_RegistrationDetail> createState() => _RegistrationDetailState();
 }
 
+List<MapEntry<String, String>> registrationDetailRows(AppUser user) => [
+      MapEntry('Email', user.email),
+      MapEntry('Student number', user.studentNumber ?? '—'),
+      MapEntry('School', user.university ?? '—'),
+      MapEntry('Program', user.program ?? '—'),
+      MapEntry('Year', user.yearLevel ?? '—'),
+      if (user.birthdate != null)
+        MapEntry(
+          'Birthdate',
+          DateFormat('MMM d, yyyy').format(user.birthdate!),
+        ),
+      MapEntry('Declared scholar', user.declaredScholar ? 'Yes' : 'No'),
+      MapEntry(
+        'Scholarship',
+        user.scholarshipName.isEmpty ? 'Not provided' : user.scholarshipName,
+      ),
+      MapEntry(
+        'Award reference',
+        user.scholarshipReference.isEmpty
+            ? 'Not provided'
+            : user.scholarshipReference,
+      ),
+    ];
+
 class _RegistrationDetailState extends State<_RegistrationDetail> {
   final _notes = TextEditingController();
   final _service = VerificationService();
+  final _selfieService = SelfieService();
   late Future<List<Map<String, dynamic>>> _history;
+  Future<String>? _selfieUrl;
   bool _rosterChecked = false;
+  bool _askForNewSelfie = false;
   bool _busy = false;
   VerificationStatus? _busyStatus;
 
@@ -348,6 +676,10 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
   void initState() {
     super.initState();
     _history = _service.history(widget.user.id);
+    final path = widget.user.selfiePath;
+    if (path != null && path.isNotEmpty) {
+      _selfieUrl = _selfieService.signedUrl(path);
+    }
   }
 
   @override
@@ -365,13 +697,12 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
           error: true);
       return;
     }
-    final confirm = await ConfirmDialog.show(
+    final confirm = await showRegistrationDecisionDialog(
       context,
-      title: _statusLabel(status),
-      message:
-          '${widget.user.fullName}\n\n${status == VerificationStatus.approved ? "Approve this verified registration and enable payout access" : "Save this registration review"}?',
-      confirmLabel: 'Save decision',
-      danger: status == VerificationStatus.rejected,
+      status: status,
+      scholarName: widget.user.fullName,
+      askForNewSelfie:
+          status == VerificationStatus.needsInfo && _askForNewSelfie,
     );
     if (confirm != true || !mounted) return;
     setState(() {
@@ -380,15 +711,25 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
     });
     try {
       await _service.review(widget.user, status, _notes.text);
+      String? selfieRequestError;
+      if (status == VerificationStatus.needsInfo && _askForNewSelfie) {
+        try {
+          await _selfieService.requestRetake(widget.user.id);
+        } catch (error) {
+          selfieRequestError = selfieFriendlyErrorMessage(error);
+        }
+      }
       if (mounted) {
-        showMsg(context, 'Registration review recorded.');
+        showMsg(
+          context,
+          selfieRequestError ?? 'Registration verification recorded.',
+          error: selfieRequestError != null,
+        );
         Navigator.pop(context, true);
       }
-    } catch (e) {
+    } catch (error) {
       if (mounted) {
-        showMsg(context,
-            'Review was not saved. The status may have changed; reopen the registration and try again. ($e)',
-            error: true);
+        showMsg(context, selfieFriendlyErrorMessage(error), error: true);
       }
     } finally {
       if (mounted) {
@@ -456,30 +797,142 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
         : DateFormat('MMM d, yyyy • h:mm a').format(date.toLocal());
   }
 
+  void _viewSelfie(String signedUrl) {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelfieFullScreenViewer(signedUrl: signedUrl),
+      ),
+    );
+  }
+
+  Widget _selfieSection() {
+    final path = widget.user.selfiePath;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel(
+          'SELFIE',
+          labelColor: context.colors.textBody,
+          fontSize: 11.5,
+          letterSpacing: 1.2,
+        ),
+        const SizedBox(height: 8),
+        if (path == null || path.isEmpty)
+          AppCard(
+            radius: 22,
+            shadow: true,
+            child: Text(
+              'No selfie submitted yet',
+              style: TextStyle(
+                color: context.colors.textBody,
+                fontSize: 14,
+              ),
+            ),
+          )
+        else
+          AppCard(
+            radius: 22,
+            shadow: true,
+            padding: const EdgeInsets.all(16),
+            child: FutureBuilder<String>(
+              future: _selfieUrl,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState != ConnectionState.done) {
+                  return AppSkeletonizer(
+                    enabled: true,
+                    child: Container(
+                      height: 110,
+                      decoration: BoxDecoration(
+                        color: context.colors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  );
+                }
+                if (snapshot.hasError || snapshot.data == null) {
+                  return Text(
+                    'Could not load this selfie.',
+                    style: TextStyle(
+                      color: context.colors.dangerText,
+                      fontSize: 12,
+                    ),
+                  );
+                }
+                final signedUrl = snapshot.data!;
+                return Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        width: 88,
+                        height: 104,
+                        child: Image.network(
+                          signedUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color: context.colors.brandTint,
+                            child: Icon(
+                              AppIcons.image,
+                              color: context.colors.brand,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Submitted by the scholar',
+                            style: TextStyle(
+                              color: context.colors.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextButton.icon(
+                            onPressed: () => _viewSelfie(signedUrl),
+                            icon: Icon(
+                              AppIcons.image,
+                              size: 18,
+                              color: context.colors.brand,
+                            ),
+                            label: Text(
+                              'View full size',
+                              style: TextStyle(
+                                color: context.colors.brand,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.centerLeft,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final u = widget.user;
+    final hasSelfie = u.selfiePath?.isNotEmpty == true;
     final status = u.verificationStatus;
     final undecided = status != VerificationStatus.approved &&
         status != VerificationStatus.rejected;
-    final details = <MapEntry<String, String>>[
-      MapEntry('Email', u.email),
-      MapEntry('Student number', u.studentNumber ?? '—'),
-      MapEntry('School', u.university ?? '—'),
-      MapEntry('Program', u.program ?? '—'),
-      MapEntry('Year', u.yearLevel ?? '—'),
-      MapEntry('Declared scholar', u.declaredScholar ? 'Yes' : 'No'),
-      MapEntry(
-        'Scholarship',
-        u.scholarshipName.isEmpty ? 'Not provided' : u.scholarshipName,
-      ),
-      MapEntry(
-        'Award reference',
-        u.scholarshipReference.isEmpty
-            ? 'Not provided'
-            : u.scholarshipReference,
-      ),
-    ];
+    final details = registrationDetailRows(u);
     if (u.reviewNotes.isNotEmpty) {
       details.add(MapEntry('Previous feedback', u.reviewNotes));
     }
@@ -497,7 +950,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
               AppCard(
                 radius: 22,
                 shadow: true,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   children: [
                     CircleAvatar(
@@ -541,6 +994,8 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                   ],
                 ),
               ),
+              const SizedBox(height: 16),
+              _selfieSection(),
               const SizedBox(height: 16),
               SectionLabel(
                 'SCHOLAR DETAILS',
@@ -647,20 +1102,37 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                     alignLabelWithHint: true,
                     contentPadding: const EdgeInsets.all(14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.colors.border),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.colors.border),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(color: context.colors.brand),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: context.colors.brand,
+                  title: Text(
+                    'Ask for a new selfie',
+                    style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  value: _askForNewSelfie,
+                  onChanged: _busy || !hasSelfie
+                      ? null
+                      : (value) => setState(() => _askForNewSelfie = value),
+                ),
+                const SizedBox(height: 8),
                 PrimaryButton(
                   label: 'Approve verified scholar',
                   icon: AppIcons.shieldCheck,
@@ -670,11 +1142,22 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                   onPressed: !_busy &&
                           _rosterChecked &&
                           u.declaredScholar &&
-                          u.scholarshipName.isNotEmpty
+                          u.scholarshipName.isNotEmpty &&
+                          hasSelfie
                       ? () => _decide(VerificationStatus.approved)
                       : null,
                   loading: _busyStatus == VerificationStatus.approved,
                 ),
+                if (!hasSelfie) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'A selfie is required before approval.',
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 if (status == VerificationStatus.pending) ...[
                   SecondaryButton(

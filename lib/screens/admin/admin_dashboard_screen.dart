@@ -99,11 +99,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   void _notifyRegs(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
+    showAppSnackBar(
+      context,
+      msg,
+      type: AppSnackBarType.info,
       action: SnackBarAction(label: 'REVIEW', onPressed: _openRegistrations),
-      duration: const Duration(seconds: 8),
-    ));
+    );
   }
 
   Future<void> _openRegistrations() async {
@@ -159,13 +160,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ],
           ),
           maxHeightFactor: .8,
-          radius: 32,
-          contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+          radius: 28,
+          contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           showDragHandle: true,
           child: _pendingRegs.isEmpty
               ? AppCard(
-                  radius: 28,
-                  padding: const EdgeInsets.all(32),
+                  radius: 22,
+                  padding: const EdgeInsets.all(16),
                   backgroundColor: cardBackground,
                   borderColor: colors.borderSoft,
                   child: Column(
@@ -249,7 +250,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     const SizedBox(height: 16),
                     AppCard(
-                      radius: 24,
+                      radius: 22,
                       padding: EdgeInsets.zero,
                       backgroundColor: cardBackground,
                       borderColor: colors.borderSoft,
@@ -304,7 +305,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
-                                            const SizedBox(height: 4),
+                                            const SizedBox(height: 2),
                                             Text(
                                               '${_pendingRegs[index].studentNumber ?? '—'} · '
                                               '${_pendingRegs[index].university ?? '—'}',
@@ -481,7 +482,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _disbursementHero(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.zero,
       radius: 28,
       shadow: true,
       gradient: LinearGradient(
@@ -490,19 +491,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         colors: [colors.header, colors.heroGradientEnd],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -72,
-            right: -42,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .1), 200),
-          ),
-          Positioned(
-            bottom: -124,
-            right: -86,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .08), 260),
-          ),
-          Column(
+      child: CardDecorShapes(
+        color: colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 100,
+        blobSize: 130,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -514,19 +510,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   letterSpacing: 1,
                 ),
               ),
-              const SizedBox(height: 10),
-              Text(
-                'Release the allowance by QR',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.onHeader,
-                  fontSize: 28,
-                  height: 1.15,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 'Generate a payout batch and scholars scan their QR to receive it.',
                 style: TextStyle(
@@ -535,41 +519,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   height: 1.45,
                 ),
               ),
-              const SizedBox(height: 18),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 300),
-                  child: PrimaryButton(
-                    label: 'Start disbursement',
-                    onPressed: _openDisbursement,
-                    icon: AppIcons.send,
-                    backgroundColor: colors.onHeader,
-                    foregroundColor: colors.brand,
-                    minHeight: 52,
-                    borderRadius: 18,
-                  ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: PrimaryButton(
+                  label: 'Start disbursement',
+                  onPressed: _openDisbursement,
+                  icon: AppIcons.send,
+                  backgroundColor: colors.onHeader,
+                  foregroundColor: colors.brand,
+                  minHeight: 52,
+                  borderRadius: 18,
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _heroCircle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
-
   Widget _overviewCard(BuildContext context, double allowanceAmount) {
     final colors = context.colors;
     return AppCard(
-      radius: 24,
+      radius: 22,
       shadow: true,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       child: Column(
         children: [
           Row(
@@ -579,7 +554,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Standard allowance',
+                      'STANDARD ALLOWANCE',
                       style: TextStyle(
                         color: colors.textBody,
                         fontSize: 13,
@@ -587,19 +562,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'PHP ${fmtPhp(allowanceAmount)}',
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                    StatNumberText(
+                      prefix: 'PHP',
+                      value: fmtPhp(allowanceAmount),
+                      color: colors.textPrimary,
                     ),
                   ],
                 ),
@@ -689,17 +655,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+              StatNumberText(
+                value: value,
+                color: context.colors.textPrimary,
+                alignment: Alignment.center,
               ),
               const SizedBox(height: 2),
               Text(
@@ -730,11 +689,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _registrationsCard(BuildContext context) {
     return ListRowCard(
       minHeight: 88,
-      padding: const EdgeInsets.all(14),
-      radius: 20,
+      padding: const EdgeInsets.all(16),
+      radius: 22,
       shadow: true,
       backgroundColor: context.colors.warningBg,
-      borderColor: context.colors.warning.withValues(alpha: .38),
+      borderColor: context.colors.warningBorder,
       onTap: _openRegistrations,
       child: Row(
         children: [
@@ -789,65 +748,71 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _quickActionTiles(BuildContext context) {
-    return Column(
-      children: [
-        IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: _quickActionTile(
-                  context,
-                  icon: AppIcons.calendar,
-                  tileColor: context.colors.brandTint,
-                  iconColor: context.colors.brand,
-                  title: 'Payout Events',
-                  subtitle: 'Allowance batches',
-                  onTap: _openPayoutEvents,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.calendar,
+                    tileColor: context.colors.brandTint,
+                    iconColor: context.colors.brand,
+                    title: 'Payout Events',
+                    subtitle: 'Allowance batches',
+                    onTap: _openPayoutEvents,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _quickActionTile(
-                  context,
-                  icon: AppIcons.chart,
-                  tileColor: context.colors.successBg,
-                  iconColor: context.colors.successText,
-                  title: 'Reports',
-                  subtitle: 'Totals, history, exports',
-                  onTap: _openReports,
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.clock,
+                    tileColor: context.colors.brandTint,
+                    iconColor: context.colors.brand,
+                    title: 'Activity Log',
+                    subtitle: 'Read-only payout records',
+                    onTap: _openActivityLog,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 160,
-          child: _quickActionTile(
-            context,
-            icon: AppIcons.clock,
-            tileColor: context.colors.brandTint,
-            iconColor: context.colors.brand,
-            title: 'Activity Log',
-            subtitle: 'Read-only payout records',
-            onTap: _openActivityLog,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.chart,
+                    tileColor: context.colors.successBg,
+                    iconColor: context.colors.successText,
+                    title: 'Reports',
+                    subtitle: 'Totals, history, exports',
+                    onTap: _openReports,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: _quickActionTile(
+                    context,
+                    icon: AppIcons.bankAccount,
+                    tileColor: context.colors.warningBg,
+                    iconColor: context.colors.warningText,
+                    title: 'Funding account',
+                    subtitle: 'Available fund and activity',
+                    onTap: _openFundingAccount,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 160,
-          child: _quickActionTile(
-            context,
-            icon: AppIcons.bankAccount,
-            tileColor: context.colors.warningBg,
-            iconColor: context.colors.warningText,
-            title: 'Funding account',
-            subtitle: 'Available fund and activity',
-            onTap: _openFundingAccount,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -860,44 +825,46 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return ListRowCard(
-      minHeight: 160,
+    return AppCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
-      shadow: true,
+      radius: 22,
+      backgroundColor: context.colors.surface,
+      borderColor: context.colors.borderSoft,
+      borderWidth: 1,
+      shadow: false,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 46,
-            height: 46,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: tileColor,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(14),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, color: iconColor, size: 24),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
-          const Spacer(),
+          const SizedBox(height: 8),
           Text(
             title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: context.colors.textPrimary,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontSize: 14.5,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             subtitle,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: context.colors.textBody,
-              fontSize: 13,
+              fontSize: 12,
             ),
           ),
         ],
@@ -909,7 +876,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final batchClaims = _latestBatchClaims;
     if (batchClaims.isEmpty) {
       return AppCard(
-        radius: 21,
+        radius: 22,
         shadow: true,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -954,21 +921,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     final first = batchClaims.first;
     return AppCard(
-      radius: 21,
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            runSpacing: 6,
+          Row(
             children: [
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 280),
+              Expanded(
                 child: Text(
                   first.batchTitle,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textPrimary,
@@ -977,12 +940,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ),
               ),
-              if (status != null)
+              if (status != null) ...[
+                const SizedBox(width: 8),
                 StatusChip(
                   status.toUpperCase(),
                   color: statusColor!,
                   bg: statusBackground,
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 6),
@@ -1034,7 +999,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final payouts = _recentReceived;
     if (payouts.isEmpty) {
       return AppCard(
-        radius: 21,
+        radius: 22,
         shadow: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1063,7 +1028,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
     }
     return AppCard(
-      radius: 21,
+      radius: 22,
       shadow: true,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -1122,17 +1087,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const SizedBox(width: 8),
           Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
+            child: Align(
               alignment: Alignment.centerRight,
-              child: Text(
-                'PHP ${fmtPhp(claim.amount)}',
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                  color: context.colors.success,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  'PHP ${fmtPhp(claim.amount)}',
+                  maxLines: 1,
+                  softWrap: false,
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: context.colors.success,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ),

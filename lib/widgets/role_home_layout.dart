@@ -252,18 +252,9 @@ class RoleHomeLayout extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            heroValue,
-            maxLines: 1,
-            style: TextStyle(
-              color: primaryTextColor,
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+        HeroAmountText(
+          amount: heroValue,
+          color: primaryTextColor,
         ),
         const SizedBox(height: 6),
         Text(
@@ -280,31 +271,13 @@ class RoleHomeLayout extends StatelessWidget {
     final heroChild = heroCircles
         ? Stack(
             children: [
-              Positioned(
-                top: -96,
-                right: -66,
-                child: Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: colors.onHeader.withValues(alpha: .12),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              CardDecorShapes(
+                color: colors.onHeader,
+                borderRadius: BorderRadius.circular(heroRadius),
+                circleSize: 90,
+                blobSize: 100,
+                child: heroContent,
               ),
-              Positioned(
-                bottom: -108,
-                left: -84,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: colors.onHeader.withValues(alpha: .1),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              heroContent,
             ],
           )
         : heroContent;

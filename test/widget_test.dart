@@ -35,6 +35,9 @@ void main() {
     await tester.pump();
     final forgotScreenError = tester.takeException();
     expect(forgotScreenError, isNull, reason: '$forgotScreenError');
+    expect(find.text('Forgot password?'), findsOneWidget);
+    expect(find.text('Email address'), findsOneWidget);
+    expect(find.text('Send reset link'), findsOneWidget);
 
     await tester.pumpWidget(
       const SizedBox.shrink(),
@@ -45,11 +48,12 @@ void main() {
       appWith(const CheckEmailScreen(email: 'user@school.edu')),
     );
     await tester.pump();
-    expect(find.text('Resend link in 0:45'), findsOneWidget);
-    expect(find.text('us****@school.edu'), findsOneWidget);
+    expect(find.text('Resend in 0:30'), findsOneWidget);
+    expect(find.text('user@school.edu'), findsOneWidget);
+    expect(find.text('Open email app'), findsNothing);
     expect(tester.takeException(), isNull);
 
-    await tester.pump(const Duration(seconds: 45));
+    await tester.pump(const Duration(seconds: 30));
     expect(find.text('Resend link'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());

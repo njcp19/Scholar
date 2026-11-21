@@ -12,6 +12,11 @@ class WalletException implements Exception {
   String toString() => message;
 }
 
+class ClaimNotPendingException extends WalletException {
+  ClaimNotPendingException()
+      : super("This payout is no longer waiting and can't be cancelled.");
+}
+
 /// ALL money movement lives here.
 ///
 /// v2 rules (scholar wallet only):
@@ -123,6 +128,20 @@ class WalletService {
         throw WalletException(
             'Not enough funds for this payout. Top up the fund first.');
       }
+      if (e.message.contains('ADMIN_REQUIRED')) {
+        throw WalletException('Only an admin can issue payouts.');
+      }
+      if (e.message.contains('RECIPIENTS_REQUIRED')) {
+        throw WalletException('Select at least one scholar for the payout.');
+      }
+      if (e.message.contains('INVALID_ALLOWANCE')) {
+        throw WalletException(
+            'The standard allowance is invalid. Update it and try again.');
+      }
+      if (e.message.contains('SCHOLAR_NOT_VERIFIED')) {
+        throw WalletException(
+            'A selected scholar is no longer active and verified. Refresh the list and try again.');
+      }
       rethrow;
     }
     return (result as List)
@@ -205,11 +224,13 @@ class WalletService {
 
   /// Admin: cancel a claim that was never scanned.
   Future<void> voidClaim(String claimId) async {
-    await _db
+    final updated = await _db
         .from('allowance_claims')
         .update({'status': 'voided'})
         .eq('id', claimId)
-        .eq('status', 'issued');
+        .eq('status', 'issued')
+        .select('id');
+    if (updated.isEmpty) throw ClaimNotPendingException();
   }
 
   /// Read the claim behind a scanned token without redeeming it, so the
@@ -353,10 +374,15 @@ class WalletService {
 
   /// Simulated cash-out (mockup). Returns nothing; history shows the result.
   Future<void> requestWithdrawal(
-      {required int accountId, required double amount}) async {
+      {required int accountId,
+      required double amount,
+      required String idempotencyKey}) async {
     try {
-      await _db.rpc('request_withdrawal',
-          params: {'p_account_id': accountId, 'p_amount': amount});
+      await _db.rpc('request_withdrawal', params: {
+        'p_account_id': accountId,
+        'p_amount': amount,
+        'p_idempotency_key': idempotencyKey,
+      });
     } on PostgrestException catch (e) {
       throw WalletException(_friendlyCashout(e.message));
     }
@@ -389,6 +415,10 @@ class WalletService {
       'BELOW_MINIMUM': 'The amount is below the minimum cash-out.',
       'BAD_AMOUNT': 'Use at most 2 decimal places.',
       'INSUFFICIENT_BALANCE': 'Not enough balance for this cash-out.',
+      'INVALID_KEY':
+          'This Cash Out request could not be verified. Please review it and try again.',
+      'KEY_REUSED_WITH_DIFFERENT_REQUEST':
+          'This request key is already associated with a different Cash Out. Check your Cash Out history before trying again.',
     };
     for (final e in map.entries) {
       if (raw.contains(e.key)) return e.value;

@@ -126,13 +126,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   String _friendlyDate(DateTime date) =>
       DateFormat('MMM d, yyyy · h:mm a').format(_localDate(date));
 
-  bool _isCashOut(WalletTransaction transaction) {
-    final description = '${transaction.title} ${transaction.subtitle}'
-        .toLowerCase()
-        .replaceAll('-', ' ');
-    return description.contains('cash out') || description.contains('cashout');
-  }
-
   List<Widget> _grouped(List<WalletTransaction> transactions) {
     final groups = <String, List<WalletTransaction>>{};
     for (final transaction in transactions) {
@@ -171,7 +164,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget _transactionRow(WalletTransaction transaction) {
     final isCredit = transaction.type == TxType.credit;
     final isPending = transaction.status == TxStatus.pending;
-    final isCashOut = !isCredit && _isCashOut(transaction);
     final statusColor = isPending
         ? context.colors.warningText
         : transaction.status == TxStatus.rejected
@@ -186,8 +178,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             : isCredit
                 ? context.colors.successBg
                 : context.colors.brandTint;
-    final chipLabel =
-        isCashOut ? 'Simulated' : _statusLabel(transaction.status);
+    final chipLabel = _statusLabel(transaction.status);
     final amount = '${isCredit ? '+' : '-'}${fmtPhp(transaction.amount.abs())}';
 
     return Padding(
@@ -465,6 +456,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               label: 'Clear filters',
               onPressed: _clearFilters,
               minHeight: 48,
+              borderRadius: 16,
             ),
           ],
         ],
@@ -519,7 +511,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -545,14 +537,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: !widget.embedded,
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: widget.embedded ? null : _roundBackButton(),
-        centerTitle: true,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
         title: Text(
           'Transaction History',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: widget.embedded ? 26 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -571,8 +564,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
               child: SearchField(
                 controller: _searchController,
                 hintText: 'Search transactions',
-                radius: 18,
-                minHeight: 52,
+                radius: 16,
+                minHeight: 50,
                 onChanged: (value) => setState(() => _query = value),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -596,9 +589,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 children: [
                   Expanded(child: _filterChip('All', _Filter.all)),
                   const SizedBox(width: 10),
-                  Expanded(child: _filterChip('Credits', _Filter.credit)),
+                  Expanded(child: _filterChip('Received', _Filter.credit)),
                   const SizedBox(width: 10),
-                  Expanded(child: _filterChip('Debits', _Filter.debit)),
+                  Expanded(child: _filterChip('Cashed out', _Filter.debit)),
                 ],
               ),
             ),

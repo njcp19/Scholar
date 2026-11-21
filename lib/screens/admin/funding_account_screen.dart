@@ -456,7 +456,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     final muted = colors.onHeader.withValues(alpha: .88);
     return AppCard(
       radius: 28,
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.zero,
       shadow: true,
       clipBehavior: Clip.hardEdge,
       borderColor: Colors.transparent,
@@ -466,67 +466,36 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         end: Alignment.bottomRight,
         colors: [colors.header, colors.heroGradientEnd],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -118,
-            right: -100,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .12), 230),
-          ),
-          Positioned(
-            bottom: -132,
-            left: -104,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .1), 250),
-          ),
-          Column(
+      child: CardDecorShapes(
+        color: colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 115,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    'AVAILABLE FUND',
-                    style: TextStyle(
-                      color: muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.3,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: colors.onHeader,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'PHP ',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        TextSpan(
-                          text: fmtPhp(summary.available),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            letterSpacing: -.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'AVAILABLE FUND',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
                   ),
                 ),
+              ),
+              const SizedBox(height: 10),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(summary.available),
+                color: colors.onHeader,
+                letterSpacing: -.8,
               ),
               const SizedBox(height: 16),
               IntrinsicHeight(
@@ -551,7 +520,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -579,22 +548,10 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'PHP ${fmtPhp(amount)}',
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                  color: colors.onHeader,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          StatNumberText(
+            prefix: 'PHP',
+            value: fmtPhp(amount),
+            color: colors.onHeader,
           ),
         ],
       ),
@@ -603,12 +560,6 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
 
   Color mutedHeroText(AppColors colors) =>
       colors.onHeader.withValues(alpha: .88);
-
-  Widget _heroCircle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _linkedAccountCard(FundingAccount account) {
     final colors = context.colors;

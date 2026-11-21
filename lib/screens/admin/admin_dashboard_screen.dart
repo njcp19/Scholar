@@ -482,7 +482,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _disbursementHero(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: EdgeInsets.zero,
       radius: 28,
       shadow: true,
       gradient: LinearGradient(
@@ -491,19 +491,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         colors: [colors.header, colors.heroGradientEnd],
       ),
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -72,
-            right: -42,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .1), 200),
-          ),
-          Positioned(
-            bottom: -124,
-            right: -86,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .08), 260),
-          ),
-          Column(
+      child: CardDecorShapes(
+        color: colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 100,
+        blobSize: 130,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -539,16 +534,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
-
-  Widget _heroCircle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _overviewCard(BuildContext context, double allowanceAmount) {
     final colors = context.colors;
@@ -573,19 +562,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'PHP ${fmtPhp(allowanceAmount)}',
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
+                    StatNumberText(
+                      prefix: 'PHP',
+                      value: fmtPhp(allowanceAmount),
+                      color: colors.textPrimary,
                     ),
                   ],
                 ),
@@ -675,17 +655,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+              StatNumberText(
+                value: value,
+                color: context.colors.textPrimary,
+                alignment: Alignment.center,
               ),
               const SizedBox(height: 2),
               Text(

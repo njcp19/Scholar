@@ -160,7 +160,10 @@ void main() {
         home: PayoutConfirmationScreen(claim: claim.build())));
     expect(find.text('Review Allowance Amount'), findsOneWidget);
     expect(find.text('AMOUNT TO RECEIVE'), findsOneWidget);
-    expect(find.text('PHP 5,000.00'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Amount to receive, PHP 5,000.00'),
+      findsOneWidget,
+    );
     expect(find.text('Payout event'), findsOneWidget);
     expect(find.text('October Allowance'), findsOneWidget);
     expect(find.text('Recipient'), findsOneWidget);

@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/destructive_confirm_dialog.dart';
 import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 
@@ -135,13 +136,20 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   }
 
   Future<void> _delete(Scholar scholar) async {
-    final ok = await _confirm(
+    final result = await DestructiveConfirmDialog.show(
+      context,
       title: 'Delete ${scholar.name}?',
-      body: 'This will permanently remove ${scholar.name} and all of their '
+      message: 'This will permanently remove ${scholar.name} and all of their '
           'transaction, payout, linked-account, and registration-review records. '
           'Accounts with a balance cannot be deleted. This cannot be undone.',
-      action: 'Delete',
+      dismissLabel: 'Cancel',
+      confirmLabel: 'Delete',
+      semanticsLabel: 'Delete scholar confirmation',
+      icon: AppIcons.delete,
+      dismissButtonKey: const ValueKey('manage-scholar-delete-cancel'),
+      confirmButtonKey: const ValueKey('manage-scholar-delete-confirm'),
     );
+    final ok = result == true;
     if (!ok || !mounted) return;
     try {
       await context.read<AppState>().wallet.deleteScholar(scholar.id);
@@ -382,108 +390,10 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   }
 
   Widget _heroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [context.colors.header, context.colors.heroGradientEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -62,
-            top: -90,
-            child: _heroCircle(220),
-          ),
-          Positioned(
-            right: -85,
-            bottom: -132,
-            child: _heroCircle(250),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'TOTAL SCHOLARS',
-                style: TextStyle(
-                  color: context.colors.onHeader.withValues(alpha: .88),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.4,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_scholars.length}',
-                style: TextStyle(
-                  color: context.colors.onHeader,
-                  fontSize: 44,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _heroPill('$_verifiedCount verified', showDot: true),
-                  _heroPill('$_activeCount allowance on'),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _heroCircle(double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: context.colors.onHeader.withValues(alpha: .10),
-          shape: BoxShape.circle,
-        ),
-      );
-
-  Widget _heroPill(String label, {bool showDot = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: context.colors.onHeader.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showDot) ...[
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: context.colors.success,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 7),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              color: context.colors.onHeader,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
+    return ManageScholarsHeroCard(
+      scholarCount: _scholars.length,
+      verifiedCount: _verifiedCount,
+      activeCount: _activeCount,
     );
   }
 
@@ -671,6 +581,113 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ManageScholarsHeroCard extends StatelessWidget {
+  final int scholarCount;
+  final int verifiedCount;
+  final int activeCount;
+
+  const ManageScholarsHeroCard({
+    super.key,
+    required this.scholarCount,
+    required this.verifiedCount,
+    required this.activeCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [context.colors.header, context.colors.heroGradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: CardDecorShapes(
+        color: context.colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 110,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TOTAL SCHOLARS',
+                style: TextStyle(
+                  color: context.colors.onHeader.withValues(alpha: .88),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                amount: '$scholarCount',
+                color: context.colors.onHeader,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _heroPill(context, '$verifiedCount verified', showDot: true),
+                  _heroPill(context, '$activeCount allowance on'),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _heroPill(
+    BuildContext context,
+    String label, {
+    bool showDot = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: context.colors.onHeader.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showDot) ...[
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: context.colors.success,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 7),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: context.colors.onHeader,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

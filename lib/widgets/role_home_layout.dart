@@ -252,18 +252,9 @@ class RoleHomeLayout extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            heroValue,
-            maxLines: 1,
-            style: TextStyle(
-              color: primaryTextColor,
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+        HeroAmountText(
+          amount: heroValue,
+          color: primaryTextColor,
         ),
         const SizedBox(height: 6),
         Text(

@@ -631,12 +631,198 @@ class AppCard extends StatelessWidget {
   }
 }
 
+class CardDecorShapes extends StatelessWidget {
+  final Widget child;
+  final Color color;
+  final BorderRadius borderRadius;
+  final double circleSize;
+  final double blobSize;
+  final double circleOpacity;
+  final double blobOpacity;
+
+  const CardDecorShapes({
+    super.key,
+    required this.child,
+    required this.color,
+    required this.borderRadius,
+    this.circleSize = 115,
+    this.blobSize = 125,
+    this.circleOpacity = .12,
+    this.blobOpacity = .1,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: borderRadius,
+      child: Stack(
+        clipBehavior: Clip.hardEdge,
+        children: [
+          Positioned(
+            top: -circleSize * .4,
+            right: -circleSize * .4,
+            child: IgnorePointer(
+              child: Container(
+                width: circleSize,
+                height: circleSize,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: circleOpacity),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            right: -blobSize * .4,
+            bottom: -blobSize * .4,
+            child: IgnorePointer(
+              child: Container(
+                width: blobSize,
+                height: blobSize,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: blobOpacity),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class CardNumberStyles {
+  static const hero = TextStyle(
+    fontSize: 30,
+    fontWeight: FontWeight.w800,
+    height: 1.1,
+  );
+  static const heroPrefix = TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+  );
+  static const stat = TextStyle(
+    fontSize: 22,
+    fontWeight: FontWeight.w800,
+    height: 1.1,
+  );
+  static const statPrefix = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    height: 1.1,
+  );
+}
+
+class HeroAmountText extends StatelessWidget {
+  final String amount;
+  final Color color;
+  final String? prefix;
+  final AlignmentGeometry alignment;
+  final String? semanticsLabel;
+  final double? letterSpacing;
+
+  const HeroAmountText({
+    super.key,
+    required this.amount,
+    required this.color,
+    this.prefix,
+    this.alignment = Alignment.centerLeft,
+    this.semanticsLabel,
+    this.letterSpacing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignment,
+        child: Semantics(
+          container: true,
+          label: semanticsLabel ??
+              (prefix == null ? amount : '${prefix!.trimRight()} $amount'),
+          excludeSemantics: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (prefix != null)
+                Text(
+                  prefix!.trimRight(),
+                  style: CardNumberStyles.heroPrefix.copyWith(
+                    color: color.withValues(alpha: .9),
+                  ),
+                ),
+              if (prefix != null) const SizedBox(width: 6),
+              Text(
+                amount,
+                style: CardNumberStyles.hero.copyWith(
+                  color: color,
+                  letterSpacing: letterSpacing,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class StatNumberText extends StatelessWidget {
+  final String value;
+  final Color color;
+  final String? prefix;
+  final AlignmentGeometry alignment;
+
+  const StatNumberText({
+    super.key,
+    required this.value,
+    required this.color,
+    this.prefix,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignment,
+        child: Semantics(
+          container: true,
+          label: prefix == null ? value : '${prefix!.trimRight()} $value',
+          excludeSemantics: true,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              if (prefix != null)
+                Text(
+                  prefix!.trimRight(),
+                  style: CardNumberStyles.statPrefix.copyWith(color: color),
+                ),
+              if (prefix != null) const SizedBox(width: 4),
+              Text(value, style: CardNumberStyles.stat.copyWith(color: color)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ProfileHeroMetrics {
   static const height = 172.0;
   static const radius = 28.0;
   static const padding = 20.0;
-  static const currencyPrefixFontSize = 20.0;
-  static const amountFontSize = 32.0;
   static const gradientBegin = Alignment.topLeft;
   static const gradientEnd = Alignment.bottomRight;
 }
@@ -2490,18 +2676,10 @@ class BalanceCard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 2),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            amount,
-            maxLines: 1,
-            style: TextStyle(
-              color: context.colors.textPrimary,
-              fontSize: 30,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+        StatNumberText(
+          prefix: 'PHP',
+          value: fmtPhp(balance),
+          color: context.colors.textPrimary,
         ),
         const SizedBox(height: 6),
         Row(
@@ -2560,7 +2738,6 @@ class MonthlyAllowanceCard extends StatelessWidget {
   final bool statusOnRight;
   final double radius;
   final double iconTileSize;
-  final double amountFontSize;
 
   const MonthlyAllowanceCard({
     super.key,
@@ -2578,7 +2755,6 @@ class MonthlyAllowanceCard extends StatelessWidget {
     this.statusOnRight = false,
     this.radius = 22,
     this.iconTileSize = 44,
-    this.amountFontSize = 32,
   });
 
   @override
@@ -2713,21 +2889,10 @@ class MonthlyAllowanceCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'PHP ${fmtPhp(amount)}',
-                maxLines: 1,
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: amountFontSize,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          StatNumberText(
+            prefix: 'PHP',
+            value: fmtPhp(amount),
+            color: context.colors.textPrimary,
           ),
           const SizedBox(height: 4),
           if (received && (issuedDate != null || receivedDate != null)) ...[

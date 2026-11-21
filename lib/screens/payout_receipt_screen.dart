@@ -220,34 +220,12 @@ class PayoutReceiptScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: context.colors.onHeader,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'PHP ',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        TextSpan(
-                          text: fmtPhp(claim.amount),
-                          style: const TextStyle(
-                            fontSize: 38,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
-                  ),
-                ),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(claim.amount),
+                color: context.colors.onHeader,
+                alignment: Alignment.center,
+                letterSpacing: -1,
               ),
               if (receivedDate != null) ...[
                 const SizedBox(height: 8),

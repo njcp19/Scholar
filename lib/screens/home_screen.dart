@@ -376,169 +376,130 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _balanceHero(BuildContext context, double balance) {
     final balanceText = 'PHP ${fmtPhp(balance)}';
     final heroTextColor = context.colors.balanceHeroText;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: ProfileHeroMetrics.height),
-      child: AppCard(
-        padding: const EdgeInsets.all(ProfileHeroMetrics.padding),
-        radius: ProfileHeroMetrics.radius,
-        shadow: true,
-        gradient: LinearGradient(
-          begin: ProfileHeroMetrics.gradientBegin,
-          end: ProfileHeroMetrics.gradientEnd,
-          colors: [
-            context.colors.balanceHeroStart,
-            context.colors.balanceHeroEnd,
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          children: [
-            Positioned(
-              top: -82,
-              right: -44,
-              child: _balanceHeroCircle(
-                heroTextColor.withValues(alpha: .08),
-                208,
-              ),
-            ),
-            Positioned(
-              bottom: -126,
-              right: -84,
-              child: _balanceHeroCircle(
-                heroTextColor.withValues(alpha: .07),
-                256,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'CURRENT BALANCE',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: heroTextColor,
-                          fontSize: HomeActivityRow.recentActivityTitleFontSize,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Material(
-                      color: heroTextColor.withValues(alpha: .12),
-                      shape: const CircleBorder(),
-                      child: InkWell(
-                        onTap: () async {
-                          await Clipboard.setData(
-                            ClipboardData(text: balanceText),
-                          );
-                          if (context.mounted) {
-                            showAppSnackBar(context, 'Balance copied.');
-                          }
-                        },
-                        customBorder: const CircleBorder(),
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Icon(
-                            AppIcons.copy,
-                            color: heroTextColor,
-                            size: 19,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          color: heroTextColor,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(
-                              fontSize:
-                                  ProfileHeroMetrics.currencyPrefixFontSize,
-                            ),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(balance),
-                            style: const TextStyle(
-                              fontSize: ProfileHeroMetrics.amountFontSize,
-                            ),
-                          ),
-                        ],
-                      ),
+    const circleSize = 104.0;
+    const blobSize = 128.0;
+    return AppCard(
+      padding: EdgeInsets.zero,
+      radius: ProfileHeroMetrics.radius,
+      shadow: true,
+      gradient: LinearGradient(
+        begin: ProfileHeroMetrics.gradientBegin,
+        end: ProfileHeroMetrics.gradientEnd,
+        colors: [
+          context.colors.balanceHeroStart,
+          context.colors.balanceHeroEnd,
+        ],
+      ),
+      child: CardDecorShapes(
+        color: heroTextColor,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+        circleSize: circleSize,
+        blobSize: blobSize,
+        blobOpacity: .12,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 14,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'CURRENT BALANCE',
                       maxLines: 1,
-                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: heroTextColor,
+                        fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 360),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: heroTextColor.withValues(alpha: .1),
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: context.colors.success,
-                            shape: BoxShape.circle,
-                          ),
+                  const SizedBox(width: 8),
+                  Material(
+                    color: heroTextColor.withValues(alpha: .12),
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      key: const ValueKey('home-balance-copy'),
+                      onTap: () async {
+                        await Clipboard.setData(
+                          ClipboardData(text: balanceText),
+                        );
+                        if (context.mounted) {
+                          showAppSnackBar(context, 'Balance copied.');
+                        }
+                      },
+                      customBorder: const CircleBorder(),
+                      child: SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: Icon(
+                          AppIcons.copy,
+                          color: heroTextColor,
+                          size: 19,
                         ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            'Money received and verified by QR',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: heroTextColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(balance),
+                color: heroTextColor,
+              ),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: heroTextColor.withValues(alpha: .1),
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: context.colors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          'Money received and verified by QR',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: heroTextColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _balanceHeroCircle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _homeActionButtons(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
@@ -729,7 +690,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               statusOnRight: true,
                               radius: HomeActivityRow.recentActivityRadius,
                               iconTileSize: 40,
-                              amountFontSize: 22,
                             ),
                           if (!state.fingerprintRegistered) ...[
                             const SizedBox(height: 16),

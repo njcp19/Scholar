@@ -40,7 +40,7 @@ void main() {
     final scrollable = find.byType(Scrollable).first;
 
     expect(find.text('Top up successful'), findsOneWidget);
-    expect(find.text('PHP 5,000.00'), findsOneWidget);
+    expect(find.bySemanticsLabel('PHP 5,000.00'), findsOneWidget);
     expect(find.text('•••• 1234'), findsOneWidget);
     expect(find.text('COMPLETED'), findsOneWidget);
     await tester.scrollUntilVisible(

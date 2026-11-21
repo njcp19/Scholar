@@ -381,36 +381,11 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    'PHP',
-                    style: TextStyle(
-                      color: colors.balanceHeroText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        fmtPhp(state.allowance.allowanceAmount),
-                        maxLines: 1,
-                        style: TextStyle(
-                          color: colors.balanceHeroText,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -.8,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(state.allowance.allowanceAmount),
+                color: colors.balanceHeroText,
+                letterSpacing: -.8,
               ),
               const SizedBox(height: 6),
               Text(

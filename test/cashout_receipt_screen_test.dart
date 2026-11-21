@@ -51,7 +51,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Cash Out completed'), findsOneWidget);
-    expect(find.text('PHP 1,250.00'), findsOneWidget);
+    expect(find.bySemanticsLabel('PHP 1,250.00'), findsOneWidget);
     expect(find.text('Maya'), findsOneWidget);
     expect(find.text('Alex Scholar'), findsOneWidget);
     expect(find.text('•••• 9012'), findsOneWidget);

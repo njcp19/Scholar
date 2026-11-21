@@ -49,6 +49,40 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('Home balance card fits a large balance on a narrow screen',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final state = _HomeFixtureAppState(
+      _HomeFixtureWallet(),
+      balance: 1234567.89,
+    );
+    await tester.pumpWidget(_homeApp(state));
+    await tester.pumpAndSettle();
+
+    final label = find.text('CURRENT BALANCE');
+    final amount = find.bySemanticsLabel('PHP 1,234,567.89');
+    expect(label, findsOneWidget);
+    expect(amount, findsOneWidget);
+    expect(find.text('Money received and verified by QR'), findsOneWidget);
+    final hero = find.byType(CardDecorShapes).first;
+    final labelLeft = tester.getTopLeft(label).dx;
+    expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
+    expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
+
+    final copyButton = find.byKey(const ValueKey('home-balance-copy'));
+    expect(copyButton, findsOneWidget);
+    expect(tester.getSize(copyButton).width, greaterThanOrEqualTo(44));
+    expect(tester.getSize(copyButton).height, greaterThanOrEqualTo(44));
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
   testWidgets('Scholar Home shows allowance only for a loaded payout',
       (tester) async {
     tester.view.physicalSize = const Size(360, 640);
@@ -132,7 +166,7 @@ void main() {
     await tester.pumpWidget(_homeApp(payoutState));
     await tester.pumpAndSettle();
 
-    expect(find.text('PHP 1,234.50'), findsOneWidget);
+    expect(find.bySemanticsLabel('PHP 1,234.50'), findsOneWidget);
     expect(find.text('No allowance yet'), findsNothing);
     expect(find.text('PHP 5,000.00'), findsNothing);
     expect(find.text('Expected release'), findsNothing);
@@ -165,7 +199,6 @@ void main() {
                   statusOnRight: true,
                   radius: 22,
                   iconTileSize: 40,
-                  amountFontSize: 22,
                 ),
               ),
             ),
@@ -176,7 +209,7 @@ void main() {
       tester.view.physicalSize = size;
       await tester.pumpWidget(app());
       expect(tester.takeException(), isNull);
-      expect(find.text('PHP 6,000.00'), findsOneWidget);
+      expect(find.bySemanticsLabel('PHP 6,000.00'), findsOneWidget);
       expect(find.byType(Divider), findsOneWidget);
       expect(find.text('Received'), findsNWidgets(2));
     }
@@ -219,7 +252,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.text('MONTHLY ALLOWANCE'), findsOneWidget);
       expect(find.text('Monthly Allowance'), findsNothing);
-      expect(find.text('PHP 5,000.00'), findsOneWidget);
+      expect(find.bySemanticsLabel('PHP 5,000.00'), findsOneWidget);
       expect(find.textContaining('No allowance released yet'), findsOneWidget);
       expect(find.textContaining('Expected release:'), findsOneWidget);
       expect(
@@ -278,7 +311,8 @@ void main() {
       expect(find.text('TOTAL RECEIVED'), findsOneWidget);
       expect(find.text('Waiting for scan'), findsOneWidget);
       expect(find.text('Received'), findsOneWidget);
-      expect(find.text('PHP 0.00'), findsOneWidget);
+      expect(find.bySemanticsLabel('PHP 0.00'), findsOneWidget);
+      _expectDecorShapeRadius(tester);
 
       final totalHero = find
           .ancestor(
@@ -288,12 +322,19 @@ void main() {
           .first;
       expect(
         tester.getSize(totalHero).height,
-        ProfileHeroMetrics.height,
+        lessThan(ProfileHeroMetrics.height),
       );
-      final totalText = tester.widget<Text>(find.text('PHP 0.00'));
-      final amountSpan =
-          (totalText.textSpan as TextSpan).children!.last as TextSpan;
-      expect(amountSpan.style?.fontSize, ProfileHeroMetrics.amountFontSize);
+      final totalAmount = find.bySemanticsLabel('PHP 0.00');
+      final amountText = find.descendant(
+        of: totalAmount,
+        matching: find.text('0.00'),
+      );
+      final prefixText = find.descendant(
+        of: totalAmount,
+        matching: find.text('PHP'),
+      );
+      expect(tester.widget<Text>(amountText).style!.fontSize, 30);
+      expect(tester.widget<Text>(prefixText).style!.fontSize, 16);
 
       final waitingCard = find
           .ancestor(
@@ -315,6 +356,178 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+    'My Payouts keeps two cards visible and handles large amounts at narrow scale',
+    (tester) async {
+      final payouts = _samplePayouts();
+      tester.view.physicalSize = const Size(360, 780);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(_claimsApp(
+        payouts,
+        textScale: 1,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final summaryLabel = find.text('TOTAL RECEIVED');
+      final summaryAmount = find.bySemanticsLabel('PHP 1,234,567.89');
+      final summaryPill = find.byKey(
+        const ValueKey('payout-summary-status'),
+      );
+      expect(summaryAmount, findsOneWidget);
+      expect(summaryPill, findsOneWidget);
+      final labelLeft = tester.getTopLeft(summaryLabel).dx;
+      final hero = find
+          .ancestor(
+            of: summaryLabel,
+            matching: find.byType(CardDecorShapes),
+          )
+          .first;
+      expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
+      expect(tester.getTopLeft(summaryAmount).dx, closeTo(labelLeft, 1));
+      expect(tester.getTopLeft(summaryPill).dx, closeTo(labelLeft, 1));
+
+      final section = find.text('PAYOUTS (3)');
+      final firstCard = find.byKey(const ValueKey('payout-card-waiting-1'));
+      final secondCard = find.byKey(const ValueKey('payout-card-waiting-2'));
+      expect(
+        tester.getRect(firstCard).top,
+        greaterThan(tester.getRect(section).bottom),
+      );
+      expect(
+        tester.getRect(secondCard).bottom,
+        lessThanOrEqualTo(780),
+      );
+
+      tester.view.physicalSize = const Size(320, 640);
+      await tester.pumpWidget(_claimsApp(
+        payouts,
+        textScale: 1.3,
+      ));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        find.bySemanticsLabel('PHP 1,234,567.89'),
+        findsOneWidget,
+      );
+      expect(find.text('Waiting for scan'), findsWidgets);
+      expect(find.text('Received'), findsWidgets);
+      expect(find.text('PAYOUTS (3)'), findsOneWidget);
+      final waitingStat = find.byKey(
+        const ValueKey('payout-stat-Waiting for scan'),
+      );
+      final receivedStat = find.byKey(const ValueKey('payout-stat-Received'));
+      expect(waitingStat, findsOneWidget);
+      expect(receivedStat, findsOneWidget);
+      expect(tester.getSize(waitingStat).height,
+          tester.getSize(receivedStat).height);
+
+      for (final payout in payouts) {
+        await tester.scrollUntilVisible(find.text(payout.batchTitle), 180);
+        await tester.pumpAndSettle();
+        final card = find.byKey(ValueKey('payout-card-${payout.id}'));
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text(
+              payout.isReceived ? 'Received' : 'Waiting for scan',
+            ),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.descendant(
+            of: card,
+            matching: find.text('PHP ${fmtPhp(payout.amount)}'),
+          ),
+          findsOneWidget,
+        );
+        if (payout.isPending) {
+          expect(
+            find.descendant(of: card, matching: find.text('Show my QR')),
+            findsOneWidget,
+          );
+          expect(
+            find.descendant(of: card, matching: find.text('Scan QR')),
+            findsOneWidget,
+          );
+        }
+        expect(tester.takeException(), isNull);
+      }
+
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+}
+
+List<AllowanceClaim> _samplePayouts() {
+  final date = DateTime(2026, 8, 15, 10);
+  return [
+    AllowanceClaim(
+      id: 'waiting-1',
+      batchId: 'batch-1',
+      batchTitle: 'First payout',
+      scholarId: 'test-scholar-id',
+      scholarName: 'Test Scholar',
+      amount: 2500,
+      token: 'token-1',
+      issuedAt: date,
+      distributionDate: date,
+    ),
+    AllowanceClaim(
+      id: 'waiting-2',
+      batchId: 'batch-2',
+      batchTitle: 'Second payout',
+      scholarId: 'test-scholar-id',
+      scholarName: 'Test Scholar',
+      amount: 5000,
+      token: 'token-2',
+      issuedAt: date,
+      distributionDate: date,
+    ),
+    AllowanceClaim(
+      id: 'received-1',
+      batchId: 'batch-3',
+      batchTitle: 'Third payout',
+      scholarId: 'test-scholar-id',
+      scholarName: 'Test Scholar',
+      amount: 1234567.89,
+      token: 'token-3',
+      status: ClaimStatus.received,
+      issuedAt: date,
+      claimedAt: date,
+      distributionDate: date,
+    ),
+  ];
+}
+
+Widget _claimsApp(List<AllowanceClaim> payouts, {required double textScale}) {
+  final state = _HomeFixtureAppState(
+    _HomeFixtureWallet(payouts: payouts),
+  );
+  return MultiProvider(
+    providers: [
+      ChangeNotifierProvider<AppState>.value(value: state),
+      ChangeNotifierProvider<ShellTabController>(
+        create: (_) => ShellTabController(),
+      ),
+    ],
+    child: MaterialApp(
+      theme: AppTheme.light,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          textScaler: TextScaler.linear(textScale),
+        ),
+        child: child!,
+      ),
+      home: const ClaimsScreen(embedded: true),
+    ),
+  );
 }
 
 Future<void> _pumpHome(WidgetTester tester, Size size) async {
@@ -351,6 +564,7 @@ Widget _homeApp(AppState state) {
 
 void _expectCompactHome(WidgetTester tester) {
   expect(find.text('CURRENT BALANCE'), findsOneWidget);
+  _expectDecorShapeRadius(tester);
   expect(find.text('Cash Out'), findsOneWidget);
   expect(find.text('Simulated'), findsNothing);
   final balanceCard = find
@@ -359,7 +573,20 @@ void _expectCompactHome(WidgetTester tester) {
         matching: find.byType(AppCard),
       )
       .first;
-  expect(tester.getSize(balanceCard).height, ProfileHeroMetrics.height);
+  expect(
+    tester.getSize(balanceCard).height,
+    lessThan(ProfileHeroMetrics.height),
+  );
+}
+
+void _expectDecorShapeRadius(WidgetTester tester) {
+  final clip = tester.widget<ClipRRect>(
+    find.descendant(
+      of: find.byType(CardDecorShapes),
+      matching: find.byType(ClipRRect),
+    ),
+  );
+  expect(clip.borderRadius, BorderRadius.circular(28));
 }
 
 class _SignedOutAuthPlatform extends FirebaseAuthPlatform {
@@ -378,7 +605,11 @@ class _SignedOutAuthPlatform extends FirebaseAuthPlatform {
 }
 
 class _HomeFixtureAppState extends AppState {
-  _HomeFixtureAppState(this._fixtureWallet) {
+  _HomeFixtureAppState(
+    this._fixtureWallet, {
+    double balance = 0,
+  }) {
+    this.balance = balance;
     user = AppUser(
       id: 'test-scholar-id',
       fullName: 'Test Scholar',

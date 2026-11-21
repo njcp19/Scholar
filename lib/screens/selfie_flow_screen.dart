@@ -548,11 +548,14 @@ class _SelfieGuideCard extends StatelessWidget {
                     fit: StackFit.expand,
                     children: [
                       Positioned(
-                        top: constraints.maxHeight * .27,
-                        left: (constraints.maxWidth - 80) / 2,
+                        top: constraints.maxHeight * .255,
+                        left: (constraints.maxWidth -
+                                constraints.maxHeight * .33) /
+                            2,
                         child: Container(
-                          width: 80,
-                          height: 80,
+                          key: const Key('selfie_head'),
+                          width: constraints.maxHeight * .33,
+                          height: constraints.maxHeight * .33,
                           decoration: const BoxDecoration(
                             color: Color(0xFF9BB5D3),
                             shape: BoxShape.circle,
@@ -560,20 +563,21 @@ class _SelfieGuideCard extends StatelessWidget {
                         ),
                       ),
                       Positioned(
-                        bottom: -24,
-                        left: (constraints.maxWidth - 170) / 2,
-                        child: Container(
-                          width: 170,
-                          height: constraints.maxHeight * .62,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF9BB5D3),
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(100),
-                            ),
+                        top: constraints.maxHeight * .67,
+                        left: constraints.maxWidth * .285,
+                        child: SizedBox(
+                          key: const Key('selfie_shoulders'),
+                          width: constraints.maxWidth * .43,
+                          height: constraints.maxHeight * .33,
+                          child: const CustomPaint(
+                            painter: _SelfieShouldersPainter(),
                           ),
                         ),
                       ),
-                      CustomPaint(painter: _OvalGuidePainter(colors.brand)),
+                      CustomPaint(
+                        key: const Key('selfie_oval'),
+                        painter: _OvalGuidePainter(colors.brand),
+                      ),
                     ],
                   ),
                 ),
@@ -593,6 +597,42 @@ class _SelfieGuideCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SelfieShouldersPainter extends CustomPainter {
+  const _SelfieShouldersPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(0, size.height / 2)
+      ..cubicTo(
+        0,
+        size.height * .224,
+        size.width * .224,
+        0,
+        size.width / 2,
+        0,
+      )
+      ..cubicTo(
+        size.width * .776,
+        0,
+        size.width,
+        size.height * .224,
+        size.width,
+        size.height / 2,
+      )
+      ..lineTo(size.width, size.height)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()..color = const Color(0xFF9BB5D3),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _SelfieShouldersPainter oldDelegate) => false;
 }
 
 class _OvalGuidePainter extends CustomPainter {

@@ -13,7 +13,7 @@ class PayoutConfirmationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final amount = 'PHP ${fmtPhp(claim.amount)}';
+    final amount = fmtPhp(claim.amount);
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -105,23 +105,11 @@ class PayoutConfirmationScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  SizedBox(
-                    width: double.infinity,
-                    child: Semantics(
-                      label: 'Amount to receive, $amount',
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          amount,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
+                  HeroAmountText(
+                    prefix: 'PHP',
+                    amount: amount,
+                    color: Colors.white,
+                    semanticsLabel: 'Amount to receive, PHP $amount',
                   ),
                   const SizedBox(height: 16),
                   FittedBox(

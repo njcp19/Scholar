@@ -7,6 +7,7 @@ import '../../providers/app_state.dart';
 import '../../services/wallet_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/destructive_confirm_dialog.dart';
 import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 import '../fingerprint_screen.dart';
@@ -109,14 +110,15 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
       DateTime.fromMillisecondsSinceEpoch(0);
 
   Future<void> _void(AllowanceClaim claim) async {
-    final confirmed = await ConfirmDialog.show(
+    final confirmed = await DestructiveConfirmDialog.show(
       context,
       title: 'Cancel this payout?',
       message: 'PHP ${fmtPhp(claim.amount)} reserved for '
           '${claim.scholarName} will be released. Their QR code will stop working.',
+      dismissLabel: 'Keep',
       confirmLabel: 'Cancel payout',
-      cancelLabel: 'Keep',
-      danger: true,
+      semanticsLabel: 'Cancel payout confirmation',
+      icon: AppIcons.cancel,
     );
     if (confirmed != true) return;
     if (!mounted) return;
@@ -269,83 +271,54 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   }
 
   Widget _hero(int receivedCount, double totalPaid) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [context.colors.header, context.colors.heroGradientEnd],
-          ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [context.colors.header, context.colors.heroGradientEnd],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -118,
-              right: -42,
-              child:
-                  _circle(context.colors.onHeader.withValues(alpha: .12), 230),
-            ),
-            Positioned(
-              right: -116,
-              bottom: -132,
-              child:
-                  _circle(context.colors.onHeader.withValues(alpha: .1), 250),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TOTAL PAID OUT',
-                  style: TextStyle(
-                    color: context.colors.onHeader.withValues(alpha: .92),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: CardDecorShapes(
+        color: context.colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TOTAL PAID OUT',
+                style: TextStyle(
+                  color: context.colors.onHeader.withValues(alpha: .92),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
                 ),
+              ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(totalPaid),
+                color: context.colors.onHeader,
+              ),
+              if (receivedCount > 0) ...[
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.onHeader.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          color: context.colors.onHeader,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(fontSize: 24),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(totalPaid),
-                            style: const TextStyle(fontSize: 46),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
-                ),
-                if (receivedCount > 0) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.onHeader.withValues(alpha: .14),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
                     child: Wrap(
                       spacing: 8,
                       crossAxisAlignment: WrapCrossAlignment.center,
@@ -369,20 +342,14 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                       ],
                     ),
                   ),
-                ],
+                ),
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _statCard({
     required String label,
@@ -390,6 +357,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     required Color dotColor,
     required Color valueColor,
   }) {
+    final hasCurrencyPrefix = value.startsWith('PHP ');
     return AppCard(
       radius: 22,
       shadow: true,
@@ -424,21 +392,10 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: TextStyle(
-                  color: context.colors.textPrimary,
-                  fontSize: value.startsWith('PHP') ? 19 : 25,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          StatNumberText(
+            prefix: hasCurrencyPrefix ? 'PHP' : null,
+            value: hasCurrencyPrefix ? value.substring(4) : value,
+            color: context.colors.textPrimary,
           ),
         ],
       ),

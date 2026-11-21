@@ -46,7 +46,11 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    for (final size in [const Size(360, 640), const Size(390, 844)]) {
+    for (final size in [
+      const Size(360, 800),
+      const Size(320, 640),
+      const Size(411, 800),
+    ]) {
       tester.view.physicalSize = size;
       await tester.pumpWidget(
         MaterialApp(
@@ -65,6 +69,19 @@ void main() {
       expect(find.text('Step 3 of 3'), findsOneWidget);
       expect(find.text('Take a selfie'), findsOneWidget);
       expect(find.text('Center your face inside the oval'), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('selfie_oval')));
+      await tester.pump();
+      final ovalCenter =
+          tester.getRect(find.byKey(const Key('selfie_oval'))).center.dx;
+      for (final key in [
+        const Key('selfie_head'),
+        const Key('selfie_shoulders'),
+      ]) {
+        expect(
+          (tester.getRect(find.byKey(key)).center.dx - ovalCenter).abs(),
+          lessThanOrEqualTo(1),
+        );
+      }
       await tester.scrollUntilVisible(find.text('Good lighting'), 160);
       expect(find.text('Good lighting'), findsOneWidget);
       expect(find.text('No mask or sunglasses'), findsOneWidget);

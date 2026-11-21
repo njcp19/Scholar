@@ -356,32 +356,10 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          color: context.colors.balanceHeroText,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(fontSize: 24),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(balance),
-                            style: const TextStyle(fontSize: 46),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
+                HeroAmountText(
+                  prefix: 'PHP ',
+                  amount: fmtPhp(balance),
+                  color: context.colors.balanceHeroText,
                 ),
               ],
             ),

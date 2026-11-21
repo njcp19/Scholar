@@ -14,6 +14,7 @@ import 'package:scholar_wallet/services/wallet_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:scholar_wallet/widgets/widgets.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +57,42 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
 
       expect(tester.takeException(), isNull);
+      final shapeClip = tester.widget<ClipRRect>(
+        find.descendant(
+          of: find.byType(CardDecorShapes),
+          matching: find.byType(ClipRRect),
+        ),
+      );
+      expect(shapeClip.borderRadius, BorderRadius.circular(28));
+      final label = find.text('DISBURSE ALLOWANCE');
+      expect(label, findsOneWidget);
+      expect(
+        find.text(
+          'Generate a payout batch and scholars scan their QR to receive it.',
+        ),
+        findsOneWidget,
+      );
+      final card = find
+          .ancestor(
+            of: label,
+            matching: find.byType(CardDecorShapes),
+          )
+          .first;
+      final labelLeft = tester.getTopLeft(label).dx;
+      expect(
+        labelLeft - tester.getRect(card).left,
+        greaterThanOrEqualTo(20),
+      );
+      expect(
+        tester
+            .getTopLeft(
+              find.text(
+                'Generate a payout batch and scholars scan their QR to receive it.',
+              ),
+            )
+            .dx,
+        closeTo(labelLeft, 1),
+      );
       await tester.pumpWidget(const SizedBox.shrink());
       state.dispose();
     }

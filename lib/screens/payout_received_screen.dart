@@ -228,31 +228,11 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          color: context.colors.onHeader,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(fontSize: 22),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(widget.receivedAmount),
-                            style: const TextStyle(fontSize: 44),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
+                HeroAmountText(
+                  prefix: 'PHP ',
+                  amount: fmtPhp(widget.receivedAmount),
+                  color: context.colors.onHeader,
+                  alignment: Alignment.center,
                 ),
                 const SizedBox(height: 12),
                 Container(

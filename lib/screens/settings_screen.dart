@@ -187,154 +187,167 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final gradient = isAdmin
         ? [context.colors.header, context.colors.heroGradientEnd]
         : [context.colors.balanceHeroStart, context.colors.balanceHeroEnd];
-    final chipLineHeight = MediaQuery.textScalerOf(context).scale(12) * 1.4;
-    final chipAreaHeight = ((chipLineHeight + 16) * 2 + 8).ceilToDouble();
+    final hasStudentNumber =
+        !isAdmin && user?.studentNumber?.isNotEmpty == true;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
-      child: Container(
-        width: double.infinity,
-        constraints: const BoxConstraints(minHeight: ProfileHeroMetrics.height),
-        padding: const EdgeInsets.all(ProfileHeroMetrics.padding),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: ProfileHeroMetrics.gradientBegin,
-            end: ProfileHeroMetrics.gradientEnd,
-            colors: gradient,
-          ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: ProfileHeroMetrics.gradientBegin,
+          end: ProfileHeroMetrics.gradientEnd,
+          colors: gradient,
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -116,
-              right: -42,
-              child: _circle(foreground.withValues(alpha: .12), 230),
-            ),
-            Positioned(
-              bottom: -132,
-              right: -112,
-              child: _circle(foreground.withValues(alpha: .1), 250),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 84,
-                      height: 84,
-                      decoration: BoxDecoration(
-                        color: foreground.withValues(alpha: .2),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: isAdmin
-                          ? Container(
-                              width: 68,
-                              height: 68,
-                              decoration: BoxDecoration(
-                                color: context.colors.avatarBackground,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: foreground.withValues(alpha: .65),
-                                  width: 3,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+      ),
+      child: CardDecorShapes(
+        color: foreground,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+        circleSize: 115,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    key: const ValueKey('profile_hero_avatar'),
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: foreground.withValues(alpha: .2),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: isAdmin
+                        ? Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: context.colors.avatarBackground,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: foreground.withValues(alpha: .65),
+                                width: 3,
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                user?.initials ?? '?',
+                                style: TextStyle(
+                                  color: context.colors.onGold,
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
-                              alignment: Alignment.center,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  user?.initials ?? '?',
-                                  style: TextStyle(
-                                    color: context.colors.onGold,
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ),
-                            )
-                          : ProfileAvatar(
-                              user: user,
-                              size: 68,
-                              backgroundColor: context.colors.avatarBackground,
-                              initialsColor: context.colors.onGold,
-                              initialsFontSize: 25,
-                              initialsFontWeight: FontWeight.w800,
-                              borderColor: foreground.withValues(alpha: .65),
-                              borderWidth: 3,
                             ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.fullName ?? 'Scholar',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: foreground,
-                              fontSize: 21,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          )
+                        : ProfileAvatar(
+                            user: user,
+                            size: 52,
+                            backgroundColor: context.colors.avatarBackground,
+                            initialsColor: context.colors.onGold,
+                            initialsFontSize: 25,
+                            initialsFontWeight: FontWeight.w800,
+                            borderColor: foreground.withValues(alpha: .65),
+                            borderWidth: 3,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            user?.email ?? '',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: foreground,
-                              fontSize: 13,
-                            ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.fullName ?? 'Scholar',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 21,
+                            fontWeight: FontWeight.w800,
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  height: chipAreaHeight,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: isAdmin
-                          ? [
-                              _heroChip('Administrator account', foreground),
-                            ]
-                          : [
-                              if (user?.studentNumber?.isNotEmpty == true)
-                                _heroChip(
-                                  'ID: ${user!.studentNumber}',
-                                  foreground,
-                                ),
-                              _heroChip('Scholar account', foreground),
-                            ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          user?.email ?? '',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: foreground,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  if (hasStudentNumber)
+                    Flexible(
+                      flex: 1,
+                      fit: FlexFit.loose,
+                      child: _heroChip(
+                        'ID: ${user!.studentNumber}',
+                        foreground,
+                        compact: true,
+                      ),
+                    ),
+                  if (hasStudentNumber) const SizedBox(width: 8),
+                  if (isAdmin)
+                    Flexible(
+                      child: _heroChip(
+                        'Administrator account',
+                        foreground,
+                        compact: true,
+                      ),
+                    )
+                  else if (hasStudentNumber)
+                    Flexible(
+                      flex: 2,
+                      fit: FlexFit.loose,
+                      child: _heroChip(
+                        'Scholar account',
+                        foreground,
+                        compact: true,
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: _heroChip(
+                        'Scholar account',
+                        foreground,
+                        compact: true,
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
-
-  Widget _heroChip(String label, Color foreground) {
+  Widget _heroChip(
+    String label,
+    Color foreground, {
+    bool compact = false,
+  }) {
     return Container(
       constraints: const BoxConstraints(maxWidth: 250),
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 10 : 13,
+        vertical: compact ? 5 : 8,
+      ),
       decoration: BoxDecoration(
         color: foreground.withValues(alpha: .16),
         borderRadius: BorderRadius.circular(24),

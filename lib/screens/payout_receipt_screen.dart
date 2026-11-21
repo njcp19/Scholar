@@ -6,6 +6,7 @@ import '../models/models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/receipt_layout.dart';
 import '../widgets/widgets.dart';
 
 class PayoutReceiptScreen extends StatelessWidget {
@@ -157,93 +158,11 @@ class PayoutReceiptScreen extends StatelessWidget {
     );
   }
 
-  Widget _hero(BuildContext context, String? receivedDate) {
-    final mutedHeroText = context.colors.onHeader.withValues(alpha: .84);
-    return AppCard(
-      radius: 28,
-      shadow: true,
-      clipBehavior: Clip.hardEdge,
-      borderColor: Colors.transparent,
-      borderWidth: 0,
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [context.colors.header, context.colors.receiptHeroEnd],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -116,
-            right: -100,
-            child: _circle(context.colors.onHeader.withValues(alpha: .12), 230),
-          ),
-          Positioned(
-            bottom: -132,
-            left: -104,
-            child: _circle(context.colors.onHeader.withValues(alpha: .1), 250),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: context.colors.onHeader.withValues(alpha: .18),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: context.colors.success,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    AppIcons.check,
-                    color: context.colors.onHeader,
-                    size: 36,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                'Payout received',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: mutedHeroText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(claim.amount),
-                color: context.colors.onHeader,
-                alignment: Alignment.center,
-                letterSpacing: -1,
-              ),
-              if (receivedDate != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  receivedDate,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: mutedHeroText,
-                    fontSize: 12.5,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _hero(BuildContext context, String? receivedDate) => ReceiptHeroCard(
+        heading: 'Payout received',
+        amount: claim.amount,
+        dateLabel: receivedDate,
+      );
 
   Widget _detailRow(
     BuildContext context, {
@@ -289,10 +208,4 @@ class PayoutReceiptScreen extends StatelessWidget {
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 }

@@ -310,70 +310,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
   }
 
   Widget _balanceHero(double balance) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              context.colors.balanceHeroStart,
-              context.colors.balanceHeroEnd,
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -116,
-              right: -42,
-              child: _circle(
-                context.colors.onGold.withValues(alpha: .1),
-                230,
-              ),
-            ),
-            Positioned(
-              right: -115,
-              bottom: -132,
-              child: _circle(
-                context.colors.onGold.withValues(alpha: .08),
-                250,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AVAILABLE BALANCE',
-                  style: TextStyle(
-                    color: context.colors.balanceHeroText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                HeroAmountText(
-                  prefix: 'PHP ',
-                  amount: fmtPhp(balance),
-                  color: context.colors.balanceHeroText,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    return CashoutBalanceHeroCard(balance: balance);
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _accountCard(
     LinkedAccount account, {
@@ -1085,4 +1023,66 @@ class _CashoutScrollBehavior extends MaterialScrollBehavior {
     ScrollableDetails details,
   ) =>
       child;
+}
+
+class CashoutBalanceHeroCard extends StatelessWidget {
+  final double balance;
+
+  const CashoutBalanceHeroCard({
+    super.key,
+    required this.balance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              context.colors.balanceHeroStart,
+              context.colors.balanceHeroEnd,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            CardDecorShapes(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              circleSize: 115,
+              blobSize: 125,
+              circleOpacity: .12,
+              blobOpacity: .12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AVAILABLE BALANCE',
+                    style: TextStyle(
+                      color: context.colors.balanceHeroText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  HeroAmountText(
+                    prefix: 'PHP ',
+                    amount: fmtPhp(balance),
+                    color: context.colors.balanceHeroText,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import '../widgets/receipt_layout.dart';
 import '../widgets/success_animation.dart';
 import '../widgets/widgets.dart';
 import '../widgets/shell_tab_controller.dart';
@@ -159,117 +160,60 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
   }
 
   Widget _hero(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(
-        bottom: Radius.circular(28),
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 32, 20, 72),
+    final colors = context.colors;
+    return ReceiptHeroCard(
+      heading: 'Payout received',
+      amount: widget.receivedAmount,
+      leading: Container(
+        width: 80,
+        height: 80,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              context.colors.header,
-              context.colors.heroGradientEnd,
-            ],
+          color: colors.success.withValues(alpha: .18),
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            color: colors.success,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: SuccessAnimation(
+            size: 56,
+            fallbackIcon: AppIcons.check,
+            fallbackColor: colors.onHeader,
           ),
         ),
-        child: Stack(
-          alignment: Alignment.center,
+      ),
+      supportingContent: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: colors.onHeader.withValues(alpha: .14),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
           children: [
-            Positioned(
-              top: -110,
-              right: -52,
-              child:
-                  _circle(context.colors.onHeader.withValues(alpha: .12), 240),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: colors.success,
+                shape: BoxShape.circle,
+              ),
             ),
-            Positioned(
-              bottom: -132,
-              left: -106,
-              child:
-                  _circle(context.colors.onHeader.withValues(alpha: .1), 250),
-            ),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 132,
-                  height: 132,
-                  decoration: BoxDecoration(
-                    color: context.colors.success.withValues(alpha: .18),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Container(
-                    width: 108,
-                    height: 108,
-                    decoration: BoxDecoration(
-                      color: context.colors.success,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: SuccessAnimation(
-                      size: 96,
-                      fallbackIcon: AppIcons.check,
-                      fallbackColor: context.colors.onHeader,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Payout received',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: context.colors.onHeader,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                HeroAmountText(
-                  prefix: 'PHP ',
-                  amount: fmtPhp(widget.receivedAmount),
-                  color: context.colors.onHeader,
-                  alignment: Alignment.center,
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .14),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: context.colors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Text(
-                        'Verified by QR and device biometrics',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: context.colors.onHeader,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            Text(
+              'Verified by QR and device biometrics',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: colors.onHeader,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
         ),
@@ -322,24 +266,23 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
                   padding: const EdgeInsets.only(bottom: 16),
                   child: Column(
                     children: [
-                      _hero(context),
-                      Transform.translate(
-                        offset: const Offset(0, -42),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _detailsCard(context),
-                        ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _hero(context),
                       ),
-                      Transform.translate(
-                        offset: const Offset(0, -42),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 20),
-                          child: InfoBanner(
-                            icon: AppIcons.creditCard,
-                            message:
-                                'Added to your balance. You can cash out to a linked account anytime.',
-                            maxLines: 3,
-                          ),
+                      const SizedBox(height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: _detailsCard(context),
+                      ),
+                      const SizedBox(height: 16),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: InfoBanner(
+                          icon: AppIcons.creditCard,
+                          message:
+                              'Added to your balance. You can cash out to a linked account anytime.',
+                          maxLines: 3,
                         ),
                       ),
                     ],
@@ -353,10 +296,4 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 }

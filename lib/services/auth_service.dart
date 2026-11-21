@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import '../models/models.dart';
 
@@ -36,6 +37,10 @@ class AuthService {
     required String fullName,
     required String email,
     required String password,
+    String? lastName,
+    String? firstName,
+    String? middleName,
+    DateTime? birthdate,
     required String studentNumber,
     required String university,
     required String program,
@@ -59,6 +64,11 @@ class AuthService {
       final user = AppUser(
         id: cred.user!.uid,
         fullName: fullName.trim(),
+        lastName: lastName?.trim(),
+        firstName: firstName?.trim(),
+        middleName:
+            middleName?.trim().isNotEmpty == true ? middleName!.trim() : null,
+        birthdate: birthdate,
         email: cred.user!.email ?? email.trim(),
         role: UserRole.scholar,
         studentNumber: studentNumber.trim(),
@@ -75,6 +85,13 @@ class AuthService {
       await _db.from('profiles').insert({
         'id': user.id,
         'full_name': user.fullName,
+        'last_name': lastName?.trim(),
+        'first_name': firstName?.trim(),
+        'middle_name':
+            middleName?.trim().isNotEmpty == true ? middleName!.trim() : null,
+        'birthdate': birthdate == null
+            ? null
+            : DateFormat('yyyy-MM-dd').format(birthdate),
         'email': user.email,
         'role': 'scholar',
         'balance': 0,

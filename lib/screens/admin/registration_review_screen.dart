@@ -637,6 +637,30 @@ class _RegistrationDetail extends StatefulWidget {
   State<_RegistrationDetail> createState() => _RegistrationDetailState();
 }
 
+List<MapEntry<String, String>> registrationDetailRows(AppUser user) => [
+      MapEntry('Email', user.email),
+      MapEntry('Student number', user.studentNumber ?? '—'),
+      MapEntry('School', user.university ?? '—'),
+      MapEntry('Program', user.program ?? '—'),
+      MapEntry('Year', user.yearLevel ?? '—'),
+      if (user.birthdate != null)
+        MapEntry(
+          'Birthdate',
+          DateFormat('MMM d, yyyy').format(user.birthdate!),
+        ),
+      MapEntry('Declared scholar', user.declaredScholar ? 'Yes' : 'No'),
+      MapEntry(
+        'Scholarship',
+        user.scholarshipName.isEmpty ? 'Not provided' : user.scholarshipName,
+      ),
+      MapEntry(
+        'Award reference',
+        user.scholarshipReference.isEmpty
+            ? 'Not provided'
+            : user.scholarshipReference,
+      ),
+    ];
+
 class _RegistrationDetailState extends State<_RegistrationDetail> {
   final _notes = TextEditingController();
   final _service = VerificationService();
@@ -908,24 +932,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
     final status = u.verificationStatus;
     final undecided = status != VerificationStatus.approved &&
         status != VerificationStatus.rejected;
-    final details = <MapEntry<String, String>>[
-      MapEntry('Email', u.email),
-      MapEntry('Student number', u.studentNumber ?? '—'),
-      MapEntry('School', u.university ?? '—'),
-      MapEntry('Program', u.program ?? '—'),
-      MapEntry('Year', u.yearLevel ?? '—'),
-      MapEntry('Declared scholar', u.declaredScholar ? 'Yes' : 'No'),
-      MapEntry(
-        'Scholarship',
-        u.scholarshipName.isEmpty ? 'Not provided' : u.scholarshipName,
-      ),
-      MapEntry(
-        'Award reference',
-        u.scholarshipReference.isEmpty
-            ? 'Not provided'
-            : u.scholarshipReference,
-      ),
-    ];
+    final details = registrationDetailRows(u);
     if (u.reviewNotes.isNotEmpty) {
       details.add(MapEntry('Previous feedback', u.reviewNotes));
     }

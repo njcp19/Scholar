@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../services/scholarship_catalog_service.dart';
@@ -7,6 +8,23 @@ import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/widgets.dart';
 import 'selfie_flow_screen.dart';
+
+String normalizeNamePart(String value) =>
+    value.trim().replaceAll(RegExp(r'\s+'), ' ');
+
+String composeFullName(String firstName, String? middleName, String lastName) {
+  final first = normalizeNamePart(firstName);
+  final middle = normalizeNamePart(middleName ?? '');
+  final last = normalizeNamePart(lastName);
+  return [first, middle, last].where((part) => part.isNotEmpty).join(' ');
+}
+
+bool isValidBirthdate(DateTime? birthdate, {DateTime? today}) {
+  if (birthdate == null) return false;
+  final date = DateUtils.dateOnly(birthdate);
+  final latest = DateUtils.dateOnly(today ?? DateTime.now());
+  return !date.isAfter(latest) && !date.isBefore(DateTime(1900, 1, 1));
+}
 
 class SignupScreen extends StatefulWidget {
   final ScholarshipCatalogService? catalogService;
@@ -30,7 +48,10 @@ class _SignupScreenState extends State<SignupScreen> {
   ];
 
   static const _academicFieldOrder = [
-    'name',
+    'lastName',
+    'firstName',
+    'middleName',
+    'birthdate',
     'studentNo',
     'university',
     'program',
@@ -39,18 +60,23 @@ class _SignupScreenState extends State<SignupScreen> {
   ];
   static const _securityFieldOrder = [
     'email',
+    'confirmEmail',
     'password',
     'confirm',
     'terms',
   ];
 
-  final _name = TextEditingController();
+  final _lastName = TextEditingController();
+  final _firstName = TextEditingController();
+  final _middleName = TextEditingController();
+  final _birthdateController = TextEditingController();
   final _studentNo = TextEditingController();
   final _university = TextEditingController();
   final _program = TextEditingController();
   final _scholarshipName = TextEditingController();
   final _scholarshipReference = TextEditingController();
   final _email = TextEditingController();
+  final _confirmEmail = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   final _scrollController = ScrollController();
@@ -63,6 +89,7 @@ class _SignupScreenState extends State<SignupScreen> {
   };
 
   String? _yearLevel;
+  DateTime? _birthdate;
   bool _declaredScholar = true;
   bool _obscurePw = true;
   bool _obscureConfirm = true;
@@ -71,6 +98,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _catalogLoading = false;
   bool _catalogAttempted = false;
   bool _scholarshipTextFallback = false;
+  bool _confirmEmailEdited = false;
   int _step = 0;
   List<ScholarshipCatalogItem> _scholarshipPrograms = [];
   final Map<String, String> _fieldErrors = {};
@@ -79,13 +107,17 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   void dispose() {
-    _name.dispose();
+    _lastName.dispose();
+    _firstName.dispose();
+    _middleName.dispose();
+    _birthdateController.dispose();
     _studentNo.dispose();
     _university.dispose();
     _program.dispose();
     _scholarshipName.dispose();
     _scholarshipReference.dispose();
     _email.dispose();
+    _confirmEmail.dispose();
     _password.dispose();
     _confirm.dispose();
     _scrollController.dispose();
@@ -100,7 +132,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Map<String, String> _academicErrors() {
     final errors = <String, String>{};
-    if (_name.text.trim().isEmpty) errors['name'] = 'This field is required.';
+    final lastName = normalizeNamePart(_lastName.text);
+    final firstName = normalizeNamePart(_firstName.text);
+    final middleName = normalizeNamePart(_middleName.text);
+    if (lastName.isEmpty || lastName.length > 60) {
+      errors['lastName'] = 'Enter a last name (up to 60 characters).';
+    }
+    if (firstName.isEmpty || firstName.length > 60) {
+      errors['firstName'] = 'Enter a first name (up to 60 characters).';
+    }
+    if (middleName.length > 60) {
+      errors['middleName'] = 'Use at most 60 characters.';
+    }
+    if (!isValidBirthdate(_birthdate)) {
+      errors['birthdate'] = 'Enter a valid birthdate.';
+    }
     if (_studentNo.text.trim().isEmpty) {
       errors['studentNo'] = 'This field is required.';
     }
@@ -117,8 +163,27 @@ class _SignupScreenState extends State<SignupScreen> {
     return errors;
   }
 
+  Future<void> _pickBirthdate() async {
+    final today = DateUtils.dateOnly(DateTime.now());
+    final initialDate =
+        _birthdate ?? DateTime(today.year - 18, today.month, today.day);
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(1900, 1, 1),
+      lastDate: today,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _birthdate = DateUtils.dateOnly(selected);
+      _birthdateController.text = DateFormat('MMM d, yyyy').format(_birthdate!);
+      _fieldErrors.remove('birthdate');
+    });
+  }
+
   String? _validateAccountSecurity() {
     if (_email.text.trim().isEmpty ||
+        _confirmEmail.text.trim().isEmpty ||
         _password.text.isEmpty ||
         _confirm.text.isEmpty) {
       return 'Fill in all fields.';
@@ -131,6 +196,9 @@ class _SignupScreenState extends State<SignupScreen> {
     }
     if (_password.text != _confirm.text) {
       return 'Passwords do not match.';
+    }
+    if (_emailConfirmationError() != null) {
+      return 'Emails do not match.';
     }
     if (!_agreed) {
       return 'Please accept the Terms of Service and Privacy Policy.';
@@ -145,6 +213,10 @@ class _SignupScreenState extends State<SignupScreen> {
     } else if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
         .hasMatch(_email.text.trim())) {
       errors['email'] = 'Please enter a valid email address.';
+    }
+    final confirmEmailError = _emailConfirmationError();
+    if (confirmEmailError != null) {
+      errors['confirmEmail'] = confirmEmailError;
     }
     if (_password.text.isEmpty) {
       errors['password'] = 'This field is required.';
@@ -161,6 +233,28 @@ class _SignupScreenState extends State<SignupScreen> {
           'Please accept the Terms of Service and Privacy Policy.';
     }
     return errors;
+  }
+
+  String? _emailConfirmationError() {
+    if (_confirmEmail.text.trim().isEmpty) return 'This field is required.';
+    if (_email.text.trim().toLowerCase() !=
+        _confirmEmail.text.trim().toLowerCase()) {
+      return 'Emails do not match.';
+    }
+    return null;
+  }
+
+  void _onConfirmEmailFocusChanged(bool hasFocus) {
+    if (hasFocus || !_confirmEmailEdited) return;
+    final error = _emailConfirmationError();
+    if (_fieldErrors['confirmEmail'] == error) return;
+    setState(() {
+      if (error == null) {
+        _fieldErrors.remove('confirmEmail');
+      } else {
+        _fieldErrors['confirmEmail'] = error;
+      }
+    });
   }
 
   void _continueToSecurity() {
@@ -221,6 +315,16 @@ class _SignupScreenState extends State<SignupScreen> {
   void _onFieldChanged(String key) {
     setState(() {
       _fieldErrors.remove(key);
+      if (key == 'confirmEmail') {
+        _confirmEmailEdited = true;
+      } else if (key == 'email' && _confirmEmailEdited) {
+        final emailError = _emailConfirmationError();
+        if (emailError != null) {
+          _fieldErrors['confirmEmail'] = emailError;
+        } else {
+          _fieldErrors.remove('confirmEmail');
+        }
+      }
       if (key == 'password') _fieldErrors.remove('confirm');
     });
   }
@@ -266,9 +370,19 @@ class _SignupScreenState extends State<SignupScreen> {
     try {
       final state = context.read<AppState>();
       await state.auth.signUp(
-        fullName: _name.text,
+        fullName: composeFullName(
+          _firstName.text,
+          _middleName.text,
+          _lastName.text,
+        ),
         email: _email.text,
         password: _password.text,
+        lastName: normalizeNamePart(_lastName.text),
+        firstName: normalizeNamePart(_firstName.text),
+        middleName: normalizeNamePart(_middleName.text).isEmpty
+            ? null
+            : normalizeNamePart(_middleName.text),
+        birthdate: _birthdate!,
         studentNumber: _studentNo.text,
         university: _university.text,
         program: _program.text,
@@ -290,7 +404,11 @@ class _SignupScreenState extends State<SignupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        final message = context.read<AppState>().auth.friendlyError(e);
+        final friendlyMessage = context.read<AppState>().auth.friendlyError(e);
+        final message = friendlyMessage.contains('INVALID_BIRTHDATE') ||
+                friendlyMessage.contains('INVALID_NAME_PART')
+            ? 'Please check your birthdate and name.'
+            : friendlyMessage;
         final field = _signupErrorField(message);
         if (field != null) {
           setState(() {
@@ -320,8 +438,12 @@ class _SignupScreenState extends State<SignupScreen> {
     if (normalized.contains('year level')) return 'yearLevel';
     if (normalized.contains('university')) return 'university';
     if (normalized.contains('program')) return 'program';
+    if (normalized.contains('last name')) return 'lastName';
+    if (normalized.contains('first name')) return 'firstName';
+    if (normalized.contains('middle name')) return 'middleName';
+    if (normalized.contains('birthdate')) return 'birthdate';
     if (normalized.contains('full name') || normalized.contains('full_name')) {
-      return 'name';
+      return 'firstName';
     }
     return null;
   }
@@ -429,6 +551,7 @@ class _SignupScreenState extends State<SignupScreen> {
     TextInputAction action = TextInputAction.next,
     bool obscure = false,
     Widget? suffix,
+    Iterable<String>? autofillHints,
     bool bottomPadding = true,
   }) =>
       _field(
@@ -440,6 +563,7 @@ class _SignupScreenState extends State<SignupScreen> {
           textInputAction: action,
           textCapitalization: capitalization,
           obscureText: obscure,
+          autofillHints: autofillHints,
           onChanged: (_) => _onFieldChanged(key),
           style: GoogleFonts.inter(
             fontSize: 14,
@@ -468,12 +592,50 @@ class _SignupScreenState extends State<SignupScreen> {
         children: [
           _text(
             context,
-            'Full Name',
-            'name',
-            _name,
-            'Juan Dela Cruz',
+            'Last name',
+            'lastName',
+            _lastName,
+            'Dela Cruz',
             AppIcons.user,
             capitalization: TextCapitalization.words,
+          ),
+          _text(
+            context,
+            'First name',
+            'firstName',
+            _firstName,
+            'Juan',
+            AppIcons.user,
+            capitalization: TextCapitalization.words,
+          ),
+          _text(
+            context,
+            'Middle name (optional)',
+            'middleName',
+            _middleName,
+            'Santos',
+            AppIcons.user,
+            capitalization: TextCapitalization.words,
+          ),
+          _field(
+            context,
+            'Birthdate',
+            AppTextField(
+              controller: _birthdateController,
+              readOnly: true,
+              onTap: _pickBirthdate,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: context.colors.textPrimary,
+              ),
+              decoration: _decoration(
+                context,
+                'Select birthdate',
+                AppIcons.calendar,
+                error: _fieldErrors['birthdate'],
+              ),
+            ),
+            fieldKey: 'birthdate',
           ),
           _text(
             context,
@@ -735,6 +897,19 @@ class _SignupScreenState extends State<SignupScreen> {
             'juandelacruz12@school.edu',
             AppIcons.mail,
             type: TextInputType.emailAddress,
+          ),
+          Focus(
+            onFocusChange: _onConfirmEmailFocusChanged,
+            child: _text(
+              context,
+              'Confirm email',
+              'confirmEmail',
+              _confirmEmail,
+              'Re-enter your school email',
+              AppIcons.mail,
+              type: TextInputType.emailAddress,
+              autofillHints: const [],
+            ),
           ),
           _text(
             context,

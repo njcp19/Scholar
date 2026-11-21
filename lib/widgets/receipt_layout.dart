@@ -29,6 +29,114 @@ class ReceiptDetailRow {
       statusLabel?.trim().isNotEmpty == true ? statusLabel! : value!;
 }
 
+class ReceiptHeroCard extends StatelessWidget {
+  final String heading;
+  final double amount;
+  final String? dateLabel;
+  final Widget? leading;
+  final Widget? supportingContent;
+
+  const ReceiptHeroCard({
+    super.key,
+    required this.heading,
+    required this.amount,
+    this.dateLabel,
+    this.leading,
+    this.supportingContent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final mutedHeroText = colors.onHeader.withValues(alpha: .84);
+    return AppCard(
+      radius: 28,
+      shadow: true,
+      clipBehavior: Clip.hardEdge,
+      borderColor: Colors.transparent,
+      borderWidth: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [colors.header, colors.receiptHeroEnd],
+      ),
+      child: Stack(
+        children: [
+          CardDecorShapes(
+            color: colors.onHeader,
+            borderRadius: BorderRadius.circular(28),
+            circleSize: 115,
+            blobSize: 125,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                leading ??
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: colors.onHeader.withValues(alpha: .18),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: colors.success,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          AppIcons.check,
+                          color: colors.onHeader,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                const SizedBox(height: 14),
+                Text(
+                  heading,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: mutedHeroText,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                HeroAmountText(
+                  prefix: 'PHP ',
+                  amount: fmtPhp(amount),
+                  color: colors.onHeader,
+                  alignment: Alignment.center,
+                  letterSpacing: -1,
+                ),
+                if (dateLabel != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    dateLabel!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: mutedHeroText,
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ],
+                if (supportingContent != null) ...[
+                  const SizedBox(height: 12),
+                  supportingContent!,
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class ReceiptLayout extends StatelessWidget {
   final String heading;
   final double amount;
@@ -156,7 +264,7 @@ class ReceiptLayout extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            _hero(context),
+            _hero,
             const SizedBox(height: 16),
             AppCard(
               radius: 22,
@@ -212,91 +320,11 @@ class ReceiptLayout extends StatelessWidget {
     );
   }
 
-  Widget _hero(BuildContext context) {
-    final mutedHeroText = context.colors.onHeader.withValues(alpha: .84);
-    return AppCard(
-      radius: 28,
-      shadow: true,
-      clipBehavior: Clip.hardEdge,
-      borderColor: Colors.transparent,
-      borderWidth: 0,
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [context.colors.header, context.colors.receiptHeroEnd],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -116,
-            right: -100,
-            child: _circle(context.colors.onHeader.withValues(alpha: .12), 230),
-          ),
-          Positioned(
-            bottom: -132,
-            left: -104,
-            child: _circle(context.colors.onHeader.withValues(alpha: .1), 250),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: context.colors.onHeader.withValues(alpha: .18),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: context.colors.success,
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    AppIcons.check,
-                    color: context.colors.onHeader,
-                    size: 36,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              Text(
-                heading,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: mutedHeroText,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(amount),
-                color: context.colors.onHeader,
-                alignment: Alignment.center,
-                letterSpacing: -1,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _formattedDate,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: mutedHeroText,
-                  fontSize: 12.5,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget get _hero => ReceiptHeroCard(
+        heading: heading,
+        amount: amount,
+        dateLabel: _formattedDate,
+      );
 
   Widget _detailRow(BuildContext context, ReceiptDetailRow row) {
     final value = row.statusLabel?.trim().isNotEmpty == true
@@ -349,10 +377,4 @@ class ReceiptLayout extends StatelessWidget {
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 }

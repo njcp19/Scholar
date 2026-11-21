@@ -107,52 +107,44 @@ class AuthHeroScaffold extends StatelessWidget {
                           ),
                           child: Stack(
                             children: [
-                              Positioned(
-                                top: -64,
-                                right: -72,
-                                child: _circle(
-                                  200,
-                                  colors.onHeader.withValues(alpha: .14),
+                              CardDecorShapes(
+                                color: colors.onHeader,
+                                borderRadius: const BorderRadius.vertical(
+                                  bottom: Radius.circular(28),
                                 ),
-                              ),
-                              Positioned(
-                                bottom: -82,
-                                left: -82,
-                                child: _circle(
-                                  180,
-                                  colors.onHeader.withValues(alpha: .14),
-                                ),
-                              ),
-                              Positioned.fill(
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    24,
-                                    24,
-                                    24,
-                                    16,
-                                  ),
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        leading,
-                                        const SizedBox(height: 8),
-                                        ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 300,
-                                          ),
-                                          child: Text(
-                                            subtitle,
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              color: colors.onHeader
-                                                  .withValues(alpha: .9),
-                                              fontSize: 15,
-                                              height: 1.4,
+                                circleSize: 100,
+                                blobSize: 90,
+                                child: Positioned.fill(
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      24,
+                                      24,
+                                      24,
+                                      16,
+                                    ),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          leading,
+                                          const SizedBox(height: 8),
+                                          ConstrainedBox(
+                                            constraints: const BoxConstraints(
+                                              maxWidth: 300,
+                                            ),
+                                            child: Text(
+                                              subtitle,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: colors.onHeader
+                                                    .withValues(alpha: .9),
+                                                fontSize: 15,
+                                                height: 1.4,
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -193,13 +185,4 @@ class AuthHeroScaffold extends StatelessWidget {
       ),
     );
   }
-
-  Widget _circle(double diameter, Color color) => Container(
-        width: diameter,
-        height: diameter,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
-      );
 }

@@ -123,8 +123,9 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
   Widget _programCard(ScholarshipCatalogItem program) {
     final saving = _savingIds.contains(program.id);
     return Padding(
-      padding: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
@@ -132,39 +133,61 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
               children: [
                 Text(
                   program.name,
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  style: const TextStyle(
+                    color: Color(0xFF1A2530),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   program.isActive ? 'Shown in Sign up' : 'Hidden',
                   style: TextStyle(
                     color: program.isActive
                         ? context.colors.successText
                         : context.colors.textBody,
-                    fontSize: 12,
+                    fontSize: 13,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
-            tooltip: 'Rename scholarship',
-            onPressed: saving ? null : () => _showEditor(program: program),
-            style: IconButton.styleFrom(
-              fixedSize: const Size(48, 48),
-              padding: EdgeInsets.zero,
-              foregroundColor: context.colors.brand,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: context.colors.borderSoft),
+          Tooltip(
+            message: 'Rename scholarship',
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: saving ? null : () => _showEditor(program: program),
+                  customBorder: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: const Color(0xFFE3E8EF)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        AppIcons.edit,
+                        size: 20,
+                        color: context.colors.brand,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
-            icon: const Icon(AppIcons.edit, size: 20),
           ),
           const SizedBox(width: 8),
           Semantics(
@@ -234,11 +257,17 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
           padding: const EdgeInsets.all(16),
           radius: 22,
           shadow: true,
+          backgroundColor: Colors.white,
+          borderColor: const Color(0xFFEEF1F6),
           child: Column(
             children: [
               for (var index = 0; index < _programs.length; index++) ...[
                 if (index > 0)
-                  Divider(height: 1, color: context.colors.borderSoft),
+                  const Divider(
+                    height: 1,
+                    thickness: 1,
+                    color: Color(0xFFEEF1F6),
+                  ),
                 _programCard(_programs[index]),
               ],
             ],

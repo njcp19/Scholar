@@ -125,6 +125,9 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
         registered ? context.colors.success : context.colors.balanceHeroEnd;
     final textColor =
         registered ? context.colors.onGold : context.colors.balanceHeroText;
+    final titleColor = registered ? Colors.white : textColor;
+    final messageColor =
+        registered ? Colors.white.withValues(alpha: .85) : textColor;
     final message = registered
         ? enrolledAt == null
             ? 'Enabled on this device'
@@ -133,11 +136,11 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
             ? 'It’s required before you can disburse or cancel a payout.'
             : 'It’s required before you can receive an allowance.';
 
+    const heroRadius = BorderRadius.all(Radius.circular(28));
     return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: heroRadius,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(22, 28, 22, 30),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -145,31 +148,31 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
             colors: [start, end],
           ),
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -124,
-              right: -48,
-              child: _circle(textColor.withValues(alpha: .1), 230),
-            ),
-            Positioned(
-              bottom: -138,
-              left: -124,
-              child: _circle(textColor.withValues(alpha: .08), 250),
-            ),
-            Column(
+        child: CardDecorShapes(
+          key: const ValueKey('biometric-hero-shapes'),
+          color: Colors.white,
+          borderRadius: heroRadius,
+          circleSize: 115,
+          blobSize: 125,
+          circleOpacity: .12,
+          blobOpacity: .12,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+            child: Column(
               children: [
                 Container(
-                  width: 144,
-                  height: 144,
+                  width: 80,
+                  height: 80,
                   decoration: BoxDecoration(
-                    color: textColor.withValues(alpha: .16),
+                    color: registered
+                        ? Colors.white.withValues(alpha: .16)
+                        : textColor.withValues(alpha: .16),
                     shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
                   child: Container(
-                    width: 112,
-                    height: 112,
+                    width: 64,
+                    height: 64,
                     decoration: BoxDecoration(
                       color: context.colors.surface,
                       shape: BoxShape.circle,
@@ -187,45 +190,39 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
                       color: registered
                           ? context.colors.successText
                           : context.colors.onGold,
-                      size: 46,
+                      size: 34,
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 Text(
                   registered
                       ? 'Device biometrics enabled'
                       : 'Set up device biometrics',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: textColor,
-                    fontSize: 24,
+                    color: titleColor,
+                    fontSize: 22,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   message,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: textColor,
+                    color: messageColor,
                     fontSize: 15,
                     height: 1.4,
                   ),
                 ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _stepsCard() {
     const steps = [
@@ -470,42 +467,39 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ScrollConfiguration(
-              behavior: const _FingerprintScrollBehavior(),
-              child: ListView(
-                physics: const ClampingScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                children: [
-                  _hero(
-                    registered: registered,
-                    enrolledAt: enrolledAt,
-                    isAdmin: isAdmin,
-                  ),
-                  const SizedBox(height: 22),
-                  const SectionLabel('HOW IT WORKS'),
-                  const SizedBox(height: 10),
-                  _stepsCard(),
-                  const SizedBox(height: 20),
-                  _statusInfo(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Scholar Wallet uses biometrics already enrolled on your device. It does not capture or store biometric data.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: context.colors.textBody,
-                      fontSize: 12,
-                      height: 1.45,
-                    ),
-                  ),
-                ],
+      body: ScrollConfiguration(
+        behavior: const _FingerprintScrollBehavior(),
+        child: ListView(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            _hero(
+              registered: registered,
+              enrolledAt: enrolledAt,
+              isAdmin: isAdmin,
+            ),
+            const SizedBox(height: 22),
+            const SectionLabel('HOW IT WORKS'),
+            const SizedBox(height: 10),
+            _stepsCard(),
+            const SizedBox(height: 20),
+            _statusInfo(),
+            const SizedBox(height: 16),
+            Text(
+              'Scholar Wallet uses biometrics already enrolled on your device. It does not capture or store biometric data.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: context.colors.textBody,
+                fontSize: 12,
+                height: 1.45,
               ),
             ),
-          ),
-          _bottomActions(registered: registered, canRegister: canRegister),
-        ],
+          ],
+        ),
+      ),
+      bottomNavigationBar: _bottomActions(
+        registered: registered,
+        canRegister: canRegister,
       ),
     );
   }

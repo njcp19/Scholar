@@ -330,116 +330,17 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }
 
   Widget _amountCard(AppState state) {
-    final colors = context.colors;
-    return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-      radius: 28,
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [colors.balanceHeroStart, colors.balanceHeroEnd],
-      ),
-      borderColor: colors.balanceHeroStart,
-      borderWidth: 0,
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -98,
-            right: -54,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: colors.onHeader.withValues(alpha: .13),
-                shape: BoxShape.circle,
-              ),
-            ),
+    return IssuePayoutAmountCard(
+      amount: state.allowance.allowanceAmount,
+      onChangeStandardAmount: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AllowanceSettingsScreen(),
           ),
-          Positioned(
-            top: -72,
-            right: 30,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: colors.onHeader.withValues(alpha: .1),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AMOUNT PER SCHOLAR (FIXED)',
-                style: TextStyle(
-                  color: colors.balanceHeroText,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(state.allowance.allowanceAmount),
-                color: colors.balanceHeroText,
-                letterSpacing: -.8,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Set once for everybody. Every selected scholar gets exactly this amount.',
-                style: TextStyle(
-                  color: colors.balanceHeroText,
-                  fontSize: 12,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Material(
-                color: colors.onHeader.withValues(alpha: .5),
-                borderRadius: BorderRadius.circular(18),
-                child: InkWell(
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AllowanceSettingsScreen(),
-                      ),
-                    );
-                    _load();
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          AppIcons.sliders,
-                          size: 16,
-                          color: colors.balanceHeroText,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Change standard amount',
-                          style: TextStyle(
-                            color: colors.balanceHeroText,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+        _load();
+      },
     );
   }
 
@@ -1142,6 +1043,112 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 fontWeight: FontWeight.w700,
                 color: context.colors.textLabel)),
       );
+}
+
+class IssuePayoutAmountCard extends StatelessWidget {
+  final double amount;
+  final VoidCallback onChangeStandardAmount;
+
+  const IssuePayoutAmountCard({
+    super.key,
+    required this.amount,
+    required this.onChangeStandardAmount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+      radius: 28,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [colors.balanceHeroStart, colors.balanceHeroEnd],
+      ),
+      borderColor: colors.balanceHeroStart,
+      borderWidth: 0,
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          CardDecorShapes(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            circleSize: 90,
+            blobSize: 75,
+            circleOpacity: .12,
+            blobOpacity: .12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AMOUNT PER SCHOLAR (FIXED)',
+                  style: TextStyle(
+                    color: colors.balanceHeroText,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                HeroAmountText(
+                  prefix: 'PHP ',
+                  amount: fmtPhp(amount),
+                  color: colors.balanceHeroText,
+                  letterSpacing: -.8,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Set once for everybody. Every selected scholar gets exactly this amount.',
+                  style: TextStyle(
+                    color: colors.balanceHeroText,
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Material(
+                  color: colors.onHeader.withValues(alpha: .5),
+                  borderRadius: BorderRadius.circular(18),
+                  child: InkWell(
+                    onTap: onChangeStandardAmount,
+                    borderRadius: BorderRadius.circular(18),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 9,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            AppIcons.sliders,
+                            size: 16,
+                            color: colors.balanceHeroText,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Change standard amount',
+                              style: TextStyle(
+                                color: colors.balanceHeroText,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Shows the freshly generated single-use QR codes, one card per scholar.

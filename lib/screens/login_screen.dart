@@ -197,104 +197,89 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: Stack(
             children: [
-              Positioned(
-                top: -72,
-                right: -54,
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.onHeader.withValues(alpha: .08),
-                  ),
+              CardDecorShapes(
+                color: colors.onHeader,
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(28),
                 ),
-              ),
-              Positioned(
-                bottom: -96,
-                left: -76,
-                child: Container(
-                  width: 280,
-                  height: 280,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: colors.onHeader.withValues(alpha: .07),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 24),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(
-                            color: colors.onHeader,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color:
-                                    colors.textPrimary.withValues(alpha: .12),
-                                blurRadius: 18,
-                                offset: const Offset(0, 7),
-                              ),
-                            ],
-                          ),
-                          alignment: Alignment.center,
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 54,
-                            height: 54,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) => Icon(
-                              AppIcons.wallet,
-                              size: 40,
-                              color: colors.brand,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Scholar ',
-                                  style: TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    color: colors.onHeader,
-                                  ),
-                                ),
-                                TextSpan(
-                                  text: 'Wallet',
-                                  style: TextStyle(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    color: colors.accentGold,
-                                  ),
+                circleSize: 120,
+                blobSize: 125,
+                child: Positioned.fill(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(20, topInset + 12, 20, 24),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: colors.onHeader,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:
+                                      colors.textPrimary.withValues(alpha: .12),
+                                  blurRadius: 18,
+                                  offset: const Offset(0, 7),
                                 ),
                               ],
                             ),
-                            maxLines: 1,
-                            softWrap: false,
+                            alignment: Alignment.center,
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              width: 54,
+                              height: 54,
+                              fit: BoxFit.contain,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  Icon(
+                                AppIcons.wallet,
+                                size: 40,
+                                color: colors.brand,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          'Simplifying financial allowances and expense tracking for your scholar life.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 14,
-                            height: 1.4,
-                            color: colors.onHeader.withValues(alpha: .88),
+                          const SizedBox(height: 12),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: 'Scholar ',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.onHeader,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: 'Wallet',
+                                    style: TextStyle(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.w800,
+                                      color: colors.accentGold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              maxLines: 1,
+                              softWrap: false,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 7),
+                          Text(
+                            'Simplifying financial allowances and expense tracking for your scholar life.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: colors.onHeader.withValues(alpha: .88),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

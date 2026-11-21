@@ -26,13 +26,21 @@ class _AdminHeroWallet implements WalletService {
 }
 
 class _ManageScholarsWallet implements WalletService {
-  _ManageScholarsWallet(this.scholar);
+  _ManageScholarsWallet(this.scholars);
 
-  final Scholar scholar;
+  final List<Scholar> scholars;
   final List<String> deletedIds = [];
+  final List<String> toggledIds = [];
+  final List<bool> activeValues = [];
 
   @override
-  Future<List<Scholar>> getScholars() async => [scholar];
+  Future<List<Scholar>> getScholars() async => List.of(scholars);
+
+  @override
+  Future<void> setScholarActive(String id, bool active) async {
+    toggledIds.add(id);
+    activeValues.add(active);
+  }
 
   @override
   Future<void> deleteScholar(String id) async {
@@ -148,7 +156,7 @@ void main() {
       balance: 0,
       verificationStatus: VerificationStatus.approved,
     );
-    final wallet = _ManageScholarsWallet(scholar);
+    final wallet = _ManageScholarsWallet([scholar]);
     final state = _AdminHeroState(wallet);
     addTearDown(state.dispose);
 
@@ -178,6 +186,201 @@ void main() {
     await tester.pumpAndSettle();
     expect(wallet.deletedIds, ['test-scholar']);
     expect(find.text('Test Scholar'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'Manage Scholars aligns actions and preserves card callbacks at narrow scale',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final longName = List.filled(40, 'N').join();
+    final wallet = _ManageScholarsWallet([
+      Scholar(
+        id: 'alignment-scholar',
+        studentId: 'ALIGN-1',
+        name: longName,
+        balance: 1234567.89,
+        active: true,
+        verificationStatus: VerificationStatus.approved,
+      ),
+    ]);
+    final state = _AdminHeroState(wallet);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ManageScholarsScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text(longName),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text('Receives allowance'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    final switchFinder = find.byType(Switch).first;
+    final deleteTarget = find
+        .ancestor(
+          of: find.text('Delete').first,
+          matching: find.byType(InkWell),
+        )
+        .first;
+    expect(
+      tester.getTopRight(deleteTarget).dx,
+      closeTo(tester.getTopRight(switchFinder).dx, 1),
+    );
+    expect(tester.getSize(deleteTarget).height, greaterThanOrEqualTo(44));
+
+    await tester.tap(deleteTarget);
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('manage-scholar-delete-cancel')),
+    );
+    await tester.pumpAndSettle();
+    expect(wallet.deletedIds, isEmpty);
+
+    await tester.tap(switchFinder);
+    await tester.pumpAndSettle();
+    expect(wallet.toggledIds, ['alignment-scholar']);
+    expect(wallet.activeValues, [false]);
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'Manage Scholars excludes rejected registrations from metrics and search',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final wallet = _ManageScholarsWallet([
+      Scholar(
+        id: 'approved-id',
+        studentId: 'APP-1',
+        name: 'Approved Scholar',
+        balance: 0,
+        active: true,
+        verificationStatus: VerificationStatus.approved,
+      ),
+      Scholar(
+        id: 'pending-id',
+        studentId: 'PEN-1',
+        name: 'Pending Scholar',
+        balance: 0,
+        active: false,
+        verificationStatus: VerificationStatus.pending,
+      ),
+      Scholar(
+        id: 'under-review-id',
+        studentId: 'REV-1',
+        name: 'Under Review Scholar',
+        balance: 0,
+        active: false,
+        verificationStatus: VerificationStatus.underReview,
+      ),
+      Scholar(
+        id: 'rejected-id',
+        studentId: 'REJ-1',
+        name: 'Rejected Applicant',
+        balance: 0,
+        active: true,
+        verificationStatus: VerificationStatus.rejected,
+      ),
+    ]);
+    final state = _AdminHeroState(wallet);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: const TextScaler.linear(1.3),
+            ),
+            child: child!,
+          ),
+          home: const ManageScholarsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('TOTAL SCHOLARS'), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.text('1 verified'), findsOneWidget);
+    expect(find.text('1 allowance on'), findsOneWidget);
+    expect(
+      find.text('SCHOLARS (3) · TOGGLE TO CONTROL ALLOWANCE'),
+      findsOneWidget,
+    );
+    expect(find.text('Approved Scholar'), findsOneWidget);
+    expect(find.text('Pending Scholar'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Under Review Scholar'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Under Review Scholar'), findsOneWidget);
+    expect(find.text('Rejected Applicant'), findsNothing);
+    expect(tester.takeException(), isNull);
+
+    final searchField = find.byType(TextField).first;
+    await tester.ensureVisible(searchField);
+    await tester.enterText(searchField, 'Rejected Applicant');
+    await tester.pumpAndSettle();
+
+    expect(find.text('REJ-1'), findsNothing);
+    expect(find.text('No matching scholars'), findsOneWidget);
+    expect(
+      find.text('SCHOLARS (0) · TOGGLE TO CONTROL ALLOWANCE'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'Manage Scholars shows its empty state when only rejected are returned',
+      (tester) async {
+    final state = _AdminHeroState(
+      _ManageScholarsWallet([
+        Scholar(
+          id: 'rejected-id',
+          studentId: 'REJ-1',
+          name: 'Rejected Applicant',
+          balance: 0,
+          verificationStatus: VerificationStatus.rejected,
+        ),
+      ]),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const ManageScholarsScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No scholars registered yet'), findsOneWidget);
+    expect(
+      find.text('SCHOLARS (0) · TOGGLE TO CONTROL ALLOWANCE'),
+      findsOneWidget,
+    );
+    expect(find.text('Rejected Applicant'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

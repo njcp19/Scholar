@@ -271,31 +271,13 @@ class RoleHomeLayout extends StatelessWidget {
     final heroChild = heroCircles
         ? Stack(
             children: [
-              Positioned(
-                top: -96,
-                right: -66,
-                child: Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: colors.onHeader.withValues(alpha: .12),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              CardDecorShapes(
+                color: colors.onHeader,
+                borderRadius: BorderRadius.circular(heroRadius),
+                circleSize: 90,
+                blobSize: 100,
+                child: heroContent,
               ),
-              Positioned(
-                bottom: -108,
-                left: -84,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: colors.onHeader.withValues(alpha: .1),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              heroContent,
             ],
           )
         : heroContent;

@@ -62,7 +62,12 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
 
   Future<void> _load() async {
     try {
-      _scholars = await context.read<AppState>().wallet.getScholars();
+      _scholars = (await context.read<AppState>().wallet.getScholars())
+          .where(
+            (scholar) =>
+                scholar.verificationStatus != VerificationStatus.rejected,
+          )
+          .toList();
       _error = null;
       _offline = false;
     } catch (e) {
@@ -455,18 +460,22 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                 ),
                 const SizedBox(width: 8),
                 SizedBox(
-                  width: 82,
+                  width: 110,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       SizedBox(
                         height: 32,
                         child: updating
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: context.colors.brand,
+                            ? Align(
+                                alignment: Alignment.centerRight,
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: context.colors.brand,
+                                  ),
                                 ),
                               )
                             : Switch.adaptive(
@@ -479,18 +488,20 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                               ),
                       ),
                       const SizedBox(height: 3),
-                      Text(
-                        updating
-                            ? 'Updating'
-                            : scholar.active
-                                ? 'Receives allowance'
-                                : 'Paused',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: context.colors.textBody,
-                          fontSize: 9,
+                      SizedBox(
+                        width: 110,
+                        child: Text(
+                          updating
+                              ? 'Updating'
+                              : scholar.active
+                                  ? 'Receives allowance'
+                                  : 'Paused',
+                          maxLines: 2,
+                          textAlign: TextAlign.end,
+                          style: TextStyle(
+                            color: context.colors.textBody,
+                            fontSize: 11,
+                          ),
                         ),
                       ),
                     ],
@@ -503,24 +514,27 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
             const SizedBox(height: 12),
             Row(
               children: [
-                _verificationChip(scholar.verificationStatus),
-                const SizedBox(width: 8),
-                Expanded(
+                Flexible(
                   child: FittedBox(
                     alignment: Alignment.centerLeft,
                     fit: BoxFit.scaleDown,
-                    child: Text(
-                      'PHP ${fmtPhp(scholar.balance)}',
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
+                    child: _verificationChip(scholar.verificationStatus),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'PHP ${fmtPhp(scholar.balance)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 _deleteButton(scholar),
               ],
             ),
@@ -558,27 +572,39 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
 
   Widget _deleteButton(Scholar scholar) {
     return Material(
-      color: context.colors.dangerBg,
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.transparent,
       child: InkWell(
         onTap: () => _delete(scholar),
         borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(AppIcons.delete, size: 16, color: context.colors.dangerText),
-              const SizedBox(width: 5),
-              Text(
-                'Delete',
-                style: TextStyle(
-                  color: context.colors.dangerText,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Center(
+            child: Ink(
+              decoration: BoxDecoration(
+                color: context.colors.dangerBg,
+                borderRadius: BorderRadius.circular(16),
               ),
-            ],
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    AppIcons.delete,
+                    size: 16,
+                    color: context.colors.dangerText,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Delete',
+                    style: TextStyle(
+                      color: context.colors.dangerText,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

@@ -107,10 +107,109 @@ void main() {
     expect(service.activeChanges, [false]);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('long program names stay clear of controls at compact size',
+      (tester) async {
+    _setViewport(tester, width: 320);
+    final spacedName =
+        '${List<String>.filled(5, 'Scholarship').join(' ')} awards program';
+    final singleWordName = List<String>.filled(60, 'W').join();
+    final service = _FakeScholarshipCatalogService(
+      programs: [
+        ScholarshipCatalogItem(id: 1, name: spacedName, isActive: true),
+        ScholarshipCatalogItem(id: 2, name: singleWordName, isActive: true),
+        const ScholarshipCatalogItem(
+          id: 3,
+          name: 'Short award',
+          isActive: true,
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      _app(ScholarshipProgramsScreen(catalogService: service)),
+    );
+    await tester.pumpAndSettle();
+
+    for (final name in [spacedName, singleWordName, 'Short award']) {
+      final nameFinder = find.text(name);
+      expect(nameFinder, findsOneWidget);
+      final rowFinder = find
+          .ancestor(
+            of: nameFinder,
+            matching: find.byType(Row),
+          )
+          .first;
+      final editFinder = find.descendant(
+        of: rowFinder,
+        matching: find.byTooltip('Rename scholarship'),
+      );
+      final switchFinder = find.descendant(
+        of: rowFinder,
+        matching: find.byType(Switch),
+      );
+
+      expect(
+        tester.getTopRight(nameFinder).dx,
+        lessThan(tester.getTopLeft(editFinder).dx),
+      );
+      expect(tester.getSize(editFinder).shortestSide, greaterThanOrEqualTo(44));
+      expect(
+        tester.getSize(switchFinder).shortestSide,
+        greaterThanOrEqualTo(44),
+      );
+    }
+
+    final spacedNameRow = find
+        .ancestor(
+          of: find.text(spacedName),
+          matching: find.byType(Row),
+        )
+        .first;
+    final editFinder = find.descendant(
+      of: spacedNameRow,
+      matching: find.byTooltip('Rename scholarship'),
+    );
+    await tester.ensureVisible(editFinder);
+    await tester.tap(editFinder);
+    await tester.pumpAndSettle();
+    expect(find.text('Rename scholarship'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Add scholarship'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add scholarship'), findsWidgets);
+    expect(find.byType(TextField), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    final shortNameRow = find
+        .ancestor(
+          of: find.text('Short award'),
+          matching: find.byType(Row),
+        )
+        .first;
+    final shortNameSwitch = find.descendant(
+      of: shortNameRow,
+      matching: find.byType(Switch),
+    );
+    await tester.ensureVisible(shortNameSwitch);
+    await tester.tap(shortNameSwitch);
+    await tester.pumpAndSettle();
+    expect(service.activeChanges, [false]);
+    expect(tester.takeException(), isNull);
+  });
 }
 
-void _setViewport(WidgetTester tester) {
-  tester.view.physicalSize = const Size(360, 640);
+void _setViewport(
+  WidgetTester tester, {
+  double width = 360,
+  double height = 640,
+}) {
+  tester.view.physicalSize = Size(width, height);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);

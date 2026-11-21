@@ -35,6 +35,10 @@ VerificationStatus verificationStatusFrom(Object? value) =>
 class AppUser {
   final String id; // Firebase UID == Supabase profiles.id
   final String fullName;
+  final String? lastName;
+  final String? firstName;
+  final String? middleName;
+  final DateTime? birthdate;
   final String email;
   final UserRole role;
   final String? studentNumber;
@@ -63,6 +67,10 @@ class AppUser {
   AppUser({
     required this.id,
     required this.fullName,
+    this.lastName,
+    this.firstName,
+    this.middleName,
+    this.birthdate,
     required this.email,
     this.role = UserRole.scholar,
     this.studentNumber,
@@ -92,6 +100,12 @@ class AppUser {
   factory AppUser.fromMap(Map<String, dynamic> m) => AppUser(
         id: m['id'] as String,
         fullName: (m['full_name'] ?? '') as String,
+        lastName: m['last_name'] as String?,
+        firstName: m['first_name'] as String?,
+        middleName: m['middle_name'] as String?,
+        birthdate: m['birthdate'] is String
+            ? DateTime.tryParse(m['birthdate'] as String)
+            : null,
         email: (m['email'] ?? '') as String,
         role: m['role'] == 'admin' ? UserRole.admin : UserRole.scholar,
         studentNumber: m['student_number'] as String?,

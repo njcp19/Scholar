@@ -553,31 +553,13 @@ class AppCard extends StatelessWidget {
     final cardChild = heroCircles
         ? Stack(
             children: [
-              Positioned(
-                top: -105,
-                right: -78,
-                child: Container(
-                  width: 190,
-                  height: 190,
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .12),
-                    shape: BoxShape.circle,
-                  ),
-                ),
+              CardDecorShapes(
+                color: context.colors.onHeader,
+                borderRadius: BorderRadius.circular(radius),
+                circleSize: 95,
+                blobSize: 105,
+                child: child,
               ),
-              Positioned(
-                bottom: -116,
-                left: -92,
-                child: Container(
-                  width: 210,
-                  height: 210,
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .1),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              child,
             ],
           )
         : child;

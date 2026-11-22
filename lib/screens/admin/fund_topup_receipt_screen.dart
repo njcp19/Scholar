@@ -37,12 +37,12 @@ class FundTopUpReceiptScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ReceiptLayout(
-      heading: 'Top up successful',
+      heading: 'Funds allocated',
       amount: data.amount,
       dateTime: data.dateTime,
-      shareSubject: 'Fund top-up receipt',
+      shareSubject: 'Allocate Funds receipt',
       rows: [
-        const ReceiptDetailRow(label: 'Type', value: 'Fund top up'),
+        const ReceiptDetailRow(label: 'Type', value: 'Allocate Funds'),
         ReceiptDetailRow(
           label: 'Funding account',
           value: '•••• ${data.fundingAccountLast4}',

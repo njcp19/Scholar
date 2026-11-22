@@ -604,51 +604,11 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   Widget _fundStatusBanner({
     required bool enoughFunds,
     required double shortfall,
-  }) {
-    final colors = context.colors;
-    final message = enoughFunds
-        ? 'Enough funds for this payout.'
-        : 'Not enough funds. Top up at least PHP ${fmtPhp(shortfall)} '
-            'to continue.';
-    final leading = Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: enoughFunds ? colors.success : colors.dangerText,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        enoughFunds ? AppIcons.check : AppIcons.warning,
-        color: colors.onHeader,
-        size: 22,
-      ),
-    );
-    final banner = InfoBanner(
-      icon: enoughFunds ? AppIcons.check : AppIcons.warning,
-      message: message,
-      leading: leading,
-      maxLines: 3,
-      backgroundColor: enoughFunds ? colors.successBg : Colors.transparent,
-      iconColor: enoughFunds ? colors.successText : colors.dangerText,
-      textColor: enoughFunds ? colors.successText : colors.dangerText,
-      borderRadius: 18,
-      padding: const EdgeInsets.all(16),
-      fontSize: 13.5,
-    );
-
-    if (enoughFunds) return banner;
-    return Semantics(
-      liveRegion: true,
-      child: AppCard(
-        radius: 22,
-        padding: EdgeInsets.zero,
-        backgroundColor: colors.dangerBg,
-        borderColor: colors.danger.withValues(alpha: .35),
-        child: banner,
-      ),
-    );
-  }
+  }) =>
+      IssuePayoutFundStatusBanner(
+        enoughFunds: enoughFunds,
+        shortfall: shortfall,
+      );
 
   Widget _loadingSkeleton() {
     Widget block(double height, {double radius = 16}) => Container(
@@ -896,7 +856,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 if (insufficientFunds) ...[
                   const SizedBox(height: 12),
                   SecondaryButton(
-                    label: 'Top up fund',
+                    label: 'Allocate Funds',
                     onPressed: _openFundingAccount,
                     minHeight: 52,
                     borderRadius: 18,
@@ -1045,6 +1005,85 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       );
 }
 
+class IssuePayoutFundStatusBanner extends StatelessWidget {
+  final bool enoughFunds;
+  final double shortfall;
+
+  const IssuePayoutFundStatusBanner({
+    super.key,
+    required this.enoughFunds,
+    required this.shortfall,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final message = enoughFunds
+        ? 'Enough funds for this payout.'
+        : 'Not enough funds. Allocate at least PHP ${fmtPhp(shortfall)} '
+            'to continue.';
+    final leading = Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: enoughFunds ? colors.success : colors.dangerText,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        enoughFunds ? AppIcons.check : AppIcons.warning,
+        color: colors.onHeader,
+        size: 15,
+      ),
+    );
+    final banner = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: enoughFunds ? colors.successBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Center(
+        heightFactor: 1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            leading,
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.clip,
+                style: TextStyle(
+                  color: enoughFunds ? colors.successText : colors.dangerText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (enoughFunds) return banner;
+    return Semantics(
+      liveRegion: true,
+      child: AppCard(
+        radius: 14,
+        padding: EdgeInsets.zero,
+        backgroundColor: colors.dangerBg,
+        borderColor: colors.danger.withValues(alpha: .35),
+        child: banner,
+      ),
+    );
+  }
+}
+
 class IssuePayoutAmountCard extends StatelessWidget {
   final double amount;
   final VoidCallback onChangeStandardAmount;
@@ -1059,7 +1098,7 @@ class IssuePayoutAmountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.colors;
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
       radius: 28,
       gradient: LinearGradient(
         begin: Alignment.topLeft,
@@ -1074,75 +1113,80 @@ class IssuePayoutAmountCard extends StatelessWidget {
           CardDecorShapes(
             color: Colors.white,
             borderRadius: BorderRadius.circular(28),
-            circleSize: 90,
-            blobSize: 75,
             circleOpacity: .12,
             blobOpacity: .12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AMOUNT PER SCHOLAR (FIXED)',
-                  style: TextStyle(
-                    color: colors.balanceHeroText,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.3,
+            circleSize: 45,
+            blobSize: 38,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AMOUNT PER SCHOLAR (FIXED)',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.balanceHeroText,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.3,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                HeroAmountText(
-                  prefix: 'PHP ',
-                  amount: fmtPhp(amount),
-                  color: colors.balanceHeroText,
-                  letterSpacing: -.8,
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Set once for everybody. Every selected scholar gets exactly this amount.',
-                  style: TextStyle(
+                  const SizedBox(height: 8),
+                  HeroAmountText(
+                    prefix: 'PHP ',
+                    amount: fmtPhp(amount),
                     color: colors.balanceHeroText,
-                    fontSize: 12,
-                    height: 1.45,
+                    letterSpacing: -.8,
                   ),
-                ),
-                const SizedBox(height: 14),
-                Material(
-                  color: colors.onHeader.withValues(alpha: .5),
-                  borderRadius: BorderRadius.circular(18),
-                  child: InkWell(
-                    onTap: onChangeStandardAmount,
+                  const SizedBox(height: 8),
+                  Text(
+                    'Set once for everybody. Every selected scholar gets exactly this amount.',
+                    style: TextStyle(
+                      color: colors.balanceHeroText,
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: colors.onHeader.withValues(alpha: .5),
                     borderRadius: BorderRadius.circular(18),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            AppIcons.sliders,
-                            size: 16,
-                            color: colors.balanceHeroText,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              'Change standard amount',
-                              style: TextStyle(
-                                color: colors.balanceHeroText,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w800,
+                    child: InkWell(
+                      onTap: onChangeStandardAmount,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              AppIcons.sliders,
+                              size: 16,
+                              color: colors.balanceHeroText,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Change standard amount',
+                                style: TextStyle(
+                                  color: colors.balanceHeroText,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

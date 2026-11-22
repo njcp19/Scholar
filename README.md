@@ -1,7 +1,8 @@
 # Scholar Wallet
 
 Scholar Wallet is a Flutter app for scholarship registration, allowance Payout
-Events, and simulated Cash Out activity. Firebase Authentication provides
+Events, and simulated Withdraw Allowance and Allocate Funds activity (no real
+money moves). Firebase Authentication provides
 identity; Supabase Postgres stores application data and enforces access through
 policies and RPCs.
 

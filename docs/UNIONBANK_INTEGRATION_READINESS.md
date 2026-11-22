@@ -2,9 +2,13 @@
 
 ## Current implementation status
 
-The current Scholarship Wallet cash-out flow is a demonstration. Linked payout account details are stored by the app, and the withdrawal flow records a simulated request; it does not authenticate a UnionBank customer or initiate a bank transfer.
+The current Scholarship Wallet Withdraw Allowance flow records a simulated
+allowance request. Linked payout account details are stored by the app; it does
+not authenticate a UnionBank customer or initiate a bank transfer. No real money
+moves.
 
-Do not describe a simulated withdrawal as a completed bank transfer. Do not use real student or bank credentials in demo mode.
+Do not describe a simulated Withdraw Allowance request as a completed bank
+transfer. Do not use real student or bank credentials while testing.
 
 ## Safe integration boundary
 
@@ -12,7 +16,7 @@ Do not describe a simulated withdrawal as a completed bank transfer. Do not use 
 - UnionBank client secrets and partner credentials must never be included in the Flutter bundle, client-side configuration, or public tables.
 - Use the UnionBank Sandbox while developing and testing. Sandbox operations use test data and do not move real funds.
 - UAT/Production access depends on UnionBank onboarding, API product access, agreements, and approval.
-- Keep demo wallet credits and withdrawals distinct from any external bank account balance or transaction.
+- Keep in-app allowance credits and recorded allowance requests distinct from any external bank account balance or transaction.
 - Never request or store a student's UnionBank online banking password, PIN, or OTP in this application.
 - Store only the minimum account-linking information permitted by the approved API and user consent. Prefer provider-issued references and masked display values.
 
@@ -30,4 +34,6 @@ Do not describe a simulated withdrawal as a completed bank transfer. Do not use 
 
 ## Current safe development milestone
 
-Preserve the existing Flutter UI and Supabase data model while auditing authorization policies and the simulated cash-out path. No production banking calls should be made from the mobile client.
+Preserve the existing Flutter UI and Supabase data model while auditing
+authorization policies and the simulated Withdraw Allowance path. No production
+banking calls should be made from the mobile client.

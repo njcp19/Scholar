@@ -163,6 +163,8 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
             children: [
               Text(
                 'TOTAL RECEIVED',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.start,
                 style: TextStyle(
                   color: context.colors.onHeader.withValues(alpha: .92),

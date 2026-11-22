@@ -16,36 +16,22 @@ import 'app_icons.dart';
 
 final _php = NumberFormat('#,##0.00', 'en_PH');
 String fmtPhp(double v) => _php.format(v.abs());
-const prototypeCashOutNotice =
-    'Prototype: this is not connected to a real bank or e-wallet. No real money moves.';
-const prototypeLinkedAccountNotice =
-    'Prototype: accounts are not verified and no real money is sent. Do not enter real account numbers; use test data.';
 
-class PrototypeNotice extends StatelessWidget {
-  final String message;
-
-  const PrototypeNotice({super.key, required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF6E3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFF3D9A0)),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: Color(0xFF4A3200),
-          fontSize: 12.5,
-          height: 1.4,
-        ),
-      ),
-    );
+String displayWalletTransactionTitle(String title) {
+  const cashOutPrefix = 'Cash-out to ';
+  if (title.toLowerCase().startsWith(cashOutPrefix.toLowerCase())) {
+    return 'Withdraw Allowance to ${title.substring(cashOutPrefix.length)}';
   }
+  return title;
+}
+
+String displayWalletTransactionDetails(String details) {
+  final normalized = details.toLowerCase();
+  if (normalized.contains('simulated top-up')) return 'Funds allocated';
+  if (normalized.contains('cash out to linked account')) {
+    return 'Withdraw Allowance to linked account';
+  }
+  return details;
 }
 
 Future<Uint8List?> _loadProfileSelfie(String path) =>
@@ -635,42 +621,49 @@ class CardDecorShapes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          Positioned(
-            top: -circleSize * .4,
-            right: -circleSize * .4,
-            child: IgnorePointer(
-              child: Container(
-                width: circleSize,
-                height: circleSize,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: circleOpacity),
-                  shape: BoxShape.circle,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: Stack(
+              clipBehavior: Clip.hardEdge,
+              children: [
+                Positioned(
+                  top: -circleSize * .4,
+                  right: -circleSize * .4,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: circleSize,
+                      height: circleSize,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: circleOpacity),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                Positioned(
+                  right: -blobSize * .4,
+                  bottom: -blobSize * .4,
+                  child: IgnorePointer(
+                    child: Container(
+                      width: blobSize,
+                      height: blobSize,
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: blobOpacity),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          Positioned(
-            right: -blobSize * .4,
-            bottom: -blobSize * .4,
-            child: IgnorePointer(
-              child: Container(
-                width: blobSize,
-                height: blobSize,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: blobOpacity),
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ),
-          ),
-          child,
-        ],
-      ),
+        ),
+        child,
+      ],
     );
   }
 }
@@ -880,6 +873,9 @@ class InfoBanner extends StatelessWidget {
   final EdgeInsetsGeometry padding;
   final double borderRadius;
   final double fontSize;
+  final FontWeight? textWeight;
+  final double? leadingSpacing;
+  final TextOverflow overflow;
   final double? textHeight;
 
   const InfoBanner({
@@ -896,6 +892,9 @@ class InfoBanner extends StatelessWidget {
     this.padding = const EdgeInsets.all(14),
     this.borderRadius = 14,
     this.fontSize = 13,
+    this.textWeight,
+    this.leadingSpacing,
+    this.overflow = TextOverflow.ellipsis,
     this.textHeight,
   });
 
@@ -925,7 +924,7 @@ class InfoBanner extends StatelessWidget {
                     : iconColor ?? context.colors.brand,
                 size: 20,
               ),
-          SizedBox(width: leading == null ? 10 : 12),
+          SizedBox(width: leadingSpacing ?? (leading == null ? 10 : 12)),
           Expanded(
             child: Text.rich(
               TextSpan(
@@ -934,6 +933,7 @@ class InfoBanner extends StatelessWidget {
                       ? context.colors.goldTintText
                       : textColor ?? context.colors.textPrimary,
                   fontSize: fontSize,
+                  fontWeight: textWeight,
                   height: textHeight,
                 ),
                 children: emphasizedPrefix != null &&
@@ -949,7 +949,7 @@ class InfoBanner extends StatelessWidget {
                     : [TextSpan(text: message)],
               ),
               maxLines: maxLines,
-              overflow: TextOverflow.ellipsis,
+              overflow: overflow,
             ),
           ),
         ],
@@ -3775,7 +3775,7 @@ class HomeActivityRow extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  transaction.title,
+                  displayWalletTransactionTitle(transaction.title),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

@@ -1,7 +1,7 @@
 # Limitations and residual risks
 
-- **No real money movement:** every funding top-up and Cash Out is simulated.
-  No bank or e-wallet is contacted.
+- **No real money movement:** every Allocate Funds and Withdraw Allowance
+  action is simulated. No bank or e-wallet is contacted, and no real money moves.
 - **Selfie privacy and retention:** registration selfies are personal data
   subject to the Philippine Data Privacy Act. A retention and deletion policy
   still needs to be agreed with the school's Data Protection Officer (DPO).
@@ -17,8 +17,8 @@
   by the client. There is no server-side school roster integration.
 - **Payout token expiry:** tokens are single-use, but there is no server-side
   expiry time.
-- **Payout Event status:** a batch can remain `issued` after every claim is
-  voided; voiding all claims does not mark the batch complete.
+- **Payout Event status:** a batch can remain `issued` after every payout is
+  voided; voiding all payouts does not mark the batch complete.
 - **Legacy database objects:** `application_reviews`, `scholarship_applications`,
   `scholarship_programs`, `record_application_review`, and `submit_application`
   are not defined in the checked-in setup or migrations, so their behavior and

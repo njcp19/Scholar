@@ -292,6 +292,8 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
             children: [
               Text(
                 'TOTAL PAID OUT',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: context.colors.onHeader.withValues(alpha: .92),
                   fontSize: 13,

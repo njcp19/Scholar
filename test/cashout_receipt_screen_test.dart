@@ -28,7 +28,7 @@ Withdrawal _withdrawal({
 
 void main() {
   void setCompactViewport(WidgetTester tester) {
-    tester.view.physicalSize = const Size(360, 640);
+    tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -52,7 +52,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Cash Out completed'), findsOneWidget);
+    expect(find.text('Withdraw Allowance completed'), findsOneWidget);
     expect(find.byType(ReceiptHeroCard), findsOneWidget);
     expect(find.byType(CardDecorShapes), findsOneWidget);
     expect(find.bySemanticsLabel('PHP 1,250.00'), findsOneWidget);
@@ -69,7 +69,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        'This receipt confirms your Cash Out was recorded in Scholar Wallet.',
+        'This receipt confirms your Withdraw Allowance request was recorded in Scholar Wallet.',
       ),
       findsOneWidget,
     );
@@ -92,7 +92,7 @@ void main() {
     await tester.pump();
     await tester.ensureVisible(find.text('Status'));
 
-    expect(find.text('Cash Out status'), findsOneWidget);
+    expect(find.text('Withdraw Allowance status'), findsOneWidget);
     expect(find.text('Pending'), findsOneWidget);
     expect(find.text('COMPLETED'), findsNothing);
     expect(tester.takeException(), isNull);

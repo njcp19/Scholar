@@ -511,15 +511,75 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Expanded(
-          child: PrimaryButton(
-            label: 'Cash Out',
-            onPressed: _openCashOut,
-            icon: AppIcons.arrowUpRight,
-            backgroundColor: cashOutColor,
-            foregroundColor: context.colors.onHeader,
-            minHeight: buttonHeight,
-            borderRadius: 20,
-            shadow: true,
+          child: Semantics(
+            label: 'Withdraw Allowance',
+            button: true,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: buttonHeight),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  key: const ValueKey('home-withdraw-allowance'),
+                  onPressed: _openCashOut,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cashOutColor,
+                    foregroundColor: context.colors.onHeader,
+                    minimumSize: Size.fromHeight(buttonHeight),
+                    elevation: 5,
+                    shadowColor: cashOutColor.withValues(alpha: .24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        AppIcons.arrowUpRight,
+                        color: context.colors.onHeader,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ExcludeSemantics(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Withdraw',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip,
+                                  style: TextStyle(
+                                    color: context.colors.onHeader,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                Text(
+                                  'Allowance',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip,
+                                  style: TextStyle(
+                                    color: context.colors.onHeader,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),

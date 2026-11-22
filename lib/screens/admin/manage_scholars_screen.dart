@@ -413,6 +413,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         shadow: true,
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
@@ -430,7 +431,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,84 +460,89 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 110,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (updating)
                       SizedBox(
-                        height: 32,
-                        child: updating
-                            ? Align(
-                                alignment: Alignment.centerRight,
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: context.colors.brand,
-                                  ),
-                                ),
-                              )
-                            : Switch.adaptive(
-                                value: scholar.active,
-                                onChanged: verified
-                                    ? (value) => _toggle(scholar, value)
-                                    : null,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: context.colors.brand,
+                        ),
+                      )
+                    else
+                      Switch.adaptive(
+                        value: scholar.active,
+                        onChanged: verified
+                            ? (value) => _toggle(scholar, value)
+                            : null,
                       ),
-                      const SizedBox(height: 3),
-                      SizedBox(
-                        width: 110,
-                        child: Text(
-                          updating
-                              ? 'Updating'
-                              : scholar.active
-                                  ? 'Receives allowance'
-                                  : 'Paused',
-                          maxLines: 2,
-                          textAlign: TextAlign.end,
-                          style: TextStyle(
-                            color: context.colors.textBody,
-                            fontSize: 11,
-                          ),
+                    const SizedBox(height: 3),
+                    SizedBox(
+                      width: 120,
+                      child: Text(
+                        updating
+                            ? 'Updating'
+                            : scholar.active
+                                ? 'Receives allowance'
+                                : 'Inactive',
+                        maxLines: 2,
+                        softWrap: true,
+                        textAlign: TextAlign.end,
+                        overflow: TextOverflow.clip,
+                        style: TextStyle(
+                          color: context.colors.textBody,
+                          fontSize: 11,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 14),
             Divider(height: 1, color: context.colors.borderSoft),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Flexible(
-                  child: FittedBox(
-                    alignment: Alignment.centerLeft,
-                    fit: BoxFit.scaleDown,
-                    child: _verificationChip(scholar.verificationStatus),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'PHP ${fmtPhp(scholar.balance)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: context.colors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+            LayoutBuilder(
+              builder: (context, constraints) => Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth - 116,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _verificationChip(scholar.verificationStatus),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                _deleteButton(scholar),
-              ],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'PHP ${fmtPhp(scholar.balance)}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: context.colors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  _deleteButton(scholar),
+                ],
+              ),
             ),
           ],
         ),
@@ -578,28 +584,40 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         borderRadius: BorderRadius.circular(16),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 44),
-          child: Center(
+          child: Align(
+            alignment: Alignment.center,
+            widthFactor: 1,
+            heightFactor: 1,
             child: Ink(
+              width: 96,
+              height: 40,
               decoration: BoxDecoration(
                 color: context.colors.dangerBg,
                 borderRadius: BorderRadius.circular(16),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     AppIcons.delete,
-                    size: 16,
+                    size: 18,
                     color: context.colors.dangerText,
                   ),
-                  const SizedBox(width: 5),
-                  Text(
-                    'Delete',
-                    style: TextStyle(
-                      color: context.colors.dangerText,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Delete',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: context.colors.dangerText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -650,6 +668,8 @@ class ManageScholarsHeroCard extends StatelessWidget {
             children: [
               Text(
                 'TOTAL SCHOLARS',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: context.colors.onHeader.withValues(alpha: .88),
                   fontSize: 12,

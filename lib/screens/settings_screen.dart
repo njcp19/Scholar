@@ -207,7 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         circleSize: 115,
         blobSize: 125,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

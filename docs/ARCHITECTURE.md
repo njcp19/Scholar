@@ -23,8 +23,9 @@ Supabase Postgres.
   function. A scholar confirms a Payout through a single-use token; the
   database function validates ownership/status and updates the balance and
   ledger records.
-- **Cash Out and funding:** database functions record simulated funding and
-  Cash Out activity. No bank or e-wallet transfer is made.
+- **Allocate Funds and Withdraw Allowance:** database functions record simulated
+  fund allocations and allowance requests. No real money moves; no bank or
+  e-wallet transfer is made.
 - **Device biometrics:** the operating system handles the local prompt. The
   app stores a profile indicator, not biometric data.
 

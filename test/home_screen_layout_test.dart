@@ -12,12 +12,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:scholar_wallet/models/models.dart';
 import 'package:scholar_wallet/providers/app_state.dart';
 import 'package:scholar_wallet/screens/claims_screen.dart';
+import 'package:scholar_wallet/screens/cashout_screen.dart';
 import 'package:scholar_wallet/screens/home_screen.dart';
 import 'package:scholar_wallet/services/wallet_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/shell_tab_controller.dart';
 import 'package:scholar_wallet/widgets/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'helpers/card_layering_test_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +51,49 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('Home withdraw action wraps its label without changing size',
+      (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final state = _HomeFixtureAppState(_HomeFixtureWallet());
+    for (final size in [const Size(320, 640), const Size(360, 800)]) {
+      tester.view.physicalSize = size;
+      await tester.pumpWidget(_homeApp(state));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Withdraw'), findsOneWidget);
+      expect(find.text('Allowance'), findsOneWidget);
+      expect(find.text('Withdraw Allowance'), findsNothing);
+      expect(find.bySemanticsLabel('Withdraw Allowance'), findsOneWidget);
+
+      final withdrawButton = find.byKey(
+        const ValueKey('home-withdraw-allowance'),
+      );
+      final scanButton = find.ancestor(
+        of: find.text('Scan QR'),
+        matching: find.byType(OutlinedButton),
+      );
+      expect(withdrawButton, findsOneWidget);
+      expect(scanButton, findsOneWidget);
+      final withdrawSize = tester.getSize(withdrawButton);
+      final scanSize = tester.getSize(scanButton);
+      expect(withdrawSize.width, scanSize.width);
+      expect(withdrawSize.height, scanSize.height);
+      expect(withdrawSize.height, 56);
+      expect(tester.takeException(), isNull);
+    }
+
+    await tester.tap(find.byKey(const ValueKey('home-withdraw-allowance')));
+    await tester.pumpAndSettle();
+    expect(find.byType(CashoutScreen), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
   testWidgets('Home balance card fits a large balance on a narrow screen',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
@@ -69,6 +114,10 @@ void main() {
     expect(amount, findsOneWidget);
     expect(find.text('Money received and verified by QR'), findsOneWidget);
     final hero = find.byType(CardDecorShapes).first;
+    final heroCard =
+        find.ancestor(of: label, matching: find.byType(AppCard)).first;
+    expectNoForegroundPaint(tester, heroCard);
+    expectCardDecorShapesLayeredBehindContent(tester, heroCard);
     final labelLeft = tester.getTopLeft(label).dx;
     expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
     expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
@@ -387,6 +436,8 @@ void main() {
             matching: find.byType(CardDecorShapes),
           )
           .first;
+      expectNoForegroundPaint(tester, hero);
+      expectCardDecorShapesLayeredBehindContent(tester, hero);
       expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
       expect(tester.getTopLeft(summaryAmount).dx, closeTo(labelLeft, 1));
       expect(tester.getTopLeft(summaryPill).dx, closeTo(labelLeft, 1));
@@ -565,7 +616,9 @@ Widget _homeApp(AppState state) {
 void _expectCompactHome(WidgetTester tester) {
   expect(find.text('CURRENT BALANCE'), findsOneWidget);
   _expectDecorShapeRadius(tester);
-  expect(find.text('Cash Out'), findsOneWidget);
+  expect(find.text('Withdraw'), findsOneWidget);
+  expect(find.text('Allowance'), findsOneWidget);
+  expect(find.bySemanticsLabel('Withdraw Allowance'), findsOneWidget);
   expect(find.text('Simulated'), findsNothing);
   final balanceCard = find
       .ancestor(

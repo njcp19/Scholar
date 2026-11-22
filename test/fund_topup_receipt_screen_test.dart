@@ -41,7 +41,7 @@ void main() {
     await tester.pump();
     final scrollable = find.byType(Scrollable).first;
 
-    expect(find.text('Top up successful'), findsOneWidget);
+    expect(find.text('Funds allocated'), findsOneWidget);
     expect(find.byType(ReceiptHeroCard), findsOneWidget);
     expect(find.byType(CardDecorShapes), findsOneWidget);
     expect(find.bySemanticsLabel('PHP 5,000.00'), findsOneWidget);
@@ -118,7 +118,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Funding account'), findsOneWidget);
-    expect(find.text('Top up successful'), findsNothing);
+    expect(find.text('Funds allocated'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

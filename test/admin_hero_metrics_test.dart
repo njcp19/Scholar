@@ -10,6 +10,7 @@ import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/app_icons.dart';
 import 'package:scholar_wallet/widgets/destructive_confirm_dialog.dart';
 import 'package:scholar_wallet/widgets/widgets.dart';
+import 'helpers/card_layering_test_utils.dart';
 
 class _AdminHeroWallet implements WalletService {
   final List<AllowanceClaim> payouts;
@@ -190,7 +191,48 @@ void main() {
   });
 
   testWidgets(
-      'Manage Scholars aligns actions and preserves card callbacks at narrow scale',
+      'Manage Scholars delete aligns with switch at multiple card widths',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final wallet = _ManageScholarsWallet([
+      Scholar(
+        id: 'width-alignment-scholar',
+        studentId: 'WIDTH-1',
+        name: 'Width Alignment Scholar',
+        balance: 1000,
+        active: true,
+        verificationStatus: VerificationStatus.approved,
+      ),
+    ]);
+    final state = _AdminHeroState(wallet);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ManageScholarsScreen(), textScale: 1),
+    );
+    await tester.pumpAndSettle();
+
+    for (final width in [360.0, 390.0, 1200.0]) {
+      tester.view.physicalSize = Size(width, 800);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('Receives allowance'),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+
+      expect(find.text('PHP 1,000.00'), findsOneWidget);
+      _expectCardActionRightEdges(tester, 'Receives allowance');
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets(
+      'Manage Scholars centers captions and preserves card callbacks at narrow scale',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
@@ -203,8 +245,16 @@ void main() {
         id: 'alignment-scholar',
         studentId: 'ALIGN-1',
         name: longName,
-        balance: 1234567.89,
+        balance: 1000,
         active: true,
+        verificationStatus: VerificationStatus.approved,
+      ),
+      Scholar(
+        id: 'paused-alignment-scholar',
+        studentId: 'PAUSED-1',
+        name: 'Paused Scholar',
+        balance: 0,
+        active: false,
         verificationStatus: VerificationStatus.approved,
       ),
     ]);
@@ -222,8 +272,28 @@ void main() {
     );
 
     expect(find.text('Receives allowance'), findsOneWidget);
+    expect(find.text('PHP 1,000.00'), findsOneWidget);
+    final amountText = tester.widget<Text>(find.text('PHP 1,000.00'));
+    expect(amountText.maxLines, 1);
+    expect(amountText.overflow, isNot(TextOverflow.ellipsis));
+    _expectToggleCaptionInsideCard(tester, 'Receives allowance');
+    _expectCardActionRightEdges(tester, 'Receives allowance');
     expect(tester.takeException(), isNull);
 
+    await tester.scrollUntilVisible(
+      find.text('Inactive'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Inactive'), findsOneWidget);
+    _expectToggleCaptionInsideCard(tester, 'Inactive');
+    _expectCardActionRightEdges(tester, 'Inactive');
+
+    await tester.scrollUntilVisible(
+      find.text(longName),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
     final switchFinder = find.byType(Switch).first;
     final deleteTarget = find
         .ancestor(
@@ -231,9 +301,11 @@ void main() {
           matching: find.byType(InkWell),
         )
         .first;
+    final activeCaption = tester.getRect(find.text('Receives allowance'));
+    expect(tester.getRect(switchFinder).right, closeTo(activeCaption.right, 1));
     expect(
-      tester.getTopRight(deleteTarget).dx,
-      closeTo(tester.getTopRight(switchFinder).dx, 1),
+      tester.getRect(find.text(longName)).right,
+      lessThanOrEqualTo(activeCaption.left - 8),
     );
     expect(tester.getSize(deleteTarget).height, greaterThanOrEqualTo(44));
 
@@ -319,6 +391,9 @@ void main() {
     expect(find.text('3'), findsOneWidget);
     expect(find.text('1 verified'), findsOneWidget);
     expect(find.text('1 allowance on'), findsOneWidget);
+    final heroCard = find.byType(ManageScholarsHeroCard);
+    expectNoForegroundPaint(tester, heroCard);
+    expectCardDecorShapesLayeredBehindContent(tester, heroCard);
     expect(
       find.text('SCHOLARS (3) · TOGGLE TO CONTROL ALLOWANCE'),
       findsOneWidget,
@@ -419,6 +494,8 @@ void main() {
     final hero = find.byType(CardDecorShapes);
     expect(find.text('TOTAL SCHOLARS'), findsOneWidget);
     expect(find.text('1000'), findsOneWidget);
+    expectNoForegroundPaint(tester, hero);
+    expectCardDecorShapesLayeredBehindContent(tester, hero);
     expect(find.text('0 verified'), findsOneWidget);
     expect(find.text('0 allowance on'), findsOneWidget);
     expect(find.byType(HeroAmountText), findsOneWidget);
@@ -472,6 +549,8 @@ void main() {
     expect(find.text('TOTAL PAID OUT'), findsOneWidget);
     final label = find.text('TOTAL PAID OUT');
     final amount = find.bySemanticsLabel('PHP 1,234,567.89');
+    expectNoForegroundPaint(tester, hero);
+    expectCardDecorShapesLayeredBehindContent(tester, hero);
     final labelLeft = tester.getTopLeft(label).dx;
     expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
     expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
@@ -502,6 +581,49 @@ void main() {
     expect(tester.getSize(received).height, tester.getSize(reserved).height);
     expect(tester.takeException(), isNull);
   });
+}
+
+void _expectToggleCaptionInsideCard(WidgetTester tester, String caption) {
+  final captionFinder = find.text(caption);
+  final cardFinder =
+      find.ancestor(of: captionFinder, matching: find.byType(AppCard)).first;
+  final captionRect = tester.getRect(captionFinder);
+  final cardRect = tester.getRect(cardFinder);
+  final text = tester.widget<Text>(captionFinder);
+
+  expect(captionRect.right, lessThanOrEqualTo(cardRect.right - 8));
+  expect(captionRect.left, greaterThanOrEqualTo(cardRect.left + 8));
+  expect(text.maxLines, 2);
+  expect(text.softWrap, isTrue);
+  expect(text.textAlign, TextAlign.end);
+  expect(text.overflow, TextOverflow.clip);
+  expect(text.style?.fontSize, 11);
+}
+
+void _expectCardActionRightEdges(WidgetTester tester, String caption) {
+  final card = find
+      .ancestor(
+        of: find.text(caption),
+        matching: find.byType(AppCard),
+      )
+      .first;
+  final switchRect = tester.getRect(
+    find.descendant(of: card, matching: find.byType(Switch)),
+  );
+  final deleteLabel = find.descendant(of: card, matching: find.text('Delete'));
+  final deleteButton = find.ancestor(
+    of: deleteLabel,
+    matching: find.byType(InkWell),
+  );
+  final deleteVisual = find.ancestor(
+    of: deleteLabel,
+    matching: find.byType(Ink),
+  );
+  final cardRect = tester.getRect(card);
+  expect(switchRect.right, closeTo(tester.getRect(deleteButton).right, 1));
+  expect(switchRect.right, closeTo(tester.getRect(deleteVisual).right, 1));
+  expect(switchRect.right, closeTo(cardRect.right - 16, 1));
+  expect(switchRect.height, greaterThanOrEqualTo(48));
 }
 
 Widget _app(

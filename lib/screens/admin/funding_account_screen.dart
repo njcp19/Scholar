@@ -234,7 +234,8 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
                 child: PrimaryButton(
-                  label: _account == null ? 'Link bank account' : 'Top up fund',
+                  label:
+                      _account == null ? 'Link bank account' : 'Allocate Funds',
                   icon: _account == null ? AppIcons.link : AppIcons.plus,
                   loading: _refreshingTopUp,
                   loadingLabel: 'Updating fund',
@@ -682,7 +683,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     switch (entry.kind) {
       case FundEntryKind.topup:
         return _FundActivityPresentation(
-          title: 'Fund top-up',
+          title: 'Allocate Funds',
           icon: AppIcons.arrowDown,
           tileColor: colors.successBg,
           iconColor: colors.successText,
@@ -726,7 +727,10 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     final colors = context.colors;
     final note = entry.note?.trim();
     final date = DateFormat('MMM d, yyyy · h:mm a').format(entry.createdAt);
-    final subtitle = note == null || note.isEmpty ? date : '$note · $date';
+    final displayNote = note == null || note.isEmpty
+        ? null
+        : displayWalletTransactionDetails(note);
+    final subtitle = displayNote == null ? date : '$displayNote · $date';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
@@ -1080,7 +1084,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
         : '';
 
     return AppBottomSheet(
-      title: 'Top up fund',
+      title: 'Allocate Funds',
       radius: 28,
       showDragHandle: true,
       dragHandleSize: const Size(44, 5),
@@ -1089,7 +1093,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Top up fund',
+            'Allocate Funds',
             style: TextStyle(
               color: colors.textPrimary,
               fontSize: 20,
@@ -1247,8 +1251,6 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          const PrototypeNotice(message: prototypeCashOutNotice),
           if (_topUpError != null) ...[
             const SizedBox(height: 12),
             InfoBanner(
@@ -1262,10 +1264,10 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ],
           const SizedBox(height: 18),
           PrimaryButton(
-            label: 'Top up PHP ${fmtPhp(amount)}',
+            label: 'Allocate PHP ${fmtPhp(amount)}',
             icon: AppIcons.plus,
             loading: _busy,
-            loadingLabel: 'Topping up fund',
+            loadingLabel: 'Allocating funds',
             minHeight: 56,
             borderRadius: 18,
             onPressed: _isValid && !_busy ? _topUp : null,

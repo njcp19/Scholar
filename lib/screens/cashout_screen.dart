@@ -105,7 +105,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       return true;
     } catch (_) {
       if (mounted && !silent) {
-        showMsg(context, 'Could not load Cash Out details.', error: true);
+        showMsg(context, 'Could not load allowance details.', error: true);
       }
       return false;
     } finally {
@@ -161,7 +161,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
     if (amount == null || amount < WalletService.minCashout) {
       showMsg(
         context,
-        'Minimum Cash Out is PHP ${fmtPhp(WalletService.minCashout)}.',
+        'Minimum amount to withdraw is PHP ${fmtPhp(WalletService.minCashout)}.',
         error: true,
       );
       return;
@@ -178,7 +178,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => AppBottomSheet(
-        title: 'Review Cash Out',
+        title: 'Review Withdraw Allowance',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -240,8 +240,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
         );
         if (!mounted || !state.fingerprintRegistered) return;
       }
-      final verified = await state
-          .verifyFingerprint('Confirm Cash Out: PHP ${fmtPhp(amount)}');
+      final verified = await state.verifyFingerprint(
+          'Confirm Withdraw Allowance: PHP ${fmtPhp(amount)}');
       if (!mounted) return;
       if (!verified) {
         throw WalletException('Biometrics not verified. Nothing was deducted.');
@@ -256,7 +256,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       final historyLoaded = await _load(silent: true);
       if (mounted) {
         setState(() => _showSuccessAnimation = true);
-        showMsg(context, 'Cash Out completed.');
+        showMsg(context, 'Allowance withdrawn.');
       }
       await Future<void>.delayed(const Duration(seconds: 2));
       if (!mounted) return;
@@ -273,7 +273,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       if (mounted) {
         showMsg(
           context,
-          'Could not complete the Cash Out. Please try again.',
+          'Could not complete the allowance transfer. Please try again.',
           error: true,
         );
       }
@@ -281,7 +281,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
       if (mounted) {
         showMsg(
           context,
-          'Could not confirm the Cash Out result. Check your Cash Out history, then retry with the same amount and account.',
+          'Could not confirm the result. Check your allowance history, then retry with the same amount and account.',
           error: true,
         );
       }
@@ -598,7 +598,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
   String? _amountError(double? amount, double balance) {
     if (_amount.text.trim().isEmpty) return null;
     if (amount == null || amount < WalletService.minCashout) {
-      return 'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.';
+      return 'Minimum amount to withdraw is PHP ${fmtPhp(WalletService.minCashout)}.';
     }
     if (amount > balance) return 'Amount is more than your balance.';
     return null;
@@ -610,10 +610,10 @@ class _CashoutScreenState extends State<CashoutScreen> {
     required String? error,
   }) {
     if (_accounts.isEmpty) {
-      return 'Link an account and receive an allowance to cash out.';
+      return 'Link an account to withdraw your allowance.';
     }
     if (balance < WalletService.minCashout) {
-      return 'Receive an allowance of at least PHP ${fmtPhp(WalletService.minCashout)} to cash out.';
+      return 'Receive an allowance of at least PHP ${fmtPhp(WalletService.minCashout)} to withdraw.';
     }
     if (amount == null) {
       return 'Enter an amount of at least PHP ${fmtPhp(WalletService.minCashout)} to continue.';
@@ -645,7 +645,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'No cash-outs yet',
+                  'No allowance activity yet',
                   style: TextStyle(
                     color: context.colors.textPrimary,
                     fontWeight: FontWeight.w800,
@@ -653,7 +653,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Your cash-outs will show up here',
+                  'Your allowance activity will show up here',
                   style: TextStyle(
                     color: context.colors.textBody,
                     fontSize: 13,
@@ -876,7 +876,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
         leadingWidth: 70,
         leading: _roundBackButton(),
         title: Text(
-          'Cash Out',
+          'Withdraw Allowance',
           style: TextStyle(
             color: context.colors.textPrimary,
             fontSize: 17,
@@ -901,10 +901,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   else ...[
                     _balanceHero(state.balance),
                     const SizedBox(height: 16),
-                    const PrototypeNotice(message: prototypeCashOutNotice),
-                    const SizedBox(height: 22),
                     SectionLabel(
-                      'CASH OUT TO',
+                      'WITHDRAW TO',
                       trailing: TextButton(
                         onPressed: _manageAccounts,
                         style: TextButton.styleFrom(
@@ -933,7 +931,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                     ),
                     const SizedBox(height: 16),
                     PrimaryButton(
-                      label: 'Review and Cash Out',
+                      label: 'Review and Withdraw',
                       icon: AppIcons.arrowUpRight,
                       onPressed: canSubmit ? _submit : null,
                       loading: _busy,
@@ -955,7 +953,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    SectionLabel('MY CASH-OUTS (${_history.length})'),
+                    SectionLabel('ALLOWANCE HISTORY (${_history.length})'),
                     const SizedBox(height: 10),
                     if (_history.isEmpty)
                       _emptyHistoryCard()
@@ -1039,7 +1037,6 @@ class CashoutBalanceHeroCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -1055,15 +1052,25 @@ class CashoutBalanceHeroCard extends StatelessWidget {
             CardDecorShapes(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
-              circleSize: 115,
-              blobSize: 125,
+              circleSize: 55,
+              blobSize: 62,
               circleOpacity: .12,
               blobOpacity: .12,
+              child: const SizedBox(
+                width: double.infinity,
+                height: 110,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'AVAILABLE BALANCE',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
                     style: TextStyle(
                       color: context.colors.balanceHeroText,
                       fontSize: 13,
@@ -1072,10 +1079,42 @@ class CashoutBalanceHeroCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  HeroAmountText(
-                    prefix: 'PHP ',
-                    amount: fmtPhp(balance),
-                    color: context.colors.balanceHeroText,
+                  Padding(
+                    padding: const EdgeInsets.only(right: 44),
+                    child: Semantics(
+                      container: true,
+                      label: 'PHP ${fmtPhp(balance)}',
+                      excludeSemantics: true,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            'PHP',
+                            style: CardNumberStyles.heroPrefix.copyWith(
+                              color: context.colors.balanceHeroText
+                                  .withValues(alpha: .9),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                fmtPhp(balance),
+                                maxLines: 1,
+                                softWrap: false,
+                                textAlign: TextAlign.left,
+                                style: CardNumberStyles.hero.copyWith(
+                                  color: context.colors.balanceHeroText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

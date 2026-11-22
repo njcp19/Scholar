@@ -209,7 +209,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  transaction.title,
+                  displayWalletTransactionTitle(transaction.title),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -228,10 +228,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     fontSize: 12,
                   ),
                 ),
-                if (transaction.subtitle.trim().isNotEmpty) ...[
+                if (displayWalletTransactionDetails(transaction.subtitle.trim())
+                    .isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
-                    transaction.subtitle.trim(),
+                    displayWalletTransactionDetails(
+                      transaction.subtitle.trim(),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -376,7 +379,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             VerticalDivider(width: 1, color: context.colors.borderSoft),
             Expanded(
               child: _summaryHalf(
-                label: 'Cashed out',
+                label: 'Withdrawn',
                 total: debits,
                 credit: false,
               ),
@@ -591,7 +594,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   const SizedBox(width: 10),
                   Expanded(child: _filterChip('Received', _Filter.credit)),
                   const SizedBox(width: 10),
-                  Expanded(child: _filterChip('Cashed out', _Filter.debit)),
+                  Expanded(child: _filterChip('Withdrawn', _Filter.debit)),
                 ],
               ),
             ),
@@ -624,7 +627,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           _emptyCard(
                             title: 'No transactions yet',
                             message:
-                                'Your allowance and cash-outs will appear here.',
+                                'Your allowance activity will appear here.',
                             noTransactions: true,
                           )
                         else if (_all.isNotEmpty && filtered.isEmpty)

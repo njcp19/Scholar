@@ -8,6 +8,7 @@ import 'package:scholar_wallet/screens/fingerprint_screen.dart';
 import 'package:scholar_wallet/services/biometric_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/widgets.dart';
+import 'helpers/card_layering_test_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -54,17 +55,8 @@ void main() {
       find.descendant(of: decorFinder, matching: find.byType(ClipRRect)),
     );
     expect(clip.borderRadius, BorderRadius.circular(28));
-    final decorStack = tester.widget<Stack>(
-      find.descendant(of: decorFinder, matching: find.byType(Stack)),
-    );
-    expect(decorStack.children.length, 3);
-    for (final shape in decorStack.children.take(2)) {
-      expect(shape, isA<Positioned>());
-      final positioned = shape as Positioned;
-      expect(positioned.left, isNull);
-      expect(positioned.right, isNotNull);
-      expect(positioned.child, isA<IgnorePointer>());
-    }
+    expectNoForegroundPaint(tester, decorFinder);
+    expectCardDecorShapesLayeredBehindContent(tester, decorFinder);
 
     for (final step in [
       'Confirm with device biometrics',

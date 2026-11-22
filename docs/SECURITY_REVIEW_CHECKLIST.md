@@ -2,11 +2,12 @@
 
 ## Important current limitation
 
-Migration 001 masks existing linked-account and Cash Out account snapshots to
+Migration 001 masks existing linked-account and Withdraw Allowance account snapshots to
 the last four digits, and its RPCs store only those digits. The base setup and
 migrations are applied manually, so verify that migration 001 has been applied
-to the target database. Account details are not bank-verified, and Cash Out is
-simulated. Use fictional test account data only.
+to the target database. Account details are not bank-verified, and Withdraw
+Allowance is simulated; no real money moves. Use fictional test account data
+only.
 
 Do not collect real bank, GCash, or Maya account numbers until a reviewed design is in place. Do not collect online banking passwords, PINs, or OTPs at any stage.
 
@@ -16,8 +17,8 @@ Do not collect real bank, GCash, or Maya account numbers until a reviewed design
 - If a business requirement truly requires storing account data, define an approved encryption/key-management and retention design before collecting it. Do not put encryption keys in Flutter or ordinary database rows.
 - Restrict read/write access with verified-user ownership policies and server-side authorization.
 - Review every SECURITY DEFINER function for explicit role/ownership checks and a fixed safe search_path.
-- Ensure Cash Out history is labeled simulated and cannot be mistaken for a
-  bank-confirmed transfer.
+- Ensure Withdraw Allowance history is labeled simulated and cannot be mistaken
+  for a bank-confirmed transfer.
 - Remove or securely dispose of any real account details entered during testing, following the project's data-retention policy.
 
 ## Development checklist
@@ -25,7 +26,7 @@ Do not collect real bank, GCash, or Maya account numbers until a reviewed design
 - [ ] Review Supabase RLS policies for profiles, transactions, linked_accounts, withdrawals, funding_accounts, allowance_claims, and registration_reviews.
 - [ ] Review all RPC grants and SECURITY DEFINER function bodies.
 - [ ] Confirm Firebase JWT verification and Supabase user identity mapping.
-- [ ] Add automated tests for ownership, role boundaries, duplicate claims, and duplicate withdrawal requests.
+- [ ] Add automated tests for ownership, role boundaries, duplicate payout confirmations, and duplicate allowance requests.
 - [ ] Apply migration 006 and verify that role changes and admin deletion are
       blocked without transaction-local `app.allow_role_change = 'on'`, and
       that `profile_role_audit` is readable only by the database owner.

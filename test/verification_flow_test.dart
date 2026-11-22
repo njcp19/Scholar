@@ -304,6 +304,34 @@ void main() {
     expect(find.textContaining('Then: Payout QR'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('inactive approved scholar sees inactive payout access',
+      (tester) async {
+    final state = _VerificationFixtureAppState(
+      AppUser.fromMap({
+        ...profile(status: 'approved'),
+        'selfie_path': 'student-1/selfie.jpg',
+      }),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const VerificationScreen(),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(
+      find.textContaining('payout access is currently inactive.'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _VerificationFixtureAppState extends ChangeNotifier implements AppState {

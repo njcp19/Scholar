@@ -281,7 +281,7 @@ class _PayoutReceivedScreenState extends State<PayoutReceivedScreen> {
                         child: InfoBanner(
                           icon: AppIcons.creditCard,
                           message:
-                              'Added to your balance. You can cash out to a linked account anytime.',
+                              'Added to your balance. You can withdraw your allowance to a linked account anytime.',
                           maxLines: 3,
                         ),
                       ),

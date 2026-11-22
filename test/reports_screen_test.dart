@@ -6,6 +6,7 @@ import 'package:scholar_wallet/screens/admin/reports_screen.dart';
 import 'package:scholar_wallet/services/wallet_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/widgets.dart';
+import 'helpers/card_layering_test_utils.dart';
 
 class _TestWalletService implements WalletService {
   _TestWalletService({
@@ -148,6 +149,8 @@ void main() {
           matching: find.byType(AppCard),
         )
         .first;
+    expectNoForegroundPaint(tester, summaryCard);
+    expectCardDecorShapesLayeredBehindContent(tester, summaryCard);
     final shapeClip = tester.widget<ClipRRect>(
       find
           .descendant(

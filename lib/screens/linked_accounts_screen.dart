@@ -137,7 +137,17 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
   }
 
   Widget _infoCard() {
-    return const PrototypeNotice(message: prototypeLinkedAccountNotice);
+    return InfoBanner(
+      icon: AppIcons.warning,
+      message: 'Do not enter real account numbers; use test data.',
+      maxLines: 3,
+      backgroundColor: context.colors.warningBg,
+      borderColor: context.colors.warningBorder,
+      iconColor: context.colors.warningText,
+      textColor: context.colors.warningText,
+      borderRadius: 16,
+      overflow: TextOverflow.clip,
+    );
   }
 
   Widget _accountCard(LinkedAccount account) {
@@ -261,7 +271,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
         titleFontSize: 20,
         messageFontSize: 15,
         title: 'No linked accounts yet',
-        message: 'Link an account to receive your cash-outs.',
+        message: 'Link an account for allowance payments.',
       ),
     );
   }
@@ -775,7 +785,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose where your cash-outs will go.',
+            'Choose an account for your allowance payments.',
             style: TextStyle(color: colors.textBody, fontSize: 16),
           ),
         ],

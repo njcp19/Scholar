@@ -53,11 +53,11 @@ class CashoutReceiptScreen extends StatelessWidget {
     final dateTime = withdrawal.processedAt ?? withdrawal.createdAt;
     return ReceiptLayout(
       heading: withdrawal.status == WithdrawalStatus.completed
-          ? 'Cash Out completed'
-          : 'Cash Out status',
+          ? 'Withdraw Allowance completed'
+          : 'Withdraw Allowance status',
       amount: withdrawal.amount,
       dateTime: dateTime,
-      shareSubject: 'Cash Out receipt',
+      shareSubject: 'Withdraw Allowance receipt',
       rows: [
         ReceiptDetailRow(
           label: 'Sent to',
@@ -87,7 +87,7 @@ class CashoutReceiptScreen extends StatelessWidget {
         ),
       ],
       footer:
-          'This receipt confirms your Cash Out was recorded in Scholar Wallet.',
+          'This receipt confirms your Withdraw Allowance request was recorded in Scholar Wallet.',
     );
   }
 }

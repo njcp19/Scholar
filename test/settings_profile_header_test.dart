@@ -14,6 +14,7 @@ import 'package:scholar_wallet/screens/settings_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'helpers/card_layering_test_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +74,10 @@ void main() {
     expect(find.text('AN'), findsOneWidget);
     expect(find.byType(ProfileAvatar), findsOneWidget);
     expect(tester.widget<ProfileAvatar>(find.byType(ProfileAvatar)).size, 52);
+    final hero = find.byType(CardDecorShapes);
+    expect(find.text('Scholar account'), findsOneWidget);
+    expectNoForegroundPaint(tester, hero);
+    expectCardDecorShapesLayeredBehindContent(tester, hero);
     _expectRoundedProfileHeader(tester);
     _expectProfileTextInset(tester, fullName, email);
 
@@ -137,6 +142,10 @@ void main() {
     expect(find.text('Administrator'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile_hero_avatar')), findsOneWidget);
     expect(find.text('AN'), findsOneWidget);
+    final hero = find.byType(CardDecorShapes);
+    expect(find.text('Administrator account'), findsOneWidget);
+    expectNoForegroundPaint(tester, hero);
+    expectCardDecorShapesLayeredBehindContent(tester, hero);
     _expectRoundedProfileHeader(tester);
     _expectProfileTextInset(tester, fullName, email);
     expect(tester.takeException(), isNull);

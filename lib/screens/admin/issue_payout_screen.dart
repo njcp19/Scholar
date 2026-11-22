@@ -31,6 +31,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   bool _fundingAccountLoaded = false;
   bool _loading = true;
   bool _busy = false;
+  bool _generating = false;
 
   @override
   void initState() {
@@ -104,6 +105,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }
 
   Future<void> _generate() async {
+    if (_generating) return;
     final state = context.read<AppState>();
     final selected = _scholars.where((s) => s.selected).toList();
     if (selected.isEmpty) {
@@ -115,37 +117,38 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       showMsg(context, 'Select a distribution date.', error: true);
       return;
     }
-    // FR-29: the admin confirms the disbursement with the device biometric
-    // prompt before any QR is generated or any amount is reserved.
-    if (!state.fingerprintRegistered) {
-      await Navigator.push(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const FingerprintScreen(required: true)));
-      if (!mounted || !state.fingerprintRegistered) return;
-    }
-    final selectedCount = selected.length;
-    final total = selectedCount * state.allowance.allowanceAmount;
-    final scholarWord = selectedCount == 1 ? 'scholar' : 'scholars';
-    final confirmationMessage =
-        'Disburse PHP ${fmtPhp(total)} to $selectedCount $scholarWord?';
-    final confirmed = await _confirmDisbursement(
-      selectedCount: selectedCount,
-      total: total,
-      amountPerScholar: state.allowance.allowanceAmount,
-      batchTitle: _batchTitle.text.trim(),
-      confirmationMessage: confirmationMessage,
-    );
-    if (!confirmed || !mounted) return;
-    final verified = await state.verifyFingerprint(confirmationMessage);
-    if (!mounted) return;
-    if (!verified) {
-      showMsg(context, 'Biometrics not verified. No payout was issued.',
-          error: true);
-      return;
-    }
-    setState(() => _busy = true);
+    setState(() => _generating = true);
     try {
+      // FR-29: the admin confirms the disbursement with the device biometric
+      // prompt before any QR is generated or any amount is reserved.
+      if (!state.fingerprintRegistered) {
+        await Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (_) => const FingerprintScreen(required: true)));
+        if (!mounted || !state.fingerprintRegistered) return;
+      }
+      final selectedCount = selected.length;
+      final total = selectedCount * state.allowance.allowanceAmount;
+      final scholarWord = selectedCount == 1 ? 'scholar' : 'scholars';
+      final confirmationMessage =
+          'Disburse PHP ${fmtPhp(total)} to $selectedCount $scholarWord?';
+      final confirmed = await _confirmDisbursement(
+        selectedCount: selectedCount,
+        total: total,
+        amountPerScholar: state.allowance.allowanceAmount,
+        batchTitle: _batchTitle.text.trim(),
+        confirmationMessage: confirmationMessage,
+      );
+      if (!confirmed || !mounted) return;
+      final verified = await state.verifyFingerprint(confirmationMessage);
+      if (!mounted) return;
+      if (!verified) {
+        showMsg(context, 'Biometrics not verified. No payout was issued.',
+            error: true);
+        return;
+      }
+      setState(() => _busy = true);
       final claims = await state.wallet.generatePayoutBatch(
         batchTitle: _batchTitle.text.trim(),
         recipients: selected,
@@ -165,10 +168,18 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   distributionDate: distributionDate,
                 )),
       );
-    } catch (e) {
-      if (mounted) showMsg(context, 'Failed: $e', error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not issue the Payout. Please try again.',
+            error: true);
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          _busy = false;
+          _generating = false;
+        });
+      }
     }
   }
 
@@ -195,7 +206,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       ),
       builder: (sheetContext) => AppBottomSheet(
         title: 'Confirm disbursement',
-        radius: 32,
+        radius: 28,
         contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 30),
         showDragHandle: true,
         dragHandleSize: const Size(44, 5),
@@ -319,141 +330,17 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }
 
   Widget _amountCard(AppState state) {
-    final colors = context.colors;
-    return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-      radius: 26,
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [colors.balanceHeroStart, colors.balanceHeroEnd],
-      ),
-      borderColor: colors.balanceHeroStart,
-      borderWidth: 0,
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -98,
-            right: -54,
-            child: Container(
-              width: 180,
-              height: 180,
-              decoration: BoxDecoration(
-                color: colors.onHeader.withValues(alpha: .13),
-                shape: BoxShape.circle,
-              ),
-            ),
+    return IssuePayoutAmountCard(
+      amount: state.allowance.allowanceAmount,
+      onChangeStandardAmount: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const AllowanceSettingsScreen(),
           ),
-          Positioned(
-            top: -72,
-            right: 30,
-            child: Container(
-              width: 150,
-              height: 150,
-              decoration: BoxDecoration(
-                color: colors.onHeader.withValues(alpha: .1),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AMOUNT PER SCHOLAR (FIXED)',
-                style: TextStyle(
-                  color: colors.balanceHeroText,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    'PHP',
-                    style: TextStyle(
-                      color: colors.balanceHeroText,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        fmtPhp(state.allowance.allowanceAmount),
-                        maxLines: 1,
-                        style: TextStyle(
-                          color: colors.balanceHeroText,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -.8,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Set once for everybody. Every selected scholar gets exactly this amount.',
-                style: TextStyle(
-                  color: colors.balanceHeroText,
-                  fontSize: 12,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Material(
-                color: colors.onHeader.withValues(alpha: .5),
-                borderRadius: BorderRadius.circular(18),
-                child: InkWell(
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const AllowanceSettingsScreen(),
-                      ),
-                    );
-                    _load();
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          AppIcons.sliders,
-                          size: 16,
-                          color: colors.balanceHeroText,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Change standard amount',
-                          style: TextStyle(
-                            color: colors.balanceHeroText,
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+        _load();
+      },
     );
   }
 
@@ -465,7 +352,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   }) {
     final colors = context.colors;
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(
         color: focused ? colors.brand : colors.border,
         width: focused ? 2 : 1,
@@ -519,8 +406,8 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     final scholarLabel =
         '$selectedCount ${selectedCount == 1 ? 'scholar' : 'scholars'} selected';
     return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      radius: 18,
+      padding: const EdgeInsets.all(16),
+      radius: 22,
       backgroundColor: colors.brandTint,
       borderColor: colors.brandTint,
       borderWidth: 0,
@@ -555,7 +442,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       child: Row(
         children: [
           Container(
@@ -717,51 +604,11 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   Widget _fundStatusBanner({
     required bool enoughFunds,
     required double shortfall,
-  }) {
-    final colors = context.colors;
-    final message = enoughFunds
-        ? 'Enough funds for this payout.'
-        : 'Not enough funds. Top up at least PHP ${fmtPhp(shortfall)} '
-            'to continue.';
-    final leading = Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: enoughFunds ? colors.success : colors.dangerText,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Icon(
-        enoughFunds ? AppIcons.check : AppIcons.warning,
-        color: colors.onHeader,
-        size: 22,
-      ),
-    );
-    final banner = InfoBanner(
-      icon: enoughFunds ? AppIcons.check : AppIcons.warning,
-      message: message,
-      leading: leading,
-      maxLines: 3,
-      backgroundColor: enoughFunds ? colors.successBg : Colors.transparent,
-      iconColor: enoughFunds ? colors.successText : colors.dangerText,
-      textColor: enoughFunds ? colors.successText : colors.dangerText,
-      borderRadius: 18,
-      padding: const EdgeInsets.all(16),
-      fontSize: 13.5,
-    );
-
-    if (enoughFunds) return banner;
-    return Semantics(
-      liveRegion: true,
-      child: AppCard(
-        radius: 18,
-        padding: EdgeInsets.zero,
-        backgroundColor: colors.dangerBg,
-        borderColor: colors.danger.withValues(alpha: .35),
-        child: banner,
-      ),
-    );
-  }
+  }) =>
+      IssuePayoutFundStatusBanner(
+        enoughFunds: enoughFunds,
+        shortfall: shortfall,
+      );
 
   Widget _loadingSkeleton() {
     Widget block(double height, {double radius = 16}) => Container(
@@ -778,7 +625,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
         children: [
-          block(206, radius: 26),
+          block(206, radius: 28),
           const SizedBox(height: 20),
           block(72),
           const SizedBox(height: 16),
@@ -823,9 +670,9 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(
@@ -900,7 +747,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   PrimaryButton(
                     label: 'Link bank account',
                     icon: AppIcons.link,
-                    minHeight: 54,
+                    minHeight: 56,
                     borderRadius: 18,
                     onPressed: _openFundingAccount,
                   ),
@@ -1009,18 +856,19 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 if (insufficientFunds) ...[
                   const SizedBox(height: 12),
                   SecondaryButton(
-                    label: 'Top up fund',
+                    label: 'Allocate Funds',
                     onPressed: _openFundingAccount,
-                    minHeight: 54,
+                    minHeight: 52,
                     borderRadius: 18,
                   ),
                 ],
                 const SizedBox(height: 18),
                 PrimaryButton(
                   label: 'Generate QR Codes',
-                  onPressed: _busy || fundingAccountMissing || insufficientFunds
-                      ? null
-                      : _generate,
+                  onPressed:
+                      _generating || fundingAccountMissing || insufficientFunds
+                          ? null
+                          : _generate,
                   icon: AppIcons.qrCode,
                   loading: _busy,
                   loadingLabel: 'Generate QR Codes',
@@ -1034,7 +882,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 Text(
                   'Generating reserves the amount for each selected scholar. '
                   'The money is only released once the scholar scans their QR '
-                  'code and verifies their fingerprint.',
+                  'code and verifies with device biometrics.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: colors.textBody,
@@ -1064,8 +912,8 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       child: ListRowCard(
         onTap: () => setState(() => s.selected = !s.selected),
         minHeight: 68,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        radius: 18,
+        padding: const EdgeInsets.all(16),
+        radius: 22,
         backgroundColor: colors.surface,
         borderColor: s.selected ? colors.brand : colors.border,
         borderWidth: s.selected ? 2 : 1,
@@ -1132,8 +980,8 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
             const SizedBox(width: 8),
             Tooltip(
               message: s.fingerprintRegistered
-                  ? 'Fingerprint registered'
-                  : 'Fingerprint not registered',
+                  ? 'Device biometrics registered'
+                  : 'Device biometrics not registered',
               child: Icon(
                 AppIcons.fingerprint,
                 size: 18,
@@ -1157,6 +1005,196 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
       );
 }
 
+class IssuePayoutFundStatusBanner extends StatelessWidget {
+  final bool enoughFunds;
+  final double shortfall;
+
+  const IssuePayoutFundStatusBanner({
+    super.key,
+    required this.enoughFunds,
+    required this.shortfall,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final message = enoughFunds
+        ? 'Enough funds for this payout.'
+        : 'Not enough funds. Allocate at least PHP ${fmtPhp(shortfall)} '
+            'to continue.';
+    final leading = Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        color: enoughFunds ? colors.success : colors.dangerText,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        enoughFunds ? AppIcons.check : AppIcons.warning,
+        color: colors.onHeader,
+        size: 15,
+      ),
+    );
+    final banner = Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: enoughFunds ? colors.successBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Center(
+        heightFactor: 1,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            leading,
+            const SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                message,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.clip,
+                style: TextStyle(
+                  color: enoughFunds ? colors.successText : colors.dangerText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  height: 1.1,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (enoughFunds) return banner;
+    return Semantics(
+      liveRegion: true,
+      child: AppCard(
+        radius: 14,
+        padding: EdgeInsets.zero,
+        backgroundColor: colors.dangerBg,
+        borderColor: colors.danger.withValues(alpha: .35),
+        child: banner,
+      ),
+    );
+  }
+}
+
+class IssuePayoutAmountCard extends StatelessWidget {
+  final double amount;
+  final VoidCallback onChangeStandardAmount;
+
+  const IssuePayoutAmountCard({
+    super.key,
+    required this.amount,
+    required this.onChangeStandardAmount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+      radius: 28,
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [colors.balanceHeroStart, colors.balanceHeroEnd],
+      ),
+      borderColor: colors.balanceHeroStart,
+      borderWidth: 0,
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          CardDecorShapes(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+            circleOpacity: .12,
+            blobOpacity: .12,
+            circleSize: 45,
+            blobSize: 38,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AMOUNT PER SCHOLAR (FIXED)',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.balanceHeroText,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  HeroAmountText(
+                    prefix: 'PHP ',
+                    amount: fmtPhp(amount),
+                    color: colors.balanceHeroText,
+                    letterSpacing: -.8,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Set once for everybody. Every selected scholar gets exactly this amount.',
+                    style: TextStyle(
+                      color: colors.balanceHeroText,
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Material(
+                    color: colors.onHeader.withValues(alpha: .5),
+                    borderRadius: BorderRadius.circular(18),
+                    child: InkWell(
+                      onTap: onChangeStandardAmount,
+                      borderRadius: BorderRadius.circular(18),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 9,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              AppIcons.sliders,
+                              size: 16,
+                              color: colors.balanceHeroText,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Change standard amount',
+                                style: TextStyle(
+                                  color: colors.balanceHeroText,
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Shows the freshly generated single-use QR codes, one card per scholar.
 class _QrSheetScreen extends StatelessWidget {
   final List<AllowanceClaim> claims;
@@ -1172,7 +1210,7 @@ class _QrSheetScreen extends StatelessWidget {
     final colors = context.colors;
     return AppCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 22,
       shadow: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1233,7 +1271,7 @@ class _QrSheetScreen extends StatelessWidget {
                 aspectRatio: 1,
                 child: AppCard(
                   padding: EdgeInsets.zero,
-                  radius: 20,
+                  radius: 22,
                   backgroundColor: colors.qrFrame,
                   borderColor: colors.border,
                   child: Center(
@@ -1273,9 +1311,9 @@ class _QrSheetScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(

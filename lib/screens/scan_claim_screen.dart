@@ -174,8 +174,14 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
         ),
         result: true,
       );
-    } on WalletException catch (e) {
-      if (mounted) showMsg(context, e.message, error: true);
+    } on WalletException {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not receive this Payout. Refresh My Payouts and try again.',
+          error: true,
+        );
+      }
     } catch (_) {
       if (mounted) {
         showMsg(context,
@@ -407,11 +413,6 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
-    final screenSize = MediaQuery.sizeOf(context);
-    final frameSize = (screenSize.width - 40).clamp(0.0, 260.0).toDouble();
-    final buttonHeight = (MediaQuery.textScalerOf(context).scale(14) + 32)
-        .clamp(56.0, 96.0)
-        .toDouble();
     final torchAvailable =
         _cameraReady && _controller.value.torchState != TorchState.unavailable;
 
@@ -432,228 +433,320 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
           ),
           child: SafeArea(
             child: ContentWidth(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final contentWidth = constraints.maxWidth;
-                  final frame = frameSize > contentWidth - 40
-                      ? (contentWidth - 40).clamp(0.0, 260.0).toDouble()
-                      : frameSize;
-                  return Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: SizedBox(
-                          height: 54,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Text(
-                                'Scan QR',
-                                style: TextStyle(
-                                  color: context.colors.onHeader,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: _RoundScanBarButton(
-                                  tooltip: 'Back',
-                                  icon: AppIcons.back,
-                                  onPressed: () => Navigator.maybePop(context),
-                                ),
-                              ),
-                              if (torchAvailable)
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: _RoundScanBarButton(
-                                    tooltip: _controller.value.torchState ==
-                                            TorchState.on
-                                        ? 'Turn flashlight off'
-                                        : 'Turn flashlight on',
-                                    icon: _controller.value.torchState ==
-                                            TorchState.on
-                                        ? AppIcons.flashlight
-                                        : AppIcons.flashlightOff,
-                                    onPressed: _toggleTorch,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Scan your payout QR',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: context.colors.onHeader,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Hold your phone over the QR code your admin generated for you.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: context.colors.onHeader
-                                      .withValues(alpha: .78),
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Center(child: _scanFrame(context, frame)),
-                              const SizedBox(height: 18),
-                              _statusPill(context),
-                              if (_cameraError) ...[
-                                const SizedBox(height: 14),
-                                InfoBanner(
-                                  icon: AppIcons.cameraOff,
-                                  message:
-                                      'Camera is not available on this device. Enter your payout code or choose a QR image below.',
-                                  backgroundColor: context.colors.dangerBg,
-                                  iconColor: context.colors.dangerText,
-                                  textColor: context.colors.dangerText,
-                                  maxLines: 4,
-                                ),
-                              ],
-                              if (_message != null) ...[
-                                const SizedBox(height: 12),
-                                InfoBanner(
-                                  icon: AppIcons.error,
-                                  message: _message!,
-                                  backgroundColor: context.colors.dangerBg,
-                                  iconColor: context.colors.dangerText,
-                                  textColor: context.colors.dangerText,
-                                  maxLines: 4,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxHeight: constraints.maxHeight * .42,
-                        ),
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                          child: AppCard(
-                            radius: 26,
-                            shadow: true,
-                            padding: const EdgeInsets.all(18),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Tooltip(
-                                  message: state.fingerprintRegistered
-                                      ? 'Device biometrics settings'
-                                      : 'Set up device biometrics',
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(14),
-                                    onTap: _openBiometricSetup,
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 2,
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 52,
-                                            height: 52,
-                                            decoration: BoxDecoration(
-                                              color: context.colors.goldTint,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                            alignment: Alignment.center,
-                                            child: Icon(
-                                              AppIcons.fingerprint,
-                                              color: context.colors.warningText,
-                                              size: 26,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Device biometrics confirm the payout',
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color: context
-                                                        .colors.textPrimary,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w800,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 3),
-                                                Text(
-                                                  "You'll be asked right after scanning",
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color:
-                                                        context.colors.textBody,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: SecondaryButton(
-                                        label: 'From gallery',
-                                        icon: AppIcons.image,
-                                        onPressed:
-                                            _handling ? null : _pickFromGallery,
-                                        minHeight: buttonHeight,
-                                        borderRadius: 18,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: PrimaryButton(
-                                        label: 'Enter code',
-                                        icon: AppIcons.keyboard,
-                                        onPressed:
-                                            _handling ? null : _manualEntry,
-                                        minHeight: buttonHeight,
-                                        borderRadius: 18,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: SizedBox(
+                      height: 54,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Text(
+                            'Scan QR',
+                            style: TextStyle(
+                              color: context.colors.onHeader,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                        ),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: _RoundScanBarButton(
+                              tooltip: 'Back',
+                              icon: AppIcons.back,
+                              onPressed: () => Navigator.maybePop(context),
+                            ),
+                          ),
+                          if (torchAvailable)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: _RoundScanBarButton(
+                                tooltip: _controller.value.torchState ==
+                                        TorchState.on
+                                    ? 'Turn flashlight off'
+                                    : 'Turn flashlight on',
+                                icon: _controller.value.torchState ==
+                                        TorchState.on
+                                    ? AppIcons.flashlight
+                                    : AppIcons.flashlightOff,
+                                onPressed: _toggleTorch,
+                              ),
+                            ),
+                        ],
                       ),
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final availableWidth = (constraints.maxWidth - 40)
+                                  .clamp(0.0, 260.0)
+                                  .toDouble();
+                              final availableHeight =
+                                  (constraints.maxHeight - 205)
+                                      .clamp(72.0, 260.0)
+                                      .toDouble();
+                              final frame = availableWidth < availableHeight
+                                  ? availableWidth
+                                  : availableHeight;
+                              return SingleChildScrollView(
+                                padding:
+                                    const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      'Scan your payout QR',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: context.colors.onHeader,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Hold your phone over the QR code your admin generated for you.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: context.colors.onHeader
+                                            .withValues(alpha: .78),
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Center(child: _scanFrame(context, frame)),
+                                    const SizedBox(height: 18),
+                                    _statusPill(context),
+                                    if (_cameraError) ...[
+                                      const SizedBox(height: 14),
+                                      InfoBanner(
+                                        icon: AppIcons.cameraOff,
+                                        message:
+                                            'Camera is not available on this device. Enter your payout code or choose a QR image below.',
+                                        backgroundColor:
+                                            context.colors.dangerBg,
+                                        iconColor: context.colors.dangerText,
+                                        textColor: context.colors.dangerText,
+                                        maxLines: 4,
+                                      ),
+                                    ],
+                                    if (_message != null) ...[
+                                      const SizedBox(height: 12),
+                                      InfoBanner(
+                                        icon: AppIcons.error,
+                                        message: _message!,
+                                        backgroundColor:
+                                            context.colors.dangerBg,
+                                        iconColor: context.colors.dangerText,
+                                        textColor: context.colors.dangerText,
+                                        maxLines: 4,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: ScanQrActionCard(
+                            fingerprintRegistered: state.fingerprintRegistered,
+                            onBiometricTap: _openBiometricSetup,
+                            onGalleryPressed:
+                                _handling ? null : _pickFromGallery,
+                            onManualPressed: _handling ? null : _manualEntry,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class ScanQrActionCard extends StatelessWidget {
+  final bool fingerprintRegistered;
+  final VoidCallback onBiometricTap;
+  final VoidCallback? onGalleryPressed;
+  final VoidCallback? onManualPressed;
+
+  const ScanQrActionCard({
+    super.key,
+    required this.fingerprintRegistered,
+    required this.onBiometricTap,
+    required this.onGalleryPressed,
+    required this.onManualPressed,
+  });
+
+  Widget _actionButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    required bool primary,
+  }) {
+    final colors = context.colors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final foreground = primary ? colors.onHeader : colors.textPrimary;
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(18),
+    );
+    final content = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, size: primary ? 24 : 18, color: foreground),
+        const SizedBox(width: 8),
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    return SizedBox(
+      height: 48,
+      width: double.infinity,
+      child: primary
+          ? ElevatedButton(
+              onPressed: onPressed,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDark ? colors.header : colors.brand,
+                foregroundColor: foreground,
+                minimumSize: const Size.fromHeight(48),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                elevation: 0,
+                shape: shape,
+              ),
+              child: content,
+            )
+          : OutlinedButton(
+              onPressed: onPressed,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: foreground,
+                side: BorderSide(color: colors.border),
+                minimumSize: const Size.fromHeight(48),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: shape,
+              ),
+              child: content,
+            ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final galleryButton = _actionButton(
+      context,
+      label: 'From gallery',
+      icon: AppIcons.image,
+      onPressed: onGalleryPressed,
+      primary: false,
+    );
+    final manualButton = _actionButton(
+      context,
+      label: 'Enter code',
+      icon: AppIcons.keyboard,
+      onPressed: onManualPressed,
+      primary: true,
+    );
+    final stackActions = MediaQuery.sizeOf(context).width < 440;
+
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Tooltip(
+            message: fingerprintRegistered
+                ? 'Device biometrics settings'
+                : 'Set up device biometrics',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: onBiometricTap,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: context.colors.goldTint,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    alignment: Alignment.center,
+                    child: Icon(
+                      AppIcons.fingerprint,
+                      color: context.colors.warningText,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Device biometrics confirm the payout',
+                          style: TextStyle(
+                            color: context.colors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          "You'll be asked right after scanning",
+                          style: TextStyle(
+                            color: context.colors.textBody,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (stackActions)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                galleryButton,
+                const SizedBox(height: 8),
+                manualButton,
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(child: galleryButton),
+                const SizedBox(width: 12),
+                Expanded(child: manualButton),
+              ],
+            ),
+        ],
       ),
     );
   }

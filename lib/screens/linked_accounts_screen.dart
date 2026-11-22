@@ -138,30 +138,15 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
 
   Widget _infoCard() {
     return InfoBanner(
-      icon: AppIcons.info,
-      message: 'Link the GCash, Maya or bank account that will receive your '
-          'cash-outs. It must be registered in your own name.',
-      maxLines: 8,
-      backgroundColor: context.colors.brandTint,
-      textColor: Theme.of(context).brightness == Brightness.dark
-          ? context.colors.textBody
-          : context.colors.brand,
-      borderRadius: 24,
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      leading: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: context.colors.surface,
-          shape: BoxShape.circle,
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          AppIcons.info,
-          color: context.colors.brand,
-          size: 21,
-        ),
-      ),
+      icon: AppIcons.warning,
+      message: 'Do not enter real account numbers; use test data.',
+      maxLines: 3,
+      backgroundColor: context.colors.warningBg,
+      borderColor: context.colors.warningBorder,
+      iconColor: context.colors.warningText,
+      textColor: context.colors.warningText,
+      borderRadius: 16,
+      overflow: TextOverflow.clip,
     );
   }
 
@@ -169,7 +154,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     final color = _providerColor(account.provider);
     return AppCard(
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 22,
       shadow: true,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -179,7 +164,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
             height: 56,
             decoration: BoxDecoration(
               color: _providerTint(account.provider),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(16),
             ),
             alignment: Alignment.center,
             child: Icon(
@@ -286,7 +271,7 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
         titleFontSize: 20,
         messageFontSize: 15,
         title: 'No linked accounts yet',
-        message: 'Link an account to receive your cash-outs.',
+        message: 'Link an account for allowance payments.',
       ),
     );
   }
@@ -311,13 +296,13 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     return Scaffold(
       backgroundColor: context.colors.background,
       appBar: AppBar(
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 20),
+          padding: const EdgeInsets.only(left: 26),
           child: IconButton(
             onPressed: () => Navigator.maybePop(context),
             style: IconButton.styleFrom(
-              fixedSize: const Size(42, 42),
+              fixedSize: const Size(44, 44),
               padding: EdgeInsets.zero,
               backgroundColor: context.colors.surface,
               foregroundColor: context.colors.textPrimary,
@@ -529,8 +514,11 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
             accountNumber: _digits,
           );
       if (mounted) Navigator.pop(context, true);
-    } on WalletException catch (e) {
-      if (mounted) setState(() => _saveError = e.message);
+    } on WalletException {
+      if (mounted) {
+        setState(() =>
+            _saveError = 'Could not link this account. Please try again.');
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -639,7 +627,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
                         height: 52,
                         decoration: BoxDecoration(
                           color: selected ? colors.brand : providerTint,
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         alignment: Alignment.center,
                         child: Icon(
@@ -715,7 +703,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
     List<TextInputFormatter>? inputFormatters,
   }) {
     final colors = context.colors;
-    final borderColor = error == null ? colors.borderSoft : colors.dangerText;
+    final borderColor = error == null ? colors.border : colors.dangerBorder;
     OutlineInputBorder border({double width = 1}) => OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(color: borderColor, width: width),
@@ -738,7 +726,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
         isDense: true,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
-          vertical: 15,
+          vertical: 12,
         ),
         border: border(),
         enabledBorder: border(),
@@ -780,9 +768,9 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
 
     return AppBottomSheet(
       title: 'Link an account',
-      radius: 32,
+      radius: 28,
       maxHeightFactor: .92,
-      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+      contentPadding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       showDragHandle: true,
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -797,7 +785,7 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose where your cash-outs will go.',
+            'Choose an account for your allowance payments.',
             style: TextStyle(color: colors.textBody, fontSize: 16),
           ),
         ],
@@ -894,18 +882,6 @@ class _AddAccountSheetState extends State<_AddAccountSheet> {
             ),
           ],
           const SizedBox(height: 18),
-          Row(
-            children: [
-              Icon(AppIcons.lock, color: colors.textBody, size: 18),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Your details are used only for cash-outs.',
-                  style: TextStyle(color: colors.textBody, fontSize: 13),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 14),
           PrimaryButton(
             label: 'Save account',

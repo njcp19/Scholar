@@ -35,6 +35,10 @@ VerificationStatus verificationStatusFrom(Object? value) =>
 class AppUser {
   final String id; // Firebase UID == Supabase profiles.id
   final String fullName;
+  final String? lastName;
+  final String? firstName;
+  final String? middleName;
+  final DateTime? birthdate;
   final String email;
   final UserRole role;
   final String? studentNumber;
@@ -47,6 +51,9 @@ class AppUser {
   final VerificationStatus verificationStatus;
   final String reviewNotes;
   final bool isActive;
+  final String? selfiePath;
+  final DateTime? selfieSubmittedAt;
+  final bool selfieRetakeAllowed;
 
   bool get canReceiveAllowance =>
       role == UserRole.scholar &&
@@ -60,6 +67,10 @@ class AppUser {
   AppUser({
     required this.id,
     required this.fullName,
+    this.lastName,
+    this.firstName,
+    this.middleName,
+    this.birthdate,
     required this.email,
     this.role = UserRole.scholar,
     this.studentNumber,
@@ -72,6 +83,9 @@ class AppUser {
     this.verificationStatus = VerificationStatus.pending,
     this.reviewNotes = '',
     this.isActive = false,
+    this.selfiePath,
+    this.selfieSubmittedAt,
+    this.selfieRetakeAllowed = false,
     this.biometricRegistered = false,
     this.biometricEnrolledAt,
   });
@@ -86,6 +100,12 @@ class AppUser {
   factory AppUser.fromMap(Map<String, dynamic> m) => AppUser(
         id: m['id'] as String,
         fullName: (m['full_name'] ?? '') as String,
+        lastName: m['last_name'] as String?,
+        firstName: m['first_name'] as String?,
+        middleName: m['middle_name'] as String?,
+        birthdate: m['birthdate'] is String
+            ? DateTime.tryParse(m['birthdate'] as String)
+            : null,
         email: (m['email'] ?? '') as String,
         role: m['role'] == 'admin' ? UserRole.admin : UserRole.scholar,
         studentNumber: m['student_number'] as String?,
@@ -98,6 +118,11 @@ class AppUser {
         verificationStatus: verificationStatusFrom(m['verification_status']),
         reviewNotes: (m['review_notes'] ?? '') as String,
         isActive: m['is_active'] == true,
+        selfiePath: m['selfie_path'] as String?,
+        selfieSubmittedAt: m['selfie_submitted_at'] is String
+            ? DateTime.tryParse(m['selfie_submitted_at'] as String)
+            : null,
+        selfieRetakeAllowed: (m['selfie_retake_allowed'] as bool?) ?? false,
         biometricRegistered: (m['biometric_registered'] as bool?) ?? false,
         biometricEnrolledAt: m['biometric_enrolled_at'] is String
             ? DateTime.tryParse(m['biometric_enrolled_at'] as String)
@@ -409,18 +434,22 @@ class LinkedAccount {
           : provider.label;
 
   /// Only the last 4 digits are shown in lists.
-  String get masked => accountNumber.length <= 4
-      ? accountNumber
-      : '•••• ${accountNumber.substring(accountNumber.length - 4)}';
+  String get masked {
+    final last4 = accountNumber.length <= 4
+        ? accountNumber
+        : accountNumber.substring(accountNumber.length - 4);
+    return last4.isEmpty ? '' : '•••• $last4';
+  }
 }
 
-enum WithdrawalStatus { pending, completed, rejected, cancelled }
+enum WithdrawalStatus { pending, processing, completed, failed, cancelled }
 
 extension WithdrawalStatusLabel on WithdrawalStatus {
   String get label => switch (this) {
         WithdrawalStatus.pending => 'Pending',
-        WithdrawalStatus.completed => 'Sent',
-        WithdrawalStatus.rejected => 'Rejected',
+        WithdrawalStatus.processing => 'Processing',
+        WithdrawalStatus.completed => 'Completed',
+        WithdrawalStatus.failed => 'Failed',
         WithdrawalStatus.cancelled => 'Cancelled',
       };
 }
@@ -435,6 +464,7 @@ class Withdrawal {
   final String accountName;
   final String accountNumber;
   final WithdrawalStatus status;
+  final bool simulated;
   final String reference;
   final String adminNote;
   final DateTime createdAt;
@@ -450,6 +480,7 @@ class Withdrawal {
     required this.accountName,
     required this.accountNumber,
     required this.status,
+    this.simulated = false,
     required this.reference,
     required this.adminNote,
     required this.createdAt,
@@ -469,6 +500,7 @@ class Withdrawal {
         accountNumber: (m['account_number'] ?? '') as String,
         status: WithdrawalStatus.values.firstWhere((s) => s.name == m['status'],
             orElse: () => WithdrawalStatus.pending),
+        simulated: m['simulated'] == true,
         reference: (m['reference'] ?? '') as String,
         adminNote: (m['admin_note'] ?? '') as String,
         createdAt: DateTime.parse(m['created_at'] as String).toLocal(),

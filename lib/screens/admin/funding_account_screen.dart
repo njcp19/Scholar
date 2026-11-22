@@ -8,6 +8,7 @@ import '../../services/wallet_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/widgets.dart';
+import 'fund_topup_receipt_screen.dart';
 
 class FundingAccountScreen extends StatefulWidget {
   const FundingAccountScreen({super.key});
@@ -21,6 +22,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
   FundSummary? _summary;
   List<FundEntry> _entries = [];
   bool _loading = true;
+  bool _refreshingTopUp = false;
   String? _error;
 
   @override
@@ -53,11 +55,17 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         _loading = false;
       });
     } on WalletException catch (error) {
-      _setLoadError(error.message);
+      debugPrint('Funding account load failed: $error');
+      _setLoadError('Could not load the funding account. Try again.');
     } on FormatException catch (error) {
-      _setLoadError(error.message);
+      debugPrint('Funding account load failed: $error');
+      _setLoadError('Could not load the funding account. Try again.');
     } on TypeError catch (error) {
-      _setLoadError('Could not read the funding account data: $error');
+      debugPrint('Funding account load failed: $error');
+      _setLoadError('Could not read the funding account data. Try again.');
+    } catch (error) {
+      debugPrint('Funding account load failed: $error');
+      _setLoadError('Could not load the funding account. Try again.');
     }
   }
 
@@ -87,7 +95,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     final summary = _summary;
     if (account == null || summary == null) return;
 
-    final result = await showModalBottomSheet<bool>(
+    final amount = await showModalBottomSheet<double>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -96,7 +104,72 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
       sheetAnimationStyle: _sheetAnimationStyle(context),
       builder: (_) => _TopUpFundSheet(account: account, summary: summary),
     );
-    if (result == true && mounted) await _load(showLoading: true);
+    if (amount == null || !mounted) return;
+
+    setState(() => _refreshingTopUp = true);
+    final receiptData = await _refreshTopUpData(amount, account.last4);
+    if (mounted) setState(() => _refreshingTopUp = false);
+    if (!mounted) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => FundTopUpReceiptScreen(data: receiptData),
+      ),
+    );
+  }
+
+  Future<FundTopUpReceiptData> _refreshTopUpData(
+    double amount,
+    String accountLast4,
+  ) async {
+    final wallet = context.read<AppState>().wallet;
+    final accountFuture = wallet.getFundingAccount();
+    final summaryFuture = wallet.getFundSummary();
+    final activityFuture = wallet.getFundActivity();
+    FundingAccount? refreshedAccount;
+    FundSummary? refreshedSummary;
+    List<FundEntry>? refreshedActivity;
+
+    try {
+      refreshedAccount = await accountFuture;
+    } catch (_) {
+      debugPrint('Funding account refresh failed after successful top-up.');
+    }
+
+    try {
+      refreshedSummary = await summaryFuture;
+    } catch (_) {
+      debugPrint('Fund summary refresh failed after successful top-up.');
+    }
+
+    try {
+      refreshedActivity = await activityFuture;
+    } catch (_) {
+      debugPrint('Fund activity refresh failed after successful top-up.');
+    }
+
+    if (mounted) {
+      setState(() {
+        if (refreshedAccount != null) _account = refreshedAccount;
+        if (refreshedSummary != null) _summary = refreshedSummary;
+        if (refreshedActivity != null) _entries = refreshedActivity;
+      });
+    }
+
+    final topUps = refreshedActivity
+            ?.where((entry) => entry.kind == FundEntryKind.topup)
+            .toList() ??
+        [];
+    topUps.sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    final newestTopUp = topUps.isEmpty ? null : topUps.first;
+
+    return FundTopUpReceiptData(
+      amount: amount,
+      fundingAccountLast4: refreshedAccount?.last4 ?? accountLast4,
+      dateTime: newestTopUp?.createdAt ?? DateTime.now(),
+      entryNumber: newestTopUp?.id.toString(),
+      newAvailableFund: refreshedSummary?.available,
+    );
   }
 
   AnimationStyle _sheetAnimationStyle(BuildContext context) {
@@ -120,16 +193,16 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leadingWidth: 62,
+        leadingWidth: 70,
         leading: Padding(
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.only(left: 26),
           child: Material(
             color: colors.surface,
             shape: CircleBorder(side: BorderSide(color: colors.borderSoft)),
             child: IconButton(
               onPressed: () => Navigator.maybePop(context),
               tooltip: 'Back',
-              constraints: const BoxConstraints.tightFor(width: 42, height: 42),
+              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
               padding: EdgeInsets.zero,
               icon: Icon(AppIcons.back, color: colors.textPrimary, size: 21),
             ),
@@ -139,7 +212,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
           'Funding account',
           style: TextStyle(
             color: colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -161,13 +234,19 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
                 child: PrimaryButton(
-                  label: _account == null ? 'Link bank account' : 'Top up fund',
+                  label:
+                      _account == null ? 'Link bank account' : 'Allocate Funds',
                   icon: _account == null ? AppIcons.link : AppIcons.plus,
+                  loading: _refreshingTopUp,
+                  loadingLabel: 'Updating fund',
                   minHeight: 56,
                   borderRadius: 18,
                   shadow: true,
-                  onPressed:
-                      _account == null ? _openLinkSheet : _openTopUpSheet,
+                  onPressed: _refreshingTopUp
+                      ? null
+                      : _account == null
+                          ? _openLinkSheet
+                          : _openTopUpSheet,
                 ),
               ),
             ),
@@ -275,8 +354,9 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
       children: [
         ErrorCard(
-          message: 'Could not load funding account data.\n$_error',
+          message: _error!,
           onRetry: () => _load(showLoading: true),
+          prominent: true,
         ),
       ],
     );
@@ -290,7 +370,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         AppCard(
           radius: 22,
           shadow: true,
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Container(
@@ -377,7 +457,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     final muted = colors.onHeader.withValues(alpha: .88);
     return AppCard(
       radius: 28,
-      padding: const EdgeInsets.all(22),
+      padding: EdgeInsets.zero,
       shadow: true,
       clipBehavior: Clip.hardEdge,
       borderColor: Colors.transparent,
@@ -387,83 +467,36 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         end: Alignment.bottomRight,
         colors: [colors.header, colors.heroGradientEnd],
       ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -118,
-            right: -100,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .12), 230),
-          ),
-          Positioned(
-            bottom: -132,
-            left: -104,
-            child: _heroCircle(colors.onHeader.withValues(alpha: .1), 250),
-          ),
-          Column(
+      child: CardDecorShapes(
+        color: colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 115,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Wrap(
-                spacing: 10,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Text(
-                    'AVAILABLE FUND',
-                    style: TextStyle(
-                      color: muted,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.3,
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: colors.onHeader.withValues(alpha: .2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'DEMO',
-                      style: TextStyle(
-                        color: colors.onHeader,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: colors.onHeader,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'PHP ',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        TextSpan(
-                          text: fmtPhp(summary.available),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            letterSpacing: -.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'AVAILABLE FUND',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
                   ),
                 ),
+              ),
+              const SizedBox(height: 10),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(summary.available),
+                color: colors.onHeader,
+                letterSpacing: -.8,
               ),
               const SizedBox(height: 16),
               IntrinsicHeight(
@@ -488,7 +521,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -516,22 +549,10 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                'PHP ${fmtPhp(amount)}',
-                maxLines: 1,
-                softWrap: false,
-                style: TextStyle(
-                  color: colors.onHeader,
-                  fontSize: 14.5,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
+          StatNumberText(
+            prefix: 'PHP',
+            value: fmtPhp(amount),
+            color: colors.onHeader,
           ),
         ],
       ),
@@ -540,12 +561,6 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
 
   Color mutedHeroText(AppColors colors) =>
       colors.onHeader.withValues(alpha: .88);
-
-  Widget _heroCircle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _linkedAccountCard(FundingAccount account) {
     final colors = context.colors;
@@ -646,7 +661,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     return AppCard(
       radius: 22,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Column(
         children: [
           for (var index = 0; index < displayable.length; index++) ...[
@@ -668,7 +683,7 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     switch (entry.kind) {
       case FundEntryKind.topup:
         return _FundActivityPresentation(
-          title: 'Fund top-up',
+          title: 'Allocate Funds',
           icon: AppIcons.arrowDown,
           tileColor: colors.successBg,
           iconColor: colors.successText,
@@ -712,7 +727,10 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
     final colors = context.colors;
     final note = entry.note?.trim();
     final date = DateFormat('MMM d, yyyy · h:mm a').format(entry.createdAt);
-    final subtitle = note == null || note.isEmpty ? date : '$note · $date';
+    final displayNote = note == null || note.isEmpty
+        ? null
+        : displayWalletTransactionDetails(note);
+    final subtitle = displayNote == null ? date : '$displayNote · $date';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: Row(
@@ -828,8 +846,9 @@ class _LinkFundingAccountSheetState extends State<_LinkFundingAccountSheet> {
       ? 'Enter the name registered on the account.'
       : null;
 
-  String? get _numberError =>
-      _digits.length >= 8 ? null : 'Enter a valid account number.';
+  String? get _numberError => _digits.length < 8 || _digits.length > 20
+      ? 'Enter an account number with 8 to 20 digits.'
+      : null;
 
   bool get _isValid =>
       _bankError == null && _nameError == null && _numberError == null;
@@ -867,8 +886,11 @@ class _LinkFundingAccountSheetState extends State<_LinkFundingAccountSheet> {
             accountNumber: _digits,
           );
       linked = true;
-    } on WalletException catch (error) {
-      if (mounted) setState(() => _saveError = error.message);
+    } on WalletException {
+      if (mounted) {
+        setState(() =>
+            _saveError = 'Could not link the funding account. Try again.');
+      }
     } finally {
       if (mounted) {
         _accountNumber.clear();
@@ -1034,13 +1056,17 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
     try {
       await context.read<AppState>().wallet.topUpFund(amount);
       toppedUp = true;
-    } on WalletException catch (error) {
-      if (mounted) setState(() => _topUpError = error.message);
+    } on WalletException {
+      if (mounted) {
+        setState(() => _topUpError = 'Could not add funds. Please try again.');
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted && !toppedUp) setState(() => _busy = false);
     }
 
-    if (toppedUp && mounted) Navigator.of(context).pop(true);
+    if (!toppedUp || !mounted) return;
+
+    if (mounted) Navigator.of(context).pop(amount);
   }
 
   @override
@@ -1058,7 +1084,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
         : '';
 
     return AppBottomSheet(
-      title: 'Top up fund',
+      title: 'Allocate Funds',
       radius: 28,
       showDragHandle: true,
       dragHandleSize: const Size(44, 5),
@@ -1067,7 +1093,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Top up fund',
+            'Allocate Funds',
             style: TextStyle(
               color: colors.textPrimary,
               fontSize: 20,
@@ -1076,7 +1102,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Add simulated funds to the payout balance',
+            'Add funds to the payout balance',
             style: TextStyle(color: colors.textBody, fontSize: 13),
           ),
         ],
@@ -1092,8 +1118,8 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ),
           const SizedBox(height: 8),
           AppCard(
-            radius: 16,
-            padding: const EdgeInsets.all(14),
+            radius: 22,
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Container(
@@ -1157,7 +1183,7 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
                 fontWeight: FontWeight.w800,
               ),
               hintText: '0.00',
-              hintStyle: TextStyle(color: colors.textBody, fontSize: 28),
+              hintStyle: TextStyle(color: colors.hint, fontSize: 28),
               filled: true,
               fillColor: colors.surface,
               contentPadding:
@@ -1172,11 +1198,11 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: colors.danger, width: 2),
+                borderSide: BorderSide(color: colors.dangerBorder, width: 2),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: colors.danger, width: 2),
+                borderSide: BorderSide(color: colors.dangerBorder, width: 2),
               ),
             ),
           ),
@@ -1197,8 +1223,8 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ),
           const SizedBox(height: 14),
           AppCard(
-            radius: 16,
-            padding: const EdgeInsets.all(14),
+            radius: 22,
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 Expanded(
@@ -1225,15 +1251,6 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Demo mode: top-up is a simulation. No real money moves from your bank.',
-            style: TextStyle(
-              color: colors.textBody,
-              fontSize: 12,
-              height: 1.4,
-            ),
-          ),
           if (_topUpError != null) ...[
             const SizedBox(height: 12),
             InfoBanner(
@@ -1247,10 +1264,10 @@ class _TopUpFundSheetState extends State<_TopUpFundSheet> {
           ],
           const SizedBox(height: 18),
           PrimaryButton(
-            label: 'Top up PHP ${fmtPhp(amount)}',
+            label: 'Allocate PHP ${fmtPhp(amount)}',
             icon: AppIcons.plus,
             loading: _busy,
-            loadingLabel: 'Topping up fund',
+            loadingLabel: 'Allocating funds',
             minHeight: 56,
             borderRadius: 18,
             onPressed: _isValid && !_busy ? _topUp : null,
@@ -1271,23 +1288,23 @@ InputDecoration _formDecoration(
     labelText: label,
     errorText: errorText,
     labelStyle: TextStyle(color: colors.textBody),
-    hintStyle: TextStyle(color: colors.textBody),
-    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+    hintStyle: TextStyle(color: colors.hint),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: colors.border),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       borderSide: BorderSide(color: colors.brand, width: 1.5),
     ),
     errorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: colors.danger),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: colors.dangerBorder),
     ),
     focusedErrorBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-      borderSide: BorderSide(color: colors.danger, width: 1.5),
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: colors.dangerBorder, width: 1.5),
     ),
   );
 }

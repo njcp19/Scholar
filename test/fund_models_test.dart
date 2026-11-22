@@ -16,6 +16,57 @@ void main() {
     expect(account.linkedAt, DateTime.parse('2026-11-17T06:00:00Z').toLocal());
   });
 
+  test('linked account mask always shows bullets before four digits', () {
+    final account = LinkedAccount.fromMap({
+      'id': 42,
+      'provider': 'bank',
+      'bank_name': 'UnionBank',
+      'account_name': 'Alex Scholar',
+      'account_number': '3299',
+    });
+
+    expect(account.masked, '•••• 3299');
+  });
+
+  test('withdrawal model recognizes each server status', () {
+    for (final status in WithdrawalStatus.values) {
+      final withdrawal = Withdrawal.fromMap({
+        'id': 42,
+        'scholar_id': 'scholar-1',
+        'amount': 100,
+        'provider': 'gcash',
+        'account_name': 'Alex Scholar',
+        'account_number': '1234',
+        'status': status.name,
+        'created_at': '2026-11-17T06:00:00Z',
+      });
+      expect(withdrawal.status, status);
+      expect(withdrawal.isPending, status == WithdrawalStatus.pending);
+    }
+
+    expect(WithdrawalStatus.pending.label, 'Pending');
+    expect(WithdrawalStatus.processing.label, 'Processing');
+    expect(WithdrawalStatus.completed.label, 'Completed');
+    expect(WithdrawalStatus.failed.label, 'Failed');
+    expect(WithdrawalStatus.cancelled.label, 'Cancelled');
+  });
+
+  test('withdrawal model maps the server simulation flag', () {
+    final withdrawal = Withdrawal.fromMap({
+      'id': 42,
+      'scholar_id': 'scholar-1',
+      'amount': 100,
+      'provider': 'gcash',
+      'account_name': 'Alex Scholar',
+      'account_number': '1234',
+      'status': 'completed',
+      'simulated': true,
+      'created_at': '2026-11-17T06:00:00Z',
+    });
+
+    expect(withdrawal.simulated, isTrue);
+  });
+
   test('fund summary parses numeric JSON values', () {
     final summary = FundSummary.fromMap({
       'available': 5000,

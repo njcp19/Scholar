@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../data/demo_allowance_repository.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_state.dart';
 import '../models/models.dart';
@@ -82,11 +81,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final fresh = pending.where((c) => !seen.contains(c.id)).toList();
         if (fresh.isNotEmpty) {
           final total = fresh.fold<double>(0, (s, c) => s + c.amount);
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'New allowance from admin: PHP ${fmtPhp(total)}. Scan the QR to receive it.'),
-            duration: const Duration(seconds: 10),
-          ));
+          showAppSnackBar(
+            context,
+            'New Allowance from admin: PHP ${fmtPhp(total)}. Scan the QR to receive it.',
+            type: AppSnackBarType.info,
+          );
         }
         if (seen.length != ids.length || fresh.isNotEmpty) _load();
       }
@@ -124,11 +123,11 @@ class _HomeScreenState extends State<HomeScreen> {
         final total = _pending.fold<double>(0, (s, c) => s + c.amount);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                'You have ${_pending.length} allowance(s) waiting: PHP ${fmtPhp(total)}. Scan the QR from the admin to receive it.'),
-            duration: const Duration(seconds: 10),
-          ));
+          showAppSnackBar(
+            context,
+            'You have ${_pending.length} Allowance(s) waiting: PHP ${fmtPhp(total)}. Scan the QR from the admin to receive it.',
+            type: AppSnackBarType.info,
+          );
         });
       }
     } catch (error) {
@@ -203,7 +202,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           maxHeightFactor: .8,
-          radius: 32,
+          radius: 28,
           contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           showDragHandle: true,
           child: _pending.isEmpty
@@ -261,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 )
               : AppCard(
-                  radius: 24,
+                  radius: 22,
                   padding: EdgeInsets.zero,
                   backgroundColor: cardBackground,
                   borderColor: colors.borderSoft,
@@ -377,38 +376,32 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _balanceHero(BuildContext context, double balance) {
     final balanceText = 'PHP ${fmtPhp(balance)}';
     final heroTextColor = context.colors.balanceHeroText;
+    const circleSize = 104.0;
+    const blobSize = 128.0;
     return AppCard(
-      padding: const EdgeInsets.all(24),
-      radius: 28,
+      padding: EdgeInsets.zero,
+      radius: ProfileHeroMetrics.radius,
       shadow: true,
       gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
+        begin: ProfileHeroMetrics.gradientBegin,
+        end: ProfileHeroMetrics.gradientEnd,
         colors: [
           context.colors.balanceHeroStart,
           context.colors.balanceHeroEnd,
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -82,
-            right: -44,
-            child: _balanceHeroCircle(
-              heroTextColor.withValues(alpha: .08),
-              208,
-            ),
+      child: CardDecorShapes(
+        color: heroTextColor,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+        circleSize: circleSize,
+        blobSize: blobSize,
+        blobOpacity: .12,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 14,
           ),
-          Positioned(
-            bottom: -126,
-            right: -84,
-            child: _balanceHeroCircle(
-              heroTextColor.withValues(alpha: .07),
-              256,
-            ),
-          ),
-          Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -420,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: heroTextColor,
-                        fontSize: 12,
+                        fontSize: HomeActivityRow.recentActivityTitleFontSize,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.1,
                       ),
@@ -431,14 +424,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: heroTextColor.withValues(alpha: .12),
                     shape: const CircleBorder(),
                     child: InkWell(
+                      key: const ValueKey('home-balance-copy'),
                       onTap: () async {
                         await Clipboard.setData(
                           ClipboardData(text: balanceText),
                         );
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Balance copied')),
-                          );
+                          showAppSnackBar(context, 'Balance copied.');
                         }
                       },
                       customBorder: const CircleBorder(),
@@ -448,48 +440,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Icon(
                           AppIcons.copy,
                           color: heroTextColor,
-                          size: 21,
+                          size: 19,
                         ),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text.rich(
-                    TextSpan(
-                      style: TextStyle(
-                        color: heroTextColor,
-                        fontWeight: FontWeight.w800,
-                      ),
-                      children: [
-                        const TextSpan(
-                          text: 'PHP ',
-                          style: TextStyle(fontSize: 28),
-                        ),
-                        TextSpan(
-                          text: fmtPhp(balance),
-                          style: const TextStyle(fontSize: 48),
-                        ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
-                  ),
-                ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(balance),
+                color: heroTextColor,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 360),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: heroTextColor.withValues(alpha: .1),
                     borderRadius: BorderRadius.circular(28),
@@ -513,7 +485,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: heroTextColor,
-                            fontSize: 13,
+                            fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -524,16 +496,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }
-
-  Widget _balanceHeroCircle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _homeActionButtons(BuildContext context) {
     final textScaler = MediaQuery.textScalerOf(context);
@@ -545,15 +511,75 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         Expanded(
-          child: PrimaryButton(
-            label: 'Cash Out',
-            onPressed: _openCashOut,
-            icon: AppIcons.arrowUpRight,
-            backgroundColor: cashOutColor,
-            foregroundColor: context.colors.onHeader,
-            minHeight: buttonHeight,
-            borderRadius: 20,
-            shadow: true,
+          child: Semantics(
+            label: 'Withdraw Allowance',
+            button: true,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: buttonHeight),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  key: const ValueKey('home-withdraw-allowance'),
+                  onPressed: _openCashOut,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cashOutColor,
+                    foregroundColor: context.colors.onHeader,
+                    minimumSize: Size.fromHeight(buttonHeight),
+                    elevation: 5,
+                    shadowColor: cashOutColor.withValues(alpha: .24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        AppIcons.arrowUpRight,
+                        color: context.colors.onHeader,
+                        size: 24,
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: ExcludeSemantics(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Withdraw',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip,
+                                  style: TextStyle(
+                                    color: context.colors.onHeader,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                Text(
+                                  'Allowance',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.clip,
+                                  style: TextStyle(
+                                    color: context.colors.onHeader,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -643,13 +669,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = state.user;
     final latestPayout = _latestPayout;
     final displayedPayout = _pending.isNotEmpty ? _pending.first : latestPayout;
-    final demoData = DemoAllowanceRepository.instance;
     final activity = _recent.take(3).toList();
-    final expectedReleaseDate =
-        displayedPayout == null ? demoData.expectedReleaseDate : null;
-    final academicPeriod = demoData.academicPeriodFor(
-      displayedPayout?.batchTitle ?? 'Payout Event',
-    );
     final waitingTotal =
         _pending.fold<double>(0, (total, payout) => total + payout.amount);
 
@@ -663,6 +683,7 @@ class _HomeScreenState extends State<HomeScreen> {
             AppHeader(
               name: user?.fullName ?? 'Scholar',
               initials: user?.initials ?? '?',
+              profileUser: user,
               subtitle: user?.studentNumber?.isNotEmpty == true
                   ? 'ID: ${user!.studentNumber}'
                   : '',
@@ -691,7 +712,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         physics: const ClampingScrollPhysics(
                           parent: AlwaysScrollableScrollPhysics(),
                         ),
-                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                         children: [
                           _balanceHero(context, state.balance),
                           if (_loadError != null) ...[
@@ -708,33 +729,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 16),
                           _homeActionButtons(context),
                           const SizedBox(height: 16),
-                          MonthlyAllowanceCard(
-                            title: displayedPayout?.batchTitle ??
-                                state.allowance.label,
-                            amount: displayedPayout?.amount ??
-                                state.allowance.allowanceAmount,
-                            state: displayedPayout == null
-                                ? AllowanceCardState.notReleased
-                                : displayedPayout.isPending
-                                    ? AllowanceCardState.waiting
-                                    : displayedPayout.isReceived
-                                        ? AllowanceCardState.received
-                                        : AllowanceCardState.cancelled,
-                            issuedDate: displayedPayout == null
-                                ? null
-                                : _friendlyDate(displayedPayout.issuedAt),
-                            receivedDate: displayedPayout?.isReceived == true
-                                ? _friendlyDate(displayedPayout!.claimedAt)
-                                : null,
-                            expectedReleaseDate: expectedReleaseDate,
-                            academicPeriod: academicPeriod,
-                            waitingCount: _pending.length,
-                            waitingTotal: waitingTotal,
-                            statusOnRight: true,
-                            radius: 26,
-                            iconTileSize: 48,
-                            amountFontSize: 36,
-                          ),
+                          if (displayedPayout == null)
+                            _emptyAllowanceCard(context)
+                          else
+                            MonthlyAllowanceCard(
+                              title: displayedPayout.batchTitle,
+                              amount: displayedPayout.amount,
+                              state: displayedPayout.isPending
+                                  ? AllowanceCardState.waiting
+                                  : displayedPayout.isReceived
+                                      ? AllowanceCardState.received
+                                      : AllowanceCardState.cancelled,
+                              issuedDate:
+                                  _friendlyDate(displayedPayout.issuedAt),
+                              receivedDate: displayedPayout.isReceived
+                                  ? _friendlyDate(displayedPayout.claimedAt)
+                                  : null,
+                              waitingCount: _pending.length,
+                              waitingTotal: waitingTotal,
+                              statusOnRight: true,
+                              radius: HomeActivityRow.recentActivityRadius,
+                              iconTileSize: 40,
+                            ),
                           if (!state.fingerprintRegistered) ...[
                             const SizedBox(height: 16),
                             BiometricStatusCard(
@@ -753,7 +769,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ],
                           const SizedBox(height: 16),
-                          _payoutEventsRow(context),
+                          _payoutEventsRow(context,
+                              hasPayouts: _claims.isNotEmpty),
                           const SizedBox(height: 26),
                           Row(
                             children: [
@@ -800,13 +817,83 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _emptyAllowanceCard(BuildContext context) {
+    return AppCard(
+      radius: HomeActivityRow.recentActivityRadius,
+      shadow: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                width: HomeActivityRow.recentActivityIconSize,
+                height: HomeActivityRow.recentActivityIconSize,
+                decoration: BoxDecoration(
+                  color: context.colors.brandTint,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  AppIcons.calendar,
+                  color: context.colors.brand,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'MONTHLY ALLOWANCE',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: context.colors.textBody,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'No allowance yet',
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Your allowance will appear here once the administrator '
+            'releases a payout.',
+            style: TextStyle(
+              color: context.colors.textBody,
+              fontSize: HomeActivityRow.recentActivityDetailFontSize,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _activityCard(
     BuildContext context,
     List<WalletTransaction> transactions,
   ) {
     if (transactions.isEmpty) {
       return AppCard(
-        radius: 24,
+        key: const ValueKey('home-recent-activity-empty'),
+        radius: HomeActivityRow.recentActivityRadius,
         shadow: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -825,7 +912,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 10),
               Text(
-                'No activity yet',
+                _claims.isEmpty ? 'No payouts yet.' : 'No activity yet',
                 style: TextStyle(color: context.colors.textBody),
               ),
             ],
@@ -835,9 +922,11 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return AppCard(
-      radius: 24,
+      radius: HomeActivityRow.recentActivityRadius,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: HomeActivityRow.recentActivityHorizontalPadding,
+      ),
       child: Column(
         children: [
           for (var index = 0; index < transactions.length; index++) ...[
@@ -849,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
               inCard: true,
               financialPresentation: true,
               showCurrencyCode: false,
-              iconSize: 48,
+              iconSize: HomeActivityRow.recentActivityIconSize,
               statusSeparator: '·',
             ),
           ],
@@ -859,12 +948,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String _activityStatus(WalletTransaction transaction) {
-    final description = '${transaction.title} ${transaction.subtitle}'
-        .toLowerCase()
-        .replaceAll('-', ' ');
-    if (description.contains('cash out') || description.contains('cashout')) {
-      return 'Simulated';
-    }
     return switch (transaction.status) {
       TxStatus.completed => 'Completed',
       TxStatus.pending => 'Pending',
@@ -872,11 +955,14 @@ class _HomeScreenState extends State<HomeScreen> {
     };
   }
 
-  Widget _payoutEventsRow(BuildContext context) {
+  Widget _payoutEventsRow(
+    BuildContext context, {
+    required bool hasPayouts,
+  }) {
     return ListRowCard(
       minHeight: 92,
       padding: const EdgeInsets.all(16),
-      radius: 24,
+      radius: 22,
       shadow: true,
       onTap: () => Navigator.push(
         context,
@@ -912,7 +998,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Payout batches issued to you',
+                  hasPayouts
+                      ? 'Payout batches issued to you'
+                      : 'No payouts yet.',
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style:

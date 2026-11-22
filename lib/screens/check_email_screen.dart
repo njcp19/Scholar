@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
-import '../widgets/auth_hero_scaffold.dart';
+import '../widgets/password_reset_scaffold.dart';
 import '../widgets/widgets.dart';
 
 class CheckEmailScreen extends StatefulWidget {
@@ -22,7 +22,7 @@ class CheckEmailScreen extends StatefulWidget {
 }
 
 class _CheckEmailScreenState extends State<CheckEmailScreen> {
-  static const _cooldownDuration = 45;
+  static const _cooldownDuration = 30;
   Timer? _timer;
   int _secondsRemaining = _cooldownDuration;
   bool _resending = false;
@@ -81,144 +81,32 @@ class _CheckEmailScreenState extends State<CheckEmailScreen> {
     }
   }
 
-  String get _maskedEmail {
-    final atIndex = widget.email.lastIndexOf('@');
-    if (atIndex <= 0 || atIndex == widget.email.length - 1) {
-      return widget.email;
-    }
-
-    final localPart = widget.email.substring(0, atIndex);
-    final visiblePart = localPart.substring(
-      0,
-      localPart.length < 2 ? localPart.length : 2,
-    );
-    return '$visiblePart****${widget.email.substring(atIndex)}';
-  }
-
   String get _countdownLabel {
     final minutes = (_secondsRemaining ~/ 60).toString();
     final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
-    return 'Resend link in $minutes:$seconds';
+    return 'Resend in $minutes:$seconds';
   }
 
-  Widget _leading(BuildContext context) {
+  Widget _emailPill(BuildContext context) {
     final colors = context.colors;
     return Container(
-      width: 84,
-      height: 84,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: colors.onHeader.withValues(alpha: .2),
+        color: colors.avatarTint.withValues(alpha: .6),
+        borderRadius: BorderRadius.circular(24),
       ),
-      alignment: Alignment.center,
-      child: Container(
-        width: 62,
-        height: 62,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: colors.success,
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          AppIcons.check,
-          color: colors.onHeader,
-          size: 30,
+      child: Text(
+        widget.email,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: colors.onGold,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w700,
         ),
       ),
-    );
-  }
-
-  Widget _emailChip(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: colors.brandTint,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            alignment: Alignment.center,
-            child: Icon(
-              AppIcons.mailCheck,
-              color: colors.brand,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Link sent to',
-                  style: TextStyle(
-                    color: colors.textBody,
-                    fontSize: 12.5,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  _maskedEmail,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _step(BuildContext context, int number, String text) {
-    final colors = context.colors;
-    final active = number == 1;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: active ? colors.brand : colors.brandTint,
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            '$number',
-            style: TextStyle(
-              color: active ? colors.onHeader : colors.brand,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 15.5,
-              height: 1.35,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -230,7 +118,7 @@ class _CheckEmailScreenState extends State<CheckEmailScreen> {
     final colors = context.colors;
     final canResend = _secondsRemaining == 0 && !_resending;
     final announcement = _secondsRemaining == _cooldownDuration
-        ? 'Resend link in 0:45.'
+        ? 'Resend in 0:30.'
         : _secondsRemaining == 0
             ? 'Resend link is available.'
             : null;
@@ -238,31 +126,6 @@ class _CheckEmailScreenState extends State<CheckEmailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _emailChip(context),
-        const SizedBox(height: 18),
-        Text(
-          'If this email is registered, you will get a link to set a new password. The link expires after a short time.',
-          style: TextStyle(
-            color: colors.textBody,
-            fontSize: 14.5,
-            height: 1.45,
-          ),
-        ),
-        const SizedBox(height: 18),
-        _step(context, 1, 'Open the email from Scholar Wallet'),
-        const SizedBox(height: 14),
-        _step(context, 2, 'Tap the link and choose a new password'),
-        const SizedBox(height: 14),
-        _step(context, 3, 'Come back and log in'),
-        const SizedBox(height: 22),
-        PrimaryButton(
-          label: 'Back to Login',
-          onPressed: _backToLogin,
-          minHeight: 56,
-          borderRadius: 18,
-          shadow: true,
-        ),
-        const SizedBox(height: 10),
         Semantics(
           liveRegion: announcement != null,
           label: announcement,
@@ -284,17 +147,36 @@ class _CheckEmailScreenState extends State<CheckEmailScreen> {
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        InfoBanner(
+          icon: AppIcons.info,
+          message:
+              "Didn't get it? Check your spam folder or try resending the link.",
+          maxLines: 3,
+          backgroundColor: colors.brandTint,
+          iconColor: colors.brand,
+          textColor: colors.brandTintText,
+          borderRadius: 22,
+        ),
+        const SizedBox(height: 8),
+        BackToLoginLink(onPressed: _backToLogin),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthHeroScaffold(
-      leading: _leading(context),
+    return PasswordResetScaffold(
+      icon: PasswordResetHeroIcon(
+        icon: AppIcons.mail,
+        backgroundColor: context.colors.surface,
+        iconColor: context.colors.goldTintText,
+      ),
       title: 'Check your email',
-      subtitle: 'We sent instructions to reset your password.',
-      onBack: () => Navigator.maybePop(context),
+      subtitle: 'We sent a password reset link to',
+      heroDetail: _emailPill(context),
+      goldHero: true,
+      onBack: _backToLogin,
       child: _content(context),
     );
   }

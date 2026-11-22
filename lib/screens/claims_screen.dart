@@ -118,7 +118,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
     required VoidCallback onPressed,
   }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -136,124 +136,92 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
   }
 
   Widget _hero(double total, int receivedCount) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [context.colors.header, context.colors.heroGradientEnd],
-          ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: ProfileHeroMetrics.gradientBegin,
+          end: ProfileHeroMetrics.gradientEnd,
+          colors: [context.colors.header, context.colors.heroGradientEnd],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -118,
-              right: -40,
-              child: _circle(
-                context.colors.onHeader.withValues(alpha: .12),
-                230,
-              ),
-            ),
-            Positioned(
-              bottom: -132,
-              right: -118,
-              child: _circle(
-                context.colors.onHeader.withValues(alpha: .1),
-                250,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'TOTAL RECEIVED',
-                  style: TextStyle(
-                    color: context.colors.onHeader.withValues(alpha: .92),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+        border: Border.all(
+          color: context.colors.borderSoft,
+          width: HomeActivityRow.recentActivityBorderWidth,
+        ),
+      ),
+      child: CardDecorShapes(
+        color: context.colors.onHeader,
+        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
+        circleSize: 115,
+        blobSize: 125,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'TOTAL RECEIVED',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.start,
+                style: TextStyle(
+                  color: context.colors.onHeader.withValues(alpha: .92),
+                  fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
                 ),
+              ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(total),
+                color: context.colors.onHeader,
+              ),
+              if (receivedCount > 0) ...[
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
+                Container(
+                  key: const ValueKey('payout-summary-status'),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: context.colors.onHeader.withValues(alpha: .14),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 6,
+                    children: [
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: context.colors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      Text(
+                        '$receivedCount ${receivedCount == 1 ? 'payout' : 'payouts'} verified by QR',
                         style: TextStyle(
                           color: context.colors.onHeader,
-                          fontWeight: FontWeight.w800,
+                          fontSize:
+                              HomeActivityRow.recentActivityDetailFontSize,
+                          fontWeight: FontWeight.w700,
                         ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(fontSize: 24),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(total),
-                            style: const TextStyle(fontSize: 46),
-                          ),
-                        ],
                       ),
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
+                    ],
                   ),
                 ),
-                if (receivedCount > 0) ...[
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: context.colors.onHeader.withValues(alpha: .14),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Wrap(
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      spacing: 8,
-                      children: [
-                        Container(
-                          width: 9,
-                          height: 9,
-                          decoration: BoxDecoration(
-                            color: context.colors.success,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        Text(
-                          '$receivedCount ${receivedCount == 1 ? 'payout' : 'payouts'} verified by QR',
-                          style: TextStyle(
-                            color: context.colors.onHeader,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _statCard({
     required String label,
@@ -263,20 +231,25 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
     required Color iconColor,
   }) {
     return AppCard(
-      radius: 22,
+      key: ValueKey('payout-stat-$label'),
+      radius: HomeActivityRow.recentActivityRadius,
       shadow: true,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      padding: const EdgeInsets.symmetric(
+        horizontal: HomeActivityRow.recentActivityHorizontalPadding,
+        vertical: 12,
+      ),
+      borderWidth: HomeActivityRow.recentActivityBorderWidth,
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 36,
+            height: 36,
             decoration: BoxDecoration(
               color: tileColor,
-              borderRadius: BorderRadius.circular(14),
+              shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(icon, color: iconColor, size: 23),
+            child: Icon(icon, color: iconColor, size: 22),
           ),
           const SizedBox(width: 11),
           Expanded(
@@ -290,18 +263,14 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: context.colors.textBody,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                    fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  '$count',
-                  style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 25,
-                    fontWeight: FontWeight.w800,
-                  ),
+                StatNumberText(
+                  value: '$count',
+                  color: context.colors.textPrimary,
                 ),
               ],
             ),
@@ -314,25 +283,37 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
   Widget _skeleton() {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
       children: [
         const SkeletonCard(
-          radius: 26,
+          radius: HomeActivityRow.recentActivityRadius,
+          padding: EdgeInsets.symmetric(
+            horizontal: HomeActivityRow.recentActivityHorizontalPadding,
+            vertical: 14,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SkeletonLine(width: 130, height: 14),
-              SizedBox(height: 12),
-              SkeletonLine(width: 220, height: 42),
+              SkeletonLine(
+                width: 130,
+                height: HomeActivityRow.recentActivityTitleFontSize,
+              ),
+              SizedBox(height: 2),
+              SkeletonLine(
+                width: 150,
+                height: HomeActivityRow.recentActivityValueFontSize,
+              ),
+              SizedBox(height: 6),
+              SkeletonBox(width: 170, height: 24, radius: 12),
             ],
           ),
         ),
         const SizedBox(height: 16),
         const Row(
           children: [
-            Expanded(child: SkeletonBox(height: 76, radius: 22)),
+            Expanded(child: SkeletonBox(height: 78, radius: 22)),
             SizedBox(width: 12),
-            Expanded(child: SkeletonBox(height: 76, radius: 22)),
+            Expanded(child: SkeletonBox(height: 78, radius: 22)),
           ],
         ),
         const SizedBox(height: 20),
@@ -343,7 +324,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                 if (index > 0) const SizedBox(height: 16),
                 const Row(
                   children: [
-                    SkeletonCircle(diameter: 42),
+                    SkeletonCircle(diameter: 48),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -421,11 +402,6 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                   color: context.colors.warningText,
                   bg: context.colors.warningBg,
                 ),
-                StatusChip(
-                  'Demo data',
-                  color: context.colors.textBody,
-                  bg: context.colors.borderSoft,
-                ),
               ],
             ),
           ],
@@ -463,9 +439,10 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         DemoAllowanceRepository.instance.academicPeriodFor(claim.batchTitle);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
-        radius: 22,
+        key: ValueKey('payout-card-${claim.id}'),
+        radius: HomeActivityRow.recentActivityRadius,
         shadow: true,
         onTap: received
             ? () => Navigator.push<void>(
@@ -477,8 +454,11 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
             : null,
         borderColor:
             pending ? context.colors.accentGold : context.colors.borderSoft,
-        borderWidth: pending ? 1.5 : 1,
-        padding: const EdgeInsets.all(16),
+        borderWidth: HomeActivityRow.recentActivityBorderWidth,
+        padding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -486,18 +466,18 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 44,
-                  height: 44,
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
                     color: received
                         ? context.colors.successBg
                         : cancelled
                             ? context.colors.dangerBg
                             : context.colors.warningBg,
-                    borderRadius: BorderRadius.circular(14),
+                    shape: BoxShape.circle,
                   ),
                   alignment: Alignment.center,
-                  child: Icon(icon, color: statusColor, size: 23),
+                  child: Icon(icon, color: statusColor, size: 22),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -510,12 +490,12 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: context.colors.textPrimary,
-                          fontSize: 16,
+                          fontSize: HomeActivityRow.recentActivityTitleFontSize,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       if (when != null) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 2),
                         Text(
                           DateFormat('MMM d, yyyy · h:mm a')
                               .format(when.toLocal()),
@@ -523,7 +503,8 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: context.colors.textBody,
-                            fontSize: 13,
+                            fontSize:
+                                HomeActivityRow.recentActivityDetailFontSize,
                           ),
                         ),
                       ],
@@ -550,7 +531,8 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                                   : cancelled
                                       ? context.colors.textBody
                                       : context.colors.textPrimary,
-                              fontSize: 17,
+                              fontSize:
+                                  HomeActivityRow.recentActivityValueFontSize,
                               fontWeight: FontWeight.w800,
                               decoration: cancelled
                                   ? TextDecoration.lineThrough
@@ -592,16 +574,11 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                     color: context.colors.textPrimary,
                     bg: context.colors.brandTint,
                   ),
-                  StatusChip(
-                    'Demo data',
-                    color: context.colors.textBody,
-                    bg: context.colors.borderSoft,
-                  ),
                 ],
               ),
             ],
             if (pending) ...[
-              const SizedBox(height: 14),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Expanded(
@@ -609,7 +586,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                       label: 'Show my QR',
                       icon: AppIcons.qrCode,
                       minHeight: 46,
-                      borderRadius: 14,
+                      borderRadius: 16,
                       onPressed: () => showPayoutQrSheet(
                         context,
                         claim,
@@ -622,7 +599,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                       label: 'Scan QR',
                       icon: AppIcons.qrScan,
                       minHeight: 46,
-                      borderRadius: 14,
+                      borderRadius: 16,
                       onPressed: _openScanner,
                     ),
                   ),
@@ -651,13 +628,14 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
         backgroundColor: context.colors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        centerTitle: true,
-        leadingWidth: 60,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
+        leadingWidth: 70,
         title: Text(
           'My Payouts',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: widget.embedded ? 26 : 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -680,7 +658,7 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
               physics: const AlwaysScrollableScrollPhysics(
                 parent: ClampingScrollPhysics(),
               ),
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 28),
               children: [
                 if (_loadError != null && _claims.isEmpty)
                   ErrorCard(
@@ -730,9 +708,9 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   SectionLabel('PAYOUTS (${_claims.length})'),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   if (_claims.isEmpty)
                     _emptyState()
                   else

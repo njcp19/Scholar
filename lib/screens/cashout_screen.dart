@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,13 +10,13 @@ import '../providers/app_state.dart';
 import '../services/wallet_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
+import 'cashout_receipt_screen.dart';
 import '../widgets/success_animation.dart';
 import '../widgets/widgets.dart';
 import 'fingerprint_screen.dart';
 import 'linked_accounts_screen.dart';
 
 /// Scholar: Cash Out.
-/// The transfer is simulated: the balance is reduced and a reference is shown.
 class CashoutScreen extends StatefulWidget {
   const CashoutScreen({super.key});
 
@@ -32,50 +32,82 @@ class _CashoutScreenState extends State<CashoutScreen> {
   bool _loading = true;
   bool _busy = false;
   bool _showSuccessAnimation = false;
-  Timer? _successAnimationTimer;
+  String? _cashoutIdempotencyKey;
+  int? _cashoutKeyAccountId;
+  double? _cashoutKeyAmount;
 
   @override
   void initState() {
     super.initState();
+    _amount.addListener(_invalidateCashoutKey);
     _load();
   }
 
   @override
   void dispose() {
-    _successAnimationTimer?.cancel();
+    _amount.removeListener(_invalidateCashoutKey);
     _amount.dispose();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  void _invalidateCashoutKey() {
+    _cashoutIdempotencyKey = null;
+    _cashoutKeyAccountId = null;
+    _cashoutKeyAmount = null;
+  }
+
+  String _cashoutKeyFor(double amount, int accountId) {
+    if (_cashoutIdempotencyKey == null ||
+        _cashoutKeyAccountId != accountId ||
+        _cashoutKeyAmount != amount) {
+      final random = Random.secure();
+      final randomHex = List.generate(
+        16,
+        (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+      ).join();
+      final timestampHex =
+          DateTime.now().microsecondsSinceEpoch.toRadixString(16);
+      _cashoutIdempotencyKey = '$timestampHex$randomHex';
+      _cashoutKeyAccountId = accountId;
+      _cashoutKeyAmount = amount;
+    }
+    return _cashoutIdempotencyKey!;
+  }
+
+  Future<bool> _load({bool silent = false}) async {
     final state = context.read<AppState>();
     try {
       final user = state.user ?? await state.auth.currentAppUser();
       if (user == null) {
-        if (!mounted) return;
+        if (!mounted) return false;
         setState(() {
           _accounts = [];
           _history = [];
           _selected = null;
         });
-        return;
+        return false;
       }
       state.user = user;
       await state.refreshBalance();
       final accounts = await state.wallet.getLinkedAccounts(user.id);
       final history = await state.wallet.getMyWithdrawals(user.id);
-      if (!mounted) return;
+      if (!mounted) return false;
+      final selectedAccount = _selected != null &&
+              accounts.any((account) => account.id == _selected)
+          ? _selected
+          : accounts.firstOrNull?.id;
+      if (selectedAccount != _selected) _invalidateCashoutKey();
       setState(() {
         _accounts = accounts;
         _history = history;
-        if (_selected == null || !accounts.any((a) => a.id == _selected)) {
-          _selected = accounts.isEmpty ? null : accounts.first.id;
-        }
+        _selected = selectedAccount;
       });
+      return true;
     } catch (_) {
-      if (mounted) {
-        showMsg(context, 'Could not load cash-out details.', error: true);
+      if (mounted && !silent) {
+        showMsg(context, 'Could not load allowance details.', error: true);
       }
+      return false;
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -106,6 +138,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 account,
                 selected: account.id == _selected,
                 onTap: () {
+                  if (_selected != account.id) _invalidateCashoutKey();
                   setState(() => _selected = account.id);
                   Navigator.pop(sheetContext);
                 },
@@ -128,7 +161,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
     if (amount == null || amount < WalletService.minCashout) {
       showMsg(
         context,
-        'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.',
+        'Minimum amount to withdraw is PHP ${fmtPhp(WalletService.minCashout)}.',
         error: true,
       );
       return;
@@ -138,13 +171,14 @@ class _CashoutScreenState extends State<CashoutScreen> {
       return;
     }
 
+    final idempotencyKey = _cashoutKeyFor(amount, acc.id);
     FocusManager.instance.primaryFocus?.unfocus();
     final ok = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (sheetContext) => AppBottomSheet(
-        title: 'Review Cash Out',
+        title: 'Review Withdraw Allowance',
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -166,15 +200,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
               'Name: ${acc.accountName}',
               style: TextStyle(color: context.colors.textBody),
             ),
-            const SizedBox(height: 14),
-            InfoBanner(
-              icon: AppIcons.demo,
-              message:
-                  'Demo mode: The amount is deducted from your balance, but no real money is sent to the account.',
-              emphasizedPrefix: 'Demo mode:',
-              backgroundColor: context.colors.warningBg,
-              iconColor: context.colors.warningText,
-            ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -182,7 +207,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   child: SecondaryButton(
                     label: 'Back',
                     onPressed: () => Navigator.pop(sheetContext, false),
-                    minHeight: 50,
+                    minHeight: 52,
+                    borderRadius: 18,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -191,7 +217,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
                     label: 'Confirm',
                     icon: AppIcons.fingerprint,
                     onPressed: () => Navigator.pop(sheetContext, true),
-                    minHeight: 50,
+                    minHeight: 52,
+                    borderRadius: 18,
                   ),
                 ),
               ],
@@ -213,25 +240,51 @@ class _CashoutScreenState extends State<CashoutScreen> {
         );
         if (!mounted || !state.fingerprintRegistered) return;
       }
-      final verified = await state
-          .verifyFingerprint('Confirm cash-out: PHP ${fmtPhp(amount)}');
+      final verified = await state.verifyFingerprint(
+          'Confirm Withdraw Allowance: PHP ${fmtPhp(amount)}');
       if (!mounted) return;
       if (!verified) {
         throw WalletException('Biometrics not verified. Nothing was deducted.');
       }
-      await state.wallet.requestWithdrawal(accountId: acc.id, amount: amount);
+      await state.wallet.requestWithdrawal(
+        accountId: acc.id,
+        amount: amount,
+        idempotencyKey: idempotencyKey,
+      );
+      _invalidateCashoutKey();
       _amount.clear();
-      await _load();
+      final historyLoaded = await _load(silent: true);
       if (mounted) {
-        _successAnimationTimer?.cancel();
         setState(() => _showSuccessAnimation = true);
-        _successAnimationTimer = Timer(const Duration(seconds: 2), () {
-          if (mounted) setState(() => _showSuccessAnimation = false);
-        });
-        showMsg(context, 'Demo cash-out completed. No real money was sent.');
+        showMsg(context, 'Allowance withdrawn.');
       }
-    } on WalletException catch (e) {
-      if (mounted) showMsg(context, e.message, error: true);
+      await Future<void>.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      setState(() => _showSuccessAnimation = false);
+      if (historyLoaded && _history.isNotEmpty) {
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CashoutReceiptScreen(withdrawal: _history.first),
+          ),
+        );
+      }
+    } on WalletException {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not complete the allowance transfer. Please try again.',
+          error: true,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        showMsg(
+          context,
+          'Could not confirm the result. Check your allowance history, then retry with the same amount and account.',
+          error: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -239,7 +292,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
 
   Widget _roundBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 8),
+      padding: const EdgeInsets.only(left: 26),
       child: Material(
         color: context.colors.surface,
         shape: CircleBorder(
@@ -257,92 +310,8 @@ class _CashoutScreenState extends State<CashoutScreen> {
   }
 
   Widget _balanceHero(double balance) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(26),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              context.colors.balanceHeroStart,
-              context.colors.balanceHeroEnd,
-            ],
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -116,
-              right: -42,
-              child: _circle(
-                context.colors.onGold.withValues(alpha: .1),
-                230,
-              ),
-            ),
-            Positioned(
-              right: -115,
-              bottom: -132,
-              child: _circle(
-                context.colors.onGold.withValues(alpha: .08),
-                250,
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AVAILABLE BALANCE',
-                  style: TextStyle(
-                    color: context.colors.balanceHeroText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text.rich(
-                      TextSpan(
-                        style: TextStyle(
-                          color: context.colors.balanceHeroText,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        children: [
-                          const TextSpan(
-                            text: 'PHP ',
-                            style: TextStyle(fontSize: 24),
-                          ),
-                          TextSpan(
-                            text: fmtPhp(balance),
-                            style: const TextStyle(fontSize: 46),
-                          ),
-                        ],
-                      ),
-                      maxLines: 1,
-                      softWrap: false,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+    return CashoutBalanceHeroCard(balance: balance);
   }
-
-  Widget _circle(Color color, double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      );
 
   Widget _accountCard(
     LinkedAccount account, {
@@ -629,7 +598,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
   String? _amountError(double? amount, double balance) {
     if (_amount.text.trim().isEmpty) return null;
     if (amount == null || amount < WalletService.minCashout) {
-      return 'Minimum cash-out is PHP ${fmtPhp(WalletService.minCashout)}.';
+      return 'Minimum amount to withdraw is PHP ${fmtPhp(WalletService.minCashout)}.';
     }
     if (amount > balance) return 'Amount is more than your balance.';
     return null;
@@ -641,10 +610,10 @@ class _CashoutScreenState extends State<CashoutScreen> {
     required String? error,
   }) {
     if (_accounts.isEmpty) {
-      return 'Link an account and receive an allowance to cash out.';
+      return 'Link an account to withdraw your allowance.';
     }
     if (balance < WalletService.minCashout) {
-      return 'Receive an allowance of at least PHP ${fmtPhp(WalletService.minCashout)} to cash out.';
+      return 'Receive an allowance of at least PHP ${fmtPhp(WalletService.minCashout)} to withdraw.';
     }
     if (amount == null) {
       return 'Enter an amount of at least PHP ${fmtPhp(WalletService.minCashout)} to continue.';
@@ -676,7 +645,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'No cash-outs yet',
+                  'No allowance activity yet',
                   style: TextStyle(
                     color: context.colors.textPrimary,
                     fontWeight: FontWeight.w800,
@@ -684,7 +653,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  'Your cash-outs will show up here',
+                  'Your allowance activity will show up here',
                   style: TextStyle(
                     color: context.colors.textBody,
                     fontSize: 13,
@@ -700,13 +669,17 @@ class _CashoutScreenState extends State<CashoutScreen> {
 
   Color _statusColor(WithdrawalStatus status) => switch (status) {
         WithdrawalStatus.completed => context.colors.successText,
-        WithdrawalStatus.pending => context.colors.warningText,
+        WithdrawalStatus.pending ||
+        WithdrawalStatus.processing =>
+          context.colors.warningText,
         _ => context.colors.dangerText,
       };
 
   Color _statusBackground(WithdrawalStatus status) => switch (status) {
         WithdrawalStatus.completed => context.colors.successBg,
-        WithdrawalStatus.pending => context.colors.warningBg,
+        WithdrawalStatus.pending ||
+        WithdrawalStatus.processing =>
+          context.colors.warningBg,
         _ => context.colors.dangerBg,
       };
 
@@ -718,9 +691,11 @@ class _CashoutScreenState extends State<CashoutScreen> {
     final date = DateFormat('MMM d, yyyy · h:mm a')
         .format(withdrawal.createdAt.toLocal());
     final statusLabel = switch (withdrawal.status) {
-      WithdrawalStatus.completed => 'Completed',
       WithdrawalStatus.pending => 'Pending',
-      _ => 'Failed',
+      WithdrawalStatus.processing => 'Processing',
+      WithdrawalStatus.completed => 'Completed',
+      WithdrawalStatus.failed => 'Failed',
+      WithdrawalStatus.cancelled => 'Cancelled',
     };
 
     return Padding(
@@ -730,6 +705,12 @@ class _CashoutScreenState extends State<CashoutScreen> {
         padding: const EdgeInsets.all(16),
         radius: 22,
         shadow: true,
+        onTap: () => Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CashoutReceiptScreen(withdrawal: withdrawal),
+          ),
+        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -774,7 +755,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                   if (withdrawal.reference.isNotEmpty) ...[
                     const SizedBox(height: 3),
                     Text(
-                      'Simulated reference: ${withdrawal.reference}',
+                      'Reference: ${withdrawal.reference}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -788,11 +769,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
                     spacing: 6,
                     runSpacing: 6,
                     children: [
-                      StatusChip(
-                        'Simulated',
-                        color: context.colors.brand,
-                        bg: context.colors.brandTint,
-                      ),
                       StatusChip(
                         statusLabel,
                         color: statusColor,
@@ -826,41 +802,42 @@ class _CashoutScreenState extends State<CashoutScreen> {
     );
   }
 
-  Widget _loadingSkeleton() {
+  Widget _loadingSkeleton(BuildContext context) {
+    final placeholderColor = context.colors.borderSoft;
     return AppSkeletonizer(
       enabled: true,
       child: Column(
         children: [
           AppCard(
-            radius: 26,
+            radius: 28,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(width: 150, height: 14, color: Colors.white),
+                Container(width: 150, height: 14, color: placeholderColor),
                 const SizedBox(height: 12),
-                Container(width: 230, height: 42, color: Colors.white),
+                Container(width: 230, height: 42, color: placeholderColor),
               ],
             ),
           ),
           const SizedBox(height: 16),
           AppCard(
-            radius: 16,
-            child: Container(height: 52, color: Colors.white),
+            radius: 22,
+            child: Container(height: 52, color: placeholderColor),
           ),
           const SizedBox(height: 16),
           AppCard(
             radius: 22,
-            child: Container(height: 58, color: Colors.white),
+            child: Container(height: 58, color: placeholderColor),
           ),
           const SizedBox(height: 16),
           AppCard(
             radius: 22,
-            child: Container(height: 120, color: Colors.white),
+            child: Container(height: 120, color: placeholderColor),
           ),
           const SizedBox(height: 16),
           AppCard(
             radius: 22,
-            child: Container(height: 52, color: Colors.white),
+            child: Container(height: 52, color: placeholderColor),
           ),
         ],
       ),
@@ -896,13 +873,13 @@ class _CashoutScreenState extends State<CashoutScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: true,
-        leadingWidth: 60,
+        leadingWidth: 70,
         leading: _roundBackButton(),
         title: Text(
-          'Cash Out',
+          'Withdraw Allowance',
           style: TextStyle(
             color: context.colors.textPrimary,
-            fontSize: 18,
+            fontSize: 17,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -920,21 +897,12 @@ class _CashoutScreenState extends State<CashoutScreen> {
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
                 children: [
                   if (_loading)
-                    _loadingSkeleton()
+                    _loadingSkeleton(context)
                   else ...[
                     _balanceHero(state.balance),
                     const SizedBox(height: 16),
-                    InfoBanner(
-                      icon: AppIcons.demo,
-                      message:
-                          'Demo mode: Cash Out is a simulation. No real money is sent to GCash, Maya or a bank.',
-                      emphasizedPrefix: 'Demo mode:',
-                      backgroundColor: context.colors.warningBg,
-                      iconColor: context.colors.warningText,
-                    ),
-                    const SizedBox(height: 22),
                     SectionLabel(
-                      'CASH OUT TO',
+                      'WITHDRAW TO',
                       trailing: TextButton(
                         onPressed: _manageAccounts,
                         style: TextButton.styleFrom(
@@ -963,7 +931,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                     ),
                     const SizedBox(height: 16),
                     PrimaryButton(
-                      label: 'Review and Cash Out',
+                      label: 'Review and Withdraw',
                       icon: AppIcons.arrowUpRight,
                       onPressed: canSubmit ? _submit : null,
                       loading: _busy,
@@ -985,7 +953,7 @@ class _CashoutScreenState extends State<CashoutScreen> {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    SectionLabel('MY CASH-OUTS (${_history.length})'),
+                    SectionLabel('ALLOWANCE HISTORY (${_history.length})'),
                     const SizedBox(height: 10),
                     if (_history.isEmpty)
                       _emptyHistoryCard()
@@ -1053,4 +1021,107 @@ class _CashoutScrollBehavior extends MaterialScrollBehavior {
     ScrollableDetails details,
   ) =>
       child;
+}
+
+class CashoutBalanceHeroCard extends StatelessWidget {
+  final double balance;
+
+  const CashoutBalanceHeroCard({
+    super.key,
+    required this.balance,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              context.colors.balanceHeroStart,
+              context.colors.balanceHeroEnd,
+            ],
+          ),
+        ),
+        child: Stack(
+          children: [
+            CardDecorShapes(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(28),
+              circleSize: 55,
+              blobSize: 62,
+              circleOpacity: .12,
+              blobOpacity: .12,
+              child: const SizedBox(
+                width: double.infinity,
+                height: 110,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'AVAILABLE BALANCE',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      color: context.colors.balanceHeroText,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 44),
+                    child: Semantics(
+                      container: true,
+                      label: 'PHP ${fmtPhp(balance)}',
+                      excludeSemantics: true,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            'PHP',
+                            style: CardNumberStyles.heroPrefix.copyWith(
+                              color: context.colors.balanceHeroText
+                                  .withValues(alpha: .9),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                fmtPhp(balance),
+                                maxLines: 1,
+                                softWrap: false,
+                                textAlign: TextAlign.left,
+                                style: CardNumberStyles.hero.copyWith(
+                                  color: context.colors.balanceHeroText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

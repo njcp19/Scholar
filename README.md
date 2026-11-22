@@ -1,17 +1,13 @@
-# scholar_wallet
+# Scholar Wallet
 
-A new Flutter project.
+Scholar Wallet is a Flutter app for scholarship registration, allowance Payout
+Events, and simulated Withdraw Allowance and Allocate Funds activity (no real
+money moves). Firebase Authentication provides
+identity; Supabase Postgres stores application data and enforces access through
+policies and RPCs.
 
-## Getting Started
+## Setup
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Follow [docs/SETUP.md](docs/SETUP.md) to configure Firebase and Supabase,
+including the baseline schema and migrations. See [docs/DATABASE.md](docs/DATABASE.md)
+for the migration list and database notes.

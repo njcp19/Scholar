@@ -4,6 +4,7 @@ import '../../models/models.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
+import '../../widgets/destructive_confirm_dialog.dart';
 import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 
@@ -61,11 +62,16 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
 
   Future<void> _load() async {
     try {
-      _scholars = await context.read<AppState>().wallet.getScholars();
+      _scholars = (await context.read<AppState>().wallet.getScholars())
+          .where(
+            (scholar) =>
+                scholar.verificationStatus != VerificationStatus.rejected,
+          )
+          .toList();
       _error = null;
       _offline = false;
     } catch (e) {
-      _error = '$e';
+      _error = 'Could not load scholars. Please try again.';
       _offline = isOfflineLoadError(e);
     }
     if (mounted) {
@@ -106,11 +112,11 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         context,
         active ? '${scholar.name} activated.' : '${scholar.name} deactivated.',
       );
-    } catch (e) {
+    } catch (_) {
       if (mounted) {
         showMsg(
           context,
-          'Failed to update the scholar account. ($e)',
+          'Could not update the scholar account. Please try again.',
           error: true,
         );
       }
@@ -135,21 +141,31 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   }
 
   Future<void> _delete(Scholar scholar) async {
-    final ok = await _confirm(
+    final result = await DestructiveConfirmDialog.show(
+      context,
       title: 'Delete ${scholar.name}?',
-      body: 'This will permanently remove ${scholar.name} and all of their '
+      message: 'This will permanently remove ${scholar.name} and all of their '
           'transaction, payout, linked-account, and registration-review records. '
           'Accounts with a balance cannot be deleted. This cannot be undone.',
-      action: 'Delete',
+      dismissLabel: 'Cancel',
+      confirmLabel: 'Delete',
+      semanticsLabel: 'Delete scholar confirmation',
+      icon: AppIcons.delete,
+      dismissButtonKey: const ValueKey('manage-scholar-delete-cancel'),
+      confirmButtonKey: const ValueKey('manage-scholar-delete-confirm'),
     );
+    final ok = result == true;
     if (!ok || !mounted) return;
     try {
       await context.read<AppState>().wallet.deleteScholar(scholar.id);
       if (!mounted) return;
       setState(() => _scholars.removeWhere((item) => item.id == scholar.id));
       showMsg(context, '${scholar.name} deleted.');
-    } catch (e) {
-      if (mounted) showMsg(context, '$e', error: true);
+    } catch (_) {
+      if (mounted) {
+        showMsg(context, 'Could not delete the scholar. Please try again.',
+            error: true);
+      }
     }
   }
 
@@ -181,7 +197,11 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       showMsg(context, '$deletedCount inactive account(s) deleted.');
       await _load();
     } catch (e) {
-      if (mounted) showMsg(context, '$e', error: true);
+      if (mounted) {
+        showMsg(
+            context, 'Could not delete inactive accounts. Please try again.',
+            error: true);
+      }
     }
   }
 
@@ -196,13 +216,25 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       backgroundColor: context.colors.background,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        centerTitle: true,
-        title: const Text('Manage Scholars'),
+        leadingWidth: widget.embedded ? null : 70,
+        centerTitle: !widget.embedded,
+        titleSpacing: widget.embedded ? 20 : 0,
+        title: Text(
+          'Manage Scholars',
+          style: TextStyle(
+            color: context.colors.textPrimary,
+            fontSize: widget.embedded ? 26 : 17,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
         leading: widget.embedded
             ? null
-            : _RoundToolbarButton(
-                icon: AppIcons.back,
-                onPressed: () => Navigator.maybePop(context),
+            : Padding(
+                padding: const EdgeInsets.only(left: 26),
+                child: _RoundToolbarButton(
+                  icon: AppIcons.back,
+                  onPressed: () => Navigator.maybePop(context),
+                ),
               ),
         actions: [
           Padding(
@@ -241,8 +273,8 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
               SearchField(
                 controller: _searchController,
                 hintText: 'Search by name or ID',
-                radius: 18,
-                minHeight: 52,
+                radius: 16,
+                minHeight: 50,
                 onChanged: (value) => setState(() => _query = value),
                 suffixIcon: _query.isEmpty
                     ? null
@@ -299,7 +331,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
       children: [
         const SkeletonCard(
-          radius: 26,
+          radius: 22,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -363,108 +395,10 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   }
 
   Widget _heroCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [context.colors.header, context.colors.heroGradientEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(26),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -62,
-            top: -90,
-            child: _heroCircle(220),
-          ),
-          Positioned(
-            right: -85,
-            bottom: -132,
-            child: _heroCircle(250),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'TOTAL SCHOLARS',
-                style: TextStyle(
-                  color: context.colors.onHeader.withValues(alpha: .88),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.4,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_scholars.length}',
-                style: TextStyle(
-                  color: context.colors.onHeader,
-                  fontSize: 44,
-                  height: 1.1,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _heroPill('$_verifiedCount verified', showDot: true),
-                  _heroPill('$_activeCount allowance on'),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _heroCircle(double size) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: context.colors.onHeader.withValues(alpha: .10),
-          shape: BoxShape.circle,
-        ),
-      );
-
-  Widget _heroPill(String label, {bool showDot = false}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: context.colors.onHeader.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (showDot) ...[
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: context.colors.success,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 7),
-          ],
-          Text(
-            label,
-            style: TextStyle(
-              color: context.colors.onHeader,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
+    return ManageScholarsHeroCard(
+      scholarCount: _scholars.length,
+      verifiedCount: _verifiedCount,
+      activeCount: _activeCount,
     );
   }
 
@@ -479,6 +413,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         shadow: true,
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
@@ -496,7 +431,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -525,75 +460,89 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 82,
-                  child: Column(
-                    children: [
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (updating)
                       SizedBox(
-                        height: 32,
-                        child: updating
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: context.colors.brand,
-                                ),
-                              )
-                            : Switch.adaptive(
-                                value: scholar.active,
-                                onChanged: verified
-                                    ? (value) => _toggle(scholar, value)
-                                    : null,
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                              ),
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: context.colors.brand,
+                        ),
+                      )
+                    else
+                      Switch.adaptive(
+                        value: scholar.active,
+                        onChanged: verified
+                            ? (value) => _toggle(scholar, value)
+                            : null,
                       ),
-                      const SizedBox(height: 3),
-                      Text(
+                    const SizedBox(height: 3),
+                    SizedBox(
+                      width: 120,
+                      child: Text(
                         updating
                             ? 'Updating'
                             : scholar.active
                                 ? 'Receives allowance'
-                                : 'Paused',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
+                                : 'Inactive',
+                        maxLines: 2,
+                        softWrap: true,
+                        textAlign: TextAlign.end,
+                        overflow: TextOverflow.clip,
                         style: TextStyle(
                           color: context.colors.textBody,
-                          fontSize: 9,
+                          fontSize: 11,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
             const SizedBox(height: 14),
             Divider(height: 1, color: context.colors.borderSoft),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                _verificationChip(scholar.verificationStatus),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: FittedBox(
-                    alignment: Alignment.centerLeft,
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'PHP ${fmtPhp(scholar.balance)}',
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: context.colors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+            LayoutBuilder(
+              builder: (context, constraints) => Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: constraints.maxWidth - 116,
+                    ),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: _verificationChip(scholar.verificationStatus),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'PHP ${fmtPhp(scholar.balance)}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: context.colors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                _deleteButton(scholar),
-              ],
+                  const SizedBox(width: 10),
+                  _deleteButton(scholar),
+                ],
+              ),
             ),
           ],
         ),
@@ -629,29 +578,162 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
 
   Widget _deleteButton(Scholar scholar) {
     return Material(
-      color: context.colors.dangerBg,
-      borderRadius: BorderRadius.circular(16),
+      color: Colors.transparent,
       child: InkWell(
         onTap: () => _delete(scholar),
         borderRadius: BorderRadius.circular(16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Align(
+            alignment: Alignment.center,
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Ink(
+              width: 96,
+              height: 40,
+              decoration: BoxDecoration(
+                color: context.colors.dangerBg,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    AppIcons.delete,
+                    size: 18,
+                    color: context.colors.dangerText,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Delete',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: context.colors.dangerText,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ManageScholarsHeroCard extends StatelessWidget {
+  final int scholarCount;
+  final int verifiedCount;
+  final int activeCount;
+
+  const ManageScholarsHeroCard({
+    super.key,
+    required this.scholarCount,
+    required this.verifiedCount,
+    required this.activeCount,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [context.colors.header, context.colors.heroGradientEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: CardDecorShapes(
+        color: context.colors.onHeader,
+        borderRadius: BorderRadius.circular(28),
+        circleSize: 110,
+        blobSize: 125,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(AppIcons.delete, size: 16, color: context.colors.dangerText),
-              const SizedBox(width: 5),
               Text(
-                'Delete',
+                'TOTAL SCHOLARS',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: context.colors.dangerText,
+                  color: context.colors.onHeader.withValues(alpha: .88),
                   fontSize: 12,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.4,
                 ),
+              ),
+              const SizedBox(height: 8),
+              HeroAmountText(
+                amount: '$scholarCount',
+                color: context.colors.onHeader,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _heroPill(context, '$verifiedCount verified', showDot: true),
+                  _heroPill(context, '$activeCount allowance on'),
+                ],
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _heroPill(
+    BuildContext context,
+    String label, {
+    bool showDot = false,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: context.colors.onHeader.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showDot) ...[
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: context.colors.success,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 7),
+          ],
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: context.colors.onHeader,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

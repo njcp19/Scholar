@@ -54,6 +54,7 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color dangerBg;
   final Color dangerBorder;
   final Color warningBg;
+  final Color warningBorder;
   final Color success;
   final Color successAccent;
   final Color danger;
@@ -109,6 +110,7 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.dangerBg,
     required this.dangerBorder,
     required this.warningBg,
+    required this.warningBorder,
     required this.success,
     required this.successAccent,
     required this.danger,
@@ -120,7 +122,7 @@ class AppColors extends ThemeExtension<AppColors> {
   });
 
   static const light = AppColors(
-    canvas: Color(0xFFFFFFFF),
+    canvas: Color(0xFFF5F7FA),
     background: Color(0xFFF5F7FA),
     surface: Color(0xFFFFFFFF),
     border: Color(0xFFE3E8EF),
@@ -130,8 +132,8 @@ class AppColors extends ThemeExtension<AppColors> {
     textPrimary: Color(0xFF1A2530),
     textBody: Color(0xFF4A5568),
     textLabel: Color(0xFF3A4556),
-    hint: Color(0xFFA3ABB8),
-    hintContrast: Color(0xFF677281),
+    hint: Color(0xFF6B7686),
+    hintContrast: Color(0xFF6B7686),
     brand: Color(0xFF1E5AA8),
     heroGradientEnd: Color(0xFF174B89),
     receiptHeroEnd: Color(0xFF123F86),
@@ -147,7 +149,7 @@ class AppColors extends ThemeExtension<AppColors> {
     infoRequiredBg: Color(0xFFFDEFD2),
     infoRequiredText: Color(0xFF9A5B00),
     dangerOutline: Color(0xFFF0B8B8),
-    dangerFeedbackText: Color(0xFF6E1B1B),
+    dangerFeedbackText: Color(0xFFA52A2A),
     header: Color(0xFF1E5AA8),
     authHeroStart: Color(0xFF2A6FC9),
     authHeroEnd: Color(0xFF164786),
@@ -163,9 +165,10 @@ class AppColors extends ThemeExtension<AppColors> {
     accentGold: Color(0xFFD9A441),
     successBg: Color(0xFFE5F8F0),
     dangerBg: Color(0xFFFDECEC),
-    dangerBorder: Color(0xFFE8B4B4),
+    dangerBorder: Color(0xFFF0B8B8),
     warningBg: Color(0xFFFFF6E3),
-    success: Color(0xFF1DB981),
+    warningBorder: Color(0xFFF3D9A0),
+    success: Color(0xFF1FB886),
     successAccent: Color(0xFF1FB886),
     danger: Color(0xFFE15A5A),
     warning: Color(0xFFF0A020),
@@ -188,7 +191,7 @@ class AppColors extends ThemeExtension<AppColors> {
     textLabel: Color(0xFFC9D1DC),
     hint: Color(0xFF6B7587),
     hintContrast: Color(0xFFA6B0BF),
-    brand: Color(0xFF6FA3E8),
+    brand: Color(0xFF1E5AA8),
     heroGradientEnd: Color(0xFF103C70),
     receiptHeroEnd: Color(0xFF0D2F5E),
     balanceHeroStart: Color(0xFFD9AD4F),
@@ -221,8 +224,9 @@ class AppColors extends ThemeExtension<AppColors> {
     dangerBg: Color(0xFF3A1D1F),
     dangerBorder: Color(0xFF6A3A3E),
     warningBg: Color(0xFF3A2D12),
-    success: Color(0xFF54D6A4),
-    successAccent: Color(0xFF48D4A3),
+    warningBorder: Color(0xFF5C4A28),
+    success: Color(0xFF1FB886),
+    successAccent: Color(0xFF1FB886),
     danger: Color(0xFFF07575),
     warning: Color(0xFFF4B942),
     cardShadow: Color(0x33000000),
@@ -278,6 +282,7 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? dangerBg,
     Color? dangerBorder,
     Color? warningBg,
+    Color? warningBorder,
     Color? success,
     Color? successAccent,
     Color? danger,
@@ -334,6 +339,7 @@ class AppColors extends ThemeExtension<AppColors> {
         dangerBg: dangerBg ?? this.dangerBg,
         dangerBorder: dangerBorder ?? this.dangerBorder,
         warningBg: warningBg ?? this.warningBg,
+        warningBorder: warningBorder ?? this.warningBorder,
         success: success ?? this.success,
         successAccent: successAccent ?? this.successAccent,
         danger: danger ?? this.danger,
@@ -395,6 +401,7 @@ class AppColors extends ThemeExtension<AppColors> {
       dangerBg: l(dangerBg, other.dangerBg),
       dangerBorder: l(dangerBorder, other.dangerBorder),
       warningBg: l(warningBg, other.warningBg),
+      warningBorder: l(warningBorder, other.warningBorder),
       success: l(success, other.success),
       successAccent: l(successAccent, other.successAccent),
       danger: l(danger, other.danger),
@@ -419,8 +426,8 @@ class AppTheme {
   static const Color primaryBlueDark = Color(0xFF14467F);
   static const Color accentGold = Color(0xFFD9A441);
   static const Color accentGoldLight = Color(0xFFEFD9A7);
-  static const Color textMuted = Color(0xFF8A94A6);
-  static const Color successGreen = Color(0xFF1DB981);
+  static const Color textMuted = Color(0xFF6B7686);
+  static const Color successGreen = Color(0xFF1FB886);
   static const Color dangerRed = Color(0xFFE15A5A);
   static const Color warningAmber = Color(0xFFF0A020);
 
@@ -470,42 +477,52 @@ class AppTheme {
         backgroundColor: c.surface,
         elevation: 0,
         centerTitle: true,
+        toolbarHeight: 56,
         iconTheme: IconThemeData(color: c.textPrimary),
         systemOverlayStyle:
             isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
         titleTextStyle: GoogleFonts.inter(
           fontSize: 17,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: c.textPrimary,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: c.surface,
-        hintStyle: GoogleFonts.inter(color: textMuted, fontSize: 14),
+        hintStyle: GoogleFonts.inter(color: c.hint, fontSize: 14),
+        constraints: const BoxConstraints(minHeight: 50),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: c.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: c.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: c.brand, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: c.dangerBorder),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: c.dangerBorder, width: 2),
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
+          backgroundColor: c.brand,
           foregroundColor: Colors.white,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(56),
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
           ),
           textStyle: GoogleFonts.inter(
             fontSize: 16,

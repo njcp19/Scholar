@@ -4,7 +4,6 @@ import 'package:scholar_wallet/models/models.dart';
 import 'package:scholar_wallet/screens/payout_received_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/receipt_layout.dart';
-import 'package:scholar_wallet/widgets/widgets.dart';
 
 void main() {
   testWidgets('success receipt uses the shared receipt hero card', (
@@ -45,7 +44,6 @@ void main() {
     await tester.pump();
 
     expect(find.byType(ReceiptHeroCard), findsOneWidget);
-    expect(find.byType(CardDecorShapes), findsOneWidget);
     expect(find.text('Payout received'), findsOneWidget);
     expect(
       find.text('Verified by QR and device biometrics'),

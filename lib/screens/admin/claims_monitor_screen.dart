@@ -282,72 +282,68 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         ),
         borderRadius: BorderRadius.circular(28),
       ),
-      child: CardDecorShapes(
-        color: context.colors.onHeader,
-        borderRadius: BorderRadius.circular(28),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'TOTAL PAID OUT',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: context.colors.onHeader.withValues(alpha: .92),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'TOTAL PAID OUT',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.colors.onHeader.withValues(alpha: .92),
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
               ),
+            ),
+            const SizedBox(height: 8),
+            HeroAmountText(
+              prefix: 'PHP ',
+              amount: fmtPhp(totalPaid),
+              color: context.colors.onHeader,
+            ),
+            if (receivedCount > 0) ...[
               const SizedBox(height: 8),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(totalPaid),
-                color: context.colors.onHeader,
-              ),
-              if (receivedCount > 0) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 13,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .14),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Wrap(
-                      spacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Container(
-                          width: 9,
-                          height: 9,
-                          decoration: BoxDecoration(
-                            color: context.colors.success,
-                            shape: BoxShape.circle,
-                          ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: context.colors.onHeader.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Container(
+                        width: 9,
+                        height: 9,
+                        decoration: BoxDecoration(
+                          color: context.colors.success,
+                          shape: BoxShape.circle,
                         ),
-                        Text(
-                          '$receivedCount ${receivedCount == 1 ? 'payout' : 'payouts'} verified by QR',
-                          style: TextStyle(
-                            color: context.colors.onHeader,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
+                      ),
+                      Text(
+                        '$receivedCount ${receivedCount == 1 ? 'payout' : 'payouts'} verified by QR',
+                        style: TextStyle(
+                          color: context.colors.onHeader,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

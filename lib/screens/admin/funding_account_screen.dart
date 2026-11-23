@@ -467,60 +467,54 @@ class _FundingAccountScreenState extends State<FundingAccountScreen> {
         end: Alignment.bottomRight,
         colors: [colors.header, colors.heroGradientEnd],
       ),
-      child: CardDecorShapes(
-        color: colors.onHeader,
-        borderRadius: BorderRadius.circular(28),
-        circleSize: 115,
-        blobSize: 125,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'AVAILABLE FUND',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.3,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'AVAILABLE FUND',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.3,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            HeroAmountText(
+              prefix: 'PHP ',
+              amount: fmtPhp(summary.available),
+              color: colors.onHeader,
+              letterSpacing: -.8,
+            ),
+            const SizedBox(height: 16),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: _heroAmountCard(
+                      label: 'Reserved for payouts',
+                      amount: summary.reserved,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(summary.available),
-                color: colors.onHeader,
-                letterSpacing: -.8,
-              ),
-              const SizedBox(height: 16),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _heroAmountCard(
-                        label: 'Reserved for payouts',
-                        amount: summary.reserved,
-                      ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _heroAmountCard(
+                      label: 'Disbursed so far',
+                      amount: summary.disbursed,
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _heroAmountCard(
-                        label: 'Disbursed so far',
-                        amount: summary.disbursed,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

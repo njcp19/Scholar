@@ -151,73 +151,66 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
           width: HomeActivityRow.recentActivityBorderWidth,
         ),
       ),
-      child: CardDecorShapes(
-        color: context.colors.onHeader,
-        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
-        circleSize: 115,
-        blobSize: 125,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'TOTAL RECEIVED',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.start,
-                style: TextStyle(
-                  color: context.colors.onHeader.withValues(alpha: .92),
-                  fontSize: HomeActivityRow.recentActivityTitleFontSize,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'TOTAL RECEIVED',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.start,
+              style: TextStyle(
+                color: context.colors.onHeader.withValues(alpha: .92),
+                fontSize: HomeActivityRow.recentActivityTitleFontSize,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.2,
               ),
+            ),
+            const SizedBox(height: 8),
+            HeroAmountText(
+              prefix: 'PHP ',
+              amount: fmtPhp(total),
+              color: context.colors.onHeader,
+            ),
+            if (receivedCount > 0) ...[
               const SizedBox(height: 8),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(total),
-                color: context.colors.onHeader,
-              ),
-              if (receivedCount > 0) ...[
-                const SizedBox(height: 8),
-                Container(
-                  key: const ValueKey('payout-summary-status'),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: context.colors.onHeader.withValues(alpha: .14),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 6,
-                    children: [
-                      Container(
-                        width: 9,
-                        height: 9,
-                        decoration: BoxDecoration(
-                          color: context.colors.success,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      Text(
-                        '$receivedCount ${receivedCount == 1 ? 'payout' : 'payouts'} verified by QR',
-                        style: TextStyle(
-                          color: context.colors.onHeader,
-                          fontSize:
-                              HomeActivityRow.recentActivityDetailFontSize,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+              Container(
+                key: const ValueKey('payout-summary-status'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
                 ),
-              ],
+                decoration: BoxDecoration(
+                  color: context.colors.onHeader.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 6,
+                  children: [
+                    Container(
+                      width: 9,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: context.colors.success,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    Text(
+                      '$receivedCount ${receivedCount == 1 ? 'payout' : 'payouts'} verified by QR',
+                      style: TextStyle(
+                        color: context.colors.onHeader,
+                        fontSize: HomeActivityRow.recentActivityDetailFontSize,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );

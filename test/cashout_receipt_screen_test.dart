@@ -4,7 +4,6 @@ import 'package:scholar_wallet/models/models.dart';
 import 'package:scholar_wallet/screens/cashout_receipt_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/receipt_layout.dart';
-import 'package:scholar_wallet/widgets/widgets.dart';
 
 Withdrawal _withdrawal({
   WithdrawalStatus status = WithdrawalStatus.completed,
@@ -54,7 +53,6 @@ void main() {
 
     expect(find.text('Withdraw Allowance completed'), findsOneWidget);
     expect(find.byType(ReceiptHeroCard), findsOneWidget);
-    expect(find.byType(CardDecorShapes), findsOneWidget);
     expect(find.bySemanticsLabel('PHP 1,250.00'), findsOneWidget);
     expect(find.text('Maya'), findsOneWidget);
     expect(find.text('Alex Scholar'), findsOneWidget);

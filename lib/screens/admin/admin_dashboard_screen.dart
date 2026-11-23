@@ -491,49 +491,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         colors: [colors.header, colors.heroGradientEnd],
       ),
       clipBehavior: Clip.antiAlias,
-      child: CardDecorShapes(
-        color: colors.onHeader,
-        borderRadius: BorderRadius.circular(28),
-        circleSize: 100,
-        blobSize: 130,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'DISBURSE ALLOWANCE',
-                style: TextStyle(
-                  color: colors.onHeader.withValues(alpha: .9),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'DISBURSE ALLOWANCE',
+              style: TextStyle(
+                color: colors.onHeader.withValues(alpha: .9),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1,
               ),
-              const SizedBox(height: 6),
-              Text(
-                'Generate a payout batch and scholars scan their QR to receive it.',
-                style: TextStyle(
-                  color: colors.onHeader.withValues(alpha: .88),
-                  fontSize: 14,
-                  height: 1.45,
-                ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Generate a payout batch and scholars scan their QR to receive it.',
+              style: TextStyle(
+                color: colors.onHeader.withValues(alpha: .88),
+                fontSize: 14,
+                height: 1.45,
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: PrimaryButton(
-                  label: 'Start disbursement',
-                  onPressed: _openDisbursement,
-                  icon: AppIcons.send,
-                  backgroundColor: colors.onHeader,
-                  foregroundColor: colors.brand,
-                  minHeight: 52,
-                  borderRadius: 18,
-                ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: PrimaryButton(
+                label: 'Start disbursement',
+                onPressed: _openDisbursement,
+                icon: AppIcons.send,
+                backgroundColor: colors.onHeader,
+                foregroundColor: colors.brand,
+                minHeight: 52,
+                borderRadius: 18,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

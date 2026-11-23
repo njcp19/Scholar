@@ -1110,83 +1110,75 @@ class IssuePayoutAmountCard extends StatelessWidget {
       clipBehavior: Clip.hardEdge,
       child: Stack(
         children: [
-          CardDecorShapes(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(28),
-            circleOpacity: .12,
-            blobOpacity: .12,
-            circleSize: 45,
-            blobSize: 38,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 30),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'AMOUNT PER SCHOLAR (FIXED)',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.balanceHeroText,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  HeroAmountText(
-                    prefix: 'PHP ',
-                    amount: fmtPhp(amount),
+          Padding(
+            padding: const EdgeInsets.only(right: 30),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'AMOUNT PER SCHOLAR (FIXED)',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
                     color: colors.balanceHeroText,
-                    letterSpacing: -.8,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1.3,
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Set once for everybody. Every selected scholar gets exactly this amount.',
-                    style: TextStyle(
-                      color: colors.balanceHeroText,
-                      fontSize: 12,
-                      height: 1.45,
-                    ),
+                ),
+                const SizedBox(height: 8),
+                HeroAmountText(
+                  prefix: 'PHP ',
+                  amount: fmtPhp(amount),
+                  color: colors.balanceHeroText,
+                  letterSpacing: -.8,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Set once for everybody. Every selected scholar gets exactly this amount.',
+                  style: TextStyle(
+                    color: colors.balanceHeroText,
+                    fontSize: 12,
+                    height: 1.45,
                   ),
-                  const SizedBox(height: 8),
-                  Material(
-                    color: colors.onHeader.withValues(alpha: .5),
+                ),
+                const SizedBox(height: 8),
+                Material(
+                  color: colors.onHeader.withValues(alpha: .5),
+                  borderRadius: BorderRadius.circular(18),
+                  child: InkWell(
+                    onTap: onChangeStandardAmount,
                     borderRadius: BorderRadius.circular(18),
-                    child: InkWell(
-                      onTap: onChangeStandardAmount,
-                      borderRadius: BorderRadius.circular(18),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 9,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              AppIcons.sliders,
-                              size: 16,
-                              color: colors.balanceHeroText,
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                'Change standard amount',
-                                style: TextStyle(
-                                  color: colors.balanceHeroText,
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 9,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            AppIcons.sliders,
+                            size: 16,
+                            color: colors.balanceHeroText,
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Change standard amount',
+                              style: TextStyle(
+                                color: colors.balanceHeroText,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],

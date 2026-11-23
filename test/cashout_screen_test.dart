@@ -104,15 +104,6 @@ void main() {
       lessThanOrEqualTo(tester.getRect(card).right - 44),
     );
 
-    final cardStack = tester.widget<Stack>(
-      find.descendant(of: card, matching: find.byType(Stack)).first,
-    );
-    expect(cardStack.children.first, isA<CardDecorShapes>());
-    final shapes = tester.widget<CardDecorShapes>(find.byType(CardDecorShapes));
-    expect(shapes.circleSize, 55);
-    expect(shapes.blobSize, 62);
-    expect(shapes.borderRadius, BorderRadius.circular(28));
-
     final clip = tester.widget<ClipRRect>(
       find.descendant(of: card, matching: find.byType(ClipRRect)).first,
     );

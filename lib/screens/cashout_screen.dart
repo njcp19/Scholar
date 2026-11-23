@@ -11,7 +11,6 @@ import '../services/wallet_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import 'cashout_receipt_screen.dart';
-import '../widgets/success_animation.dart';
 import '../widgets/widgets.dart';
 import 'fingerprint_screen.dart';
 import 'linked_accounts_screen.dart';
@@ -31,7 +30,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
   int? _selected;
   bool _loading = true;
   bool _busy = false;
-  bool _showSuccessAnimation = false;
   String? _cashoutIdempotencyKey;
   int? _cashoutKeyAccountId;
   double? _cashoutKeyAmount;
@@ -255,12 +253,10 @@ class _CashoutScreenState extends State<CashoutScreen> {
       _amount.clear();
       final historyLoaded = await _load(silent: true);
       if (mounted) {
-        setState(() => _showSuccessAnimation = true);
         showMsg(context, 'Allowance withdrawn.');
       }
       await Future<void>.delayed(const Duration(seconds: 2));
       if (!mounted) return;
-      setState(() => _showSuccessAnimation = false);
       if (historyLoaded && _history.isNotEmpty) {
         await Navigator.push<void>(
           context,
@@ -964,12 +960,6 @@ class _CashoutScreenState extends State<CashoutScreen> {
               ),
             ),
           ),
-          if (_showSuccessAnimation)
-            const Positioned.fill(
-              child: IgnorePointer(
-                child: Center(child: SuccessAnimation()),
-              ),
-            ),
         ],
       ),
     );
@@ -1049,17 +1039,9 @@ class CashoutBalanceHeroCard extends StatelessWidget {
         ),
         child: Stack(
           children: [
-            CardDecorShapes(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              circleSize: 55,
-              blobSize: 62,
-              circleOpacity: .12,
-              blobOpacity: .12,
-              child: const SizedBox(
-                width: double.infinity,
-                height: 110,
-              ),
+            const SizedBox(
+              width: double.infinity,
+              height: 110,
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),

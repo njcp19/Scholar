@@ -536,19 +536,6 @@ class AppCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveClipBehavior =
         heroCircles && clipBehavior == Clip.none ? Clip.hardEdge : clipBehavior;
-    final cardChild = heroCircles
-        ? Stack(
-            children: [
-              CardDecorShapes(
-                color: context.colors.onHeader,
-                borderRadius: BorderRadius.circular(radius),
-                circleSize: 95,
-                blobSize: 105,
-                child: child,
-              ),
-            ],
-          )
-        : child;
     final decoration = BoxDecoration(
       color:
           gradient == null ? backgroundColor ?? context.colors.surface : null,
@@ -573,7 +560,7 @@ class AppCard extends StatelessWidget {
         width: double.infinity,
         padding: padding,
         decoration: decoration,
-        child: cardChild,
+        child: child,
       );
       final clippedInk = effectiveClipBehavior == Clip.none
           ? ink
@@ -594,76 +581,7 @@ class AppCard extends StatelessWidget {
       padding: padding,
       clipBehavior: effectiveClipBehavior,
       decoration: decoration,
-      child: cardChild,
-    );
-  }
-}
-
-class CardDecorShapes extends StatelessWidget {
-  final Widget child;
-  final Color color;
-  final BorderRadius borderRadius;
-  final double circleSize;
-  final double blobSize;
-  final double circleOpacity;
-  final double blobOpacity;
-
-  const CardDecorShapes({
-    super.key,
-    required this.child,
-    required this.color,
-    required this.borderRadius,
-    this.circleSize = 115,
-    this.blobSize = 125,
-    this.circleOpacity = .12,
-    this.blobOpacity = .1,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Positioned.fill(
-          child: ClipRRect(
-            borderRadius: borderRadius,
-            child: Stack(
-              clipBehavior: Clip.hardEdge,
-              children: [
-                Positioned(
-                  top: -circleSize * .4,
-                  right: -circleSize * .4,
-                  child: IgnorePointer(
-                    child: Container(
-                      width: circleSize,
-                      height: circleSize,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: circleOpacity),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  right: -blobSize * .4,
-                  bottom: -blobSize * .4,
-                  child: IgnorePointer(
-                    child: Container(
-                      width: blobSize,
-                      height: blobSize,
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: blobOpacity),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        child,
-      ],
+      child: child,
     );
   }
 }

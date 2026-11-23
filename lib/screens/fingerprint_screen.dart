@@ -148,76 +148,67 @@ class _FingerprintScreenState extends State<FingerprintScreen> {
             colors: [start, end],
           ),
         ),
-        child: CardDecorShapes(
-          key: const ValueKey('biometric-hero-shapes'),
-          color: Colors.white,
-          borderRadius: heroRadius,
-          circleSize: 115,
-          blobSize: 125,
-          circleOpacity: .12,
-          blobOpacity: .12,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
-            child: Column(
-              children: [
-                Container(
-                  width: 80,
-                  height: 80,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 16, 22, 16),
+          child: Column(
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: registered
+                      ? Colors.white.withValues(alpha: .16)
+                      : textColor.withValues(alpha: .16),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Container(
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    color: registered
-                        ? Colors.white.withValues(alpha: .16)
-                        : textColor.withValues(alpha: .16),
+                    color: context.colors.surface,
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: textColor.withValues(alpha: .12),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   alignment: Alignment.center,
-                  child: Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: context.colors.surface,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: textColor.withValues(alpha: .12),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      registered ? AppIcons.checkCircle : AppIcons.fingerprint,
-                      color: registered
-                          ? context.colors.successText
-                          : context.colors.onGold,
-                      size: 34,
-                    ),
+                  child: Icon(
+                    registered ? AppIcons.checkCircle : AppIcons.fingerprint,
+                    color: registered
+                        ? context.colors.successText
+                        : context.colors.onGold,
+                    size: 34,
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  registered
-                      ? 'Device biometrics enabled'
-                      : 'Set up device biometrics',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: titleColor,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                  ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                registered
+                    ? 'Device biometrics enabled'
+                    : 'Set up device biometrics',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: titleColor,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: messageColor,
-                    fontSize: 15,
-                    height: 1.4,
-                  ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: messageColor,
+                  fontSize: 15,
+                  height: 1.4,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

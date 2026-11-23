@@ -656,43 +656,37 @@ class ManageScholarsHeroCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(28),
       ),
-      child: CardDecorShapes(
-        color: context.colors.onHeader,
-        borderRadius: BorderRadius.circular(28),
-        circleSize: 110,
-        blobSize: 125,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'TOTAL SCHOLARS',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: context.colors.onHeader.withValues(alpha: .88),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.4,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'TOTAL SCHOLARS',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: context.colors.onHeader.withValues(alpha: .88),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.4,
               ),
-              const SizedBox(height: 8),
-              HeroAmountText(
-                amount: '$scholarCount',
-                color: context.colors.onHeader,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _heroPill(context, '$verifiedCount verified', showDot: true),
-                  _heroPill(context, '$activeCount allowance on'),
-                ],
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 8),
+            HeroAmountText(
+              amount: '$scholarCount',
+              color: context.colors.onHeader,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _heroPill(context, '$verifiedCount verified', showDot: true),
+                _heroPill(context, '$activeCount allowance on'),
+              ],
+            ),
+          ],
         ),
       ),
     );

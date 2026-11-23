@@ -55,7 +55,7 @@ class ReceiptHeroCard extends StatelessWidget {
       clipBehavior: Clip.hardEdge,
       borderColor: Colors.transparent,
       borderWidth: 0,
-      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
       gradient: LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
@@ -63,73 +63,67 @@ class ReceiptHeroCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          CardDecorShapes(
-            color: colors.onHeader,
-            borderRadius: BorderRadius.circular(28),
-            circleSize: 115,
-            blobSize: 125,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                leading ??
-                    Container(
-                      width: 80,
-                      height: 80,
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              leading ??
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: colors.onHeader.withValues(alpha: .18),
+                      shape: BoxShape.circle,
+                    ),
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                        color: colors.onHeader.withValues(alpha: .18),
+                        color: colors.success,
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
-                      child: Container(
-                        width: 64,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          color: colors.success,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          AppIcons.check,
-                          color: colors.onHeader,
-                          size: 36,
-                        ),
+                      child: Icon(
+                        AppIcons.check,
+                        color: colors.onHeader,
+                        size: 28,
                       ),
                     ),
-                const SizedBox(height: 14),
+                  ),
+              const SizedBox(height: 10),
+              Text(
+                heading,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: mutedHeroText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              HeroAmountText(
+                prefix: 'PHP ',
+                amount: fmtPhp(amount),
+                color: colors.onHeader,
+                alignment: Alignment.center,
+                letterSpacing: -1,
+              ),
+              if (dateLabel != null) ...[
+                const SizedBox(height: 8),
                 Text(
-                  heading,
+                  dateLabel!,
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: mutedHeroText,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 12.5,
                   ),
                 ),
-                const SizedBox(height: 10),
-                HeroAmountText(
-                  prefix: 'PHP ',
-                  amount: fmtPhp(amount),
-                  color: colors.onHeader,
-                  alignment: Alignment.center,
-                  letterSpacing: -1,
-                ),
-                if (dateLabel != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    dateLabel!,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: mutedHeroText,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ],
-                if (supportingContent != null) ...[
-                  const SizedBox(height: 12),
-                  supportingContent!,
-                ],
               ],
-            ),
+              if (supportingContent != null) ...[
+                const SizedBox(height: 12),
+                supportingContent!,
+              ],
+            ],
           ),
         ],
       ),

@@ -74,10 +74,9 @@ void main() {
     expect(find.text('AN'), findsOneWidget);
     expect(find.byType(ProfileAvatar), findsOneWidget);
     expect(tester.widget<ProfileAvatar>(find.byType(ProfileAvatar)).size, 52);
-    final hero = find.byType(CardDecorShapes);
+    final hero = _profileHeroCard();
     expect(find.text('Scholar account'), findsOneWidget);
     expectNoForegroundPaint(tester, hero);
-    expectCardDecorShapesLayeredBehindContent(tester, hero);
     _expectRoundedProfileHeader(tester);
     _expectProfileTextInset(tester, fullName, email);
 
@@ -142,10 +141,9 @@ void main() {
     expect(find.text('Administrator'), findsOneWidget);
     expect(find.byKey(const ValueKey('profile_hero_avatar')), findsOneWidget);
     expect(find.text('AN'), findsOneWidget);
-    final hero = find.byType(CardDecorShapes);
+    final hero = _profileHeroCard();
     expect(find.text('Administrator account'), findsOneWidget);
     expectNoForegroundPaint(tester, hero);
-    expectCardDecorShapesLayeredBehindContent(tester, hero);
     _expectRoundedProfileHeader(tester);
     _expectProfileTextInset(tester, fullName, email);
     expect(tester.takeException(), isNull);
@@ -167,7 +165,7 @@ void _expectProfileTextInset(
   String fullName,
   String email,
 ) {
-  final hero = find.byType(CardDecorShapes);
+  final hero = _profileHeroCard();
   final cardLeft = tester.getRect(hero).left;
   final nameLeft = tester.getTopLeft(find.text(fullName)).dx;
   final emailLeft = tester.getTopLeft(find.text(email)).dx;
@@ -176,25 +174,24 @@ void _expectProfileTextInset(
 }
 
 void _expectRoundedProfileHeader(WidgetTester tester) {
-  final shapeClip = tester.widget<ClipRRect>(
-    find.descendant(
-      of: find.byType(CardDecorShapes),
-      matching: find.byType(ClipRRect),
-    ),
-  );
-  expect(shapeClip.borderRadius, BorderRadius.circular(28));
-
   final cardContainer = tester.widget<Container>(
-    find
-        .ancestor(
-          of: find.byType(CardDecorShapes),
-          matching: find.byType(Container),
-        )
-        .first,
+    _profileHeroCard(),
   );
   final decoration = cardContainer.decoration! as BoxDecoration;
   expect(decoration.borderRadius, BorderRadius.circular(28));
 }
+
+Finder _profileHeroCard() => find
+    .ancestor(
+      of: find.byKey(const ValueKey('profile_hero_avatar')),
+      matching: find.byWidgetPredicate(
+        (widget) =>
+            widget is Container &&
+            widget.decoration is BoxDecoration &&
+            (widget.decoration! as BoxDecoration).gradient != null,
+      ),
+    )
+    .first;
 
 class _SignedOutAuthPlatform extends FirebaseAuthPlatform {
   @override

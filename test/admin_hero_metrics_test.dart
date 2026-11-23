@@ -393,7 +393,6 @@ void main() {
     expect(find.text('1 allowance on'), findsOneWidget);
     final heroCard = find.byType(ManageScholarsHeroCard);
     expectNoForegroundPaint(tester, heroCard);
-    expectCardDecorShapesLayeredBehindContent(tester, heroCard);
     expect(
       find.text('SCHOLARS (3) · TOGGLE TO CONTROL ALLOWANCE'),
       findsOneWidget,
@@ -491,11 +490,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final hero = find.byType(CardDecorShapes);
+    final hero = find.byType(ManageScholarsHeroCard);
     expect(find.text('TOTAL SCHOLARS'), findsOneWidget);
     expect(find.text('1000'), findsOneWidget);
     expectNoForegroundPaint(tester, hero);
-    expectCardDecorShapesLayeredBehindContent(tester, hero);
     expect(find.text('0 verified'), findsOneWidget);
     expect(find.text('0 allowance on'), findsOneWidget);
     expect(find.byType(HeroAmountText), findsOneWidget);
@@ -537,7 +535,12 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final hero = find.byType(CardDecorShapes);
+    final hero = find
+        .ancestor(
+          of: find.text('TOTAL PAID OUT'),
+          matching: find.byType(Container),
+        )
+        .first;
     expect(tester.getSize(hero).height, inInclusiveRange(120, 130));
 
     tester.view.physicalSize = const Size(320, 640);
@@ -550,7 +553,6 @@ void main() {
     final label = find.text('TOTAL PAID OUT');
     final amount = find.bySemanticsLabel('PHP 1,234,567.89');
     expectNoForegroundPaint(tester, hero);
-    expectCardDecorShapesLayeredBehindContent(tester, hero);
     final labelLeft = tester.getTopLeft(label).dx;
     expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
     expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));

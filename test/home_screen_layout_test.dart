@@ -113,13 +113,14 @@ void main() {
     expect(label, findsOneWidget);
     expect(amount, findsOneWidget);
     expect(find.text('Money received and verified by QR'), findsOneWidget);
-    final hero = find.byType(CardDecorShapes).first;
     final heroCard =
         find.ancestor(of: label, matching: find.byType(AppCard)).first;
     expectNoForegroundPaint(tester, heroCard);
-    expectCardDecorShapesLayeredBehindContent(tester, heroCard);
     final labelLeft = tester.getTopLeft(label).dx;
-    expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
+    expect(
+      labelLeft - tester.getRect(heroCard).left,
+      greaterThanOrEqualTo(20),
+    );
     expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
 
     final copyButton = find.byKey(const ValueKey('home-balance-copy'));
@@ -361,8 +362,6 @@ void main() {
       expect(find.text('Waiting for scan'), findsOneWidget);
       expect(find.text('Received'), findsOneWidget);
       expect(find.bySemanticsLabel('PHP 0.00'), findsOneWidget);
-      _expectDecorShapeRadius(tester);
-
       final totalHero = find
           .ancestor(
             of: find.text('TOTAL RECEIVED'),
@@ -431,13 +430,9 @@ void main() {
       expect(summaryPill, findsOneWidget);
       final labelLeft = tester.getTopLeft(summaryLabel).dx;
       final hero = find
-          .ancestor(
-            of: summaryLabel,
-            matching: find.byType(CardDecorShapes),
-          )
+          .ancestor(of: summaryLabel, matching: find.byType(Container))
           .first;
       expectNoForegroundPaint(tester, hero);
-      expectCardDecorShapesLayeredBehindContent(tester, hero);
       expect(labelLeft - tester.getRect(hero).left, greaterThanOrEqualTo(20));
       expect(tester.getTopLeft(summaryAmount).dx, closeTo(labelLeft, 1));
       expect(tester.getTopLeft(summaryPill).dx, closeTo(labelLeft, 1));
@@ -615,7 +610,6 @@ Widget _homeApp(AppState state) {
 
 void _expectCompactHome(WidgetTester tester) {
   expect(find.text('CURRENT BALANCE'), findsOneWidget);
-  _expectDecorShapeRadius(tester);
   expect(find.text('Withdraw'), findsOneWidget);
   expect(find.text('Allowance'), findsOneWidget);
   expect(find.bySemanticsLabel('Withdraw Allowance'), findsOneWidget);
@@ -630,16 +624,6 @@ void _expectCompactHome(WidgetTester tester) {
     tester.getSize(balanceCard).height,
     lessThan(ProfileHeroMetrics.height),
   );
-}
-
-void _expectDecorShapeRadius(WidgetTester tester) {
-  final clip = tester.widget<ClipRRect>(
-    find.descendant(
-      of: find.byType(CardDecorShapes),
-      matching: find.byType(ClipRRect),
-    ),
-  );
-  expect(clip.borderRadius, BorderRadius.circular(28));
 }
 
 class _SignedOutAuthPlatform extends FirebaseAuthPlatform {

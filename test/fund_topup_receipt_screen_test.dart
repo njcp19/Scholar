@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scholar_wallet/screens/admin/fund_topup_receipt_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/receipt_layout.dart';
-import 'package:scholar_wallet/widgets/widgets.dart';
 
 final _completeReceipt = FundTopUpReceiptData(
   amount: 5000,
@@ -43,7 +42,6 @@ void main() {
 
     expect(find.text('Funds allocated'), findsOneWidget);
     expect(find.byType(ReceiptHeroCard), findsOneWidget);
-    expect(find.byType(CardDecorShapes), findsOneWidget);
     expect(find.bySemanticsLabel('PHP 5,000.00'), findsOneWidget);
     expect(find.text('•••• 1234'), findsOneWidget);
     expect(find.text('COMPLETED'), findsOneWidget);

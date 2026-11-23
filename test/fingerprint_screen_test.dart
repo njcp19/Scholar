@@ -8,7 +8,6 @@ import 'package:scholar_wallet/screens/fingerprint_screen.dart';
 import 'package:scholar_wallet/services/biometric_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/widgets.dart';
-import 'helpers/card_layering_test_utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -49,14 +48,6 @@ void main() {
       tester.widget<Text>(dateFinder).style?.color,
       Colors.white.withValues(alpha: .85),
     );
-
-    final decorFinder = find.byKey(const ValueKey('biometric-hero-shapes'));
-    final clip = tester.widget<ClipRRect>(
-      find.descendant(of: decorFinder, matching: find.byType(ClipRRect)),
-    );
-    expect(clip.borderRadius, BorderRadius.circular(28));
-    expectNoForegroundPaint(tester, decorFinder);
-    expectCardDecorShapesLayeredBehindContent(tester, decorFinder);
 
     for (final step in [
       'Confirm with device biometrics',

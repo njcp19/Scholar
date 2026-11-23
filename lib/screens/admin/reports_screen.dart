@@ -302,49 +302,43 @@ class _ReportsScreenState extends State<ReportsScreen> {
         end: Alignment.bottomRight,
         colors: [context.colors.header, context.colors.receiptHeroEnd],
       ),
-      child: CardDecorShapes(
-        color: context.colors.onHeader,
-        borderRadius: BorderRadius.circular(28),
-        circleSize: 115,
-        blobSize: 125,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'TOTAL DISBURSED (ALL BATCHES)',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: muted,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.3,
-                  ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'TOTAL DISBURSED (ALL BATCHES)',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: muted,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.3,
                 ),
               ),
-              const SizedBox(height: 10),
-              HeroAmountText(
-                prefix: 'PHP ',
-                amount: fmtPhp(_grandTotal),
-                color: context.colors.onHeader,
-                letterSpacing: -.8,
+            ),
+            const SizedBox(height: 10),
+            HeroAmountText(
+              prefix: 'PHP ',
+              amount: fmtPhp(_grandTotal),
+              color: context.colors.onHeader,
+              letterSpacing: -.8,
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                countLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: muted, fontSize: 12.5),
               ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  countLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: muted, fontSize: 12.5),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

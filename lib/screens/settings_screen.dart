@@ -201,137 +201,131 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
       ),
-      child: CardDecorShapes(
-        color: foreground,
-        borderRadius: BorderRadius.circular(ProfileHeroMetrics.radius),
-        circleSize: 115,
-        blobSize: 125,
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    key: const ValueKey('profile_hero_avatar'),
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: foreground.withValues(alpha: .2),
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: isAdmin
-                        ? Container(
-                            width: 52,
-                            height: 52,
-                            decoration: BoxDecoration(
-                              color: context.colors.avatarBackground,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: foreground.withValues(alpha: .65),
-                                width: 3,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  key: const ValueKey('profile_hero_avatar'),
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: foreground.withValues(alpha: .2),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: isAdmin
+                      ? Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: context.colors.avatarBackground,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: foreground.withValues(alpha: .65),
+                              width: 3,
+                            ),
+                          ),
+                          alignment: Alignment.center,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              user?.initials ?? '?',
+                              style: TextStyle(
+                                color: context.colors.onGold,
+                                fontSize: 25,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                            alignment: Alignment.center,
-                            child: FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                user?.initials ?? '?',
-                                style: TextStyle(
-                                  color: context.colors.onGold,
-                                  fontSize: 25,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                            ),
-                          )
-                        : ProfileAvatar(
-                            user: user,
-                            size: 52,
-                            backgroundColor: context.colors.avatarBackground,
-                            initialsColor: context.colors.onGold,
-                            initialsFontSize: 25,
-                            initialsFontWeight: FontWeight.w800,
-                            borderColor: foreground.withValues(alpha: .65),
-                            borderWidth: 3,
                           ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.fullName ?? 'Scholar',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: foreground,
-                            fontSize: 21,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        )
+                      : ProfileAvatar(
+                          user: user,
+                          size: 52,
+                          backgroundColor: context.colors.avatarBackground,
+                          initialsColor: context.colors.onGold,
+                          initialsFontSize: 25,
+                          initialsFontWeight: FontWeight.w800,
+                          borderColor: foreground.withValues(alpha: .65),
+                          borderWidth: 3,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          user?.email ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: foreground,
-                            fontSize: 13,
-                          ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user?.fullName ?? 'Scholar',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: foreground,
+                          fontSize: 21,
+                          fontWeight: FontWeight.w800,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.email ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: foreground,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                if (hasStudentNumber)
+                  Flexible(
+                    flex: 1,
+                    fit: FlexFit.loose,
+                    child: _heroChip(
+                      'ID: ${user!.studentNumber}',
+                      foreground,
+                      compact: true,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  if (hasStudentNumber)
-                    Flexible(
-                      flex: 1,
-                      fit: FlexFit.loose,
-                      child: _heroChip(
-                        'ID: ${user!.studentNumber}',
-                        foreground,
-                        compact: true,
-                      ),
+                if (hasStudentNumber) const SizedBox(width: 8),
+                if (isAdmin)
+                  Flexible(
+                    child: _heroChip(
+                      'Administrator account',
+                      foreground,
+                      compact: true,
                     ),
-                  if (hasStudentNumber) const SizedBox(width: 8),
-                  if (isAdmin)
-                    Flexible(
-                      child: _heroChip(
-                        'Administrator account',
-                        foreground,
-                        compact: true,
-                      ),
-                    )
-                  else if (hasStudentNumber)
-                    Flexible(
-                      flex: 2,
-                      fit: FlexFit.loose,
-                      child: _heroChip(
-                        'Scholar account',
-                        foreground,
-                        compact: true,
-                      ),
-                    )
-                  else
-                    Flexible(
-                      child: _heroChip(
-                        'Scholar account',
-                        foreground,
-                        compact: true,
-                      ),
+                  )
+                else if (hasStudentNumber)
+                  Flexible(
+                    flex: 2,
+                    fit: FlexFit.loose,
+                    child: _heroChip(
+                      'Scholar account',
+                      foreground,
+                      compact: true,
                     ),
-                ],
-              ),
-            ],
-          ),
+                  )
+                else
+                  Flexible(
+                    child: _heroChip(
+                      'Scholar account',
+                      foreground,
+                      compact: true,
+                    ),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

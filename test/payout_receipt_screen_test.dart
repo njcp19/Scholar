@@ -6,7 +6,6 @@ import 'package:scholar_wallet/providers/app_state.dart';
 import 'package:scholar_wallet/screens/payout_receipt_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/receipt_layout.dart';
-import 'package:scholar_wallet/widgets/widgets.dart';
 
 class _TestAppState extends ChangeNotifier implements AppState {
   _TestAppState(this.user);
@@ -67,7 +66,6 @@ void main() {
       expect(find.text('Receipt'), findsOneWidget);
       expect(find.text('Payout received'), findsOneWidget);
       expect(find.byType(ReceiptHeroCard), findsOneWidget);
-      expect(find.byType(CardDecorShapes), findsOneWidget);
       expect(find.text('Not available'), findsOneWidget);
       expect(find.text('Student ID'), findsNothing);
       expect(find.text('RECEIVED'), findsOneWidget);

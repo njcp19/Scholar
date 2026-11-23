@@ -107,44 +107,36 @@ class AuthHeroScaffold extends StatelessWidget {
                           ),
                           child: Stack(
                             children: [
-                              CardDecorShapes(
-                                color: colors.onHeader,
-                                borderRadius: const BorderRadius.vertical(
-                                  bottom: Radius.circular(28),
-                                ),
-                                circleSize: 100,
-                                blobSize: 90,
-                                child: Positioned.fill(
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      24,
-                                      24,
-                                      16,
-                                    ),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          leading,
-                                          const SizedBox(height: 8),
-                                          ConstrainedBox(
-                                            constraints: const BoxConstraints(
-                                              maxWidth: 300,
-                                            ),
-                                            child: Text(
-                                              subtitle,
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: colors.onHeader
-                                                    .withValues(alpha: .9),
-                                                fontSize: 15,
-                                                height: 1.4,
-                                              ),
+                              Positioned.fill(
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    24,
+                                    24,
+                                    24,
+                                    16,
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        leading,
+                                        const SizedBox(height: 8),
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 300,
+                                          ),
+                                          child: Text(
+                                            subtitle,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: colors.onHeader
+                                                  .withValues(alpha: .9),
+                                              fontSize: 15,
+                                              height: 1.4,
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),

@@ -134,11 +134,6 @@ void main() {
     final label = find.text('TOTAL DISBURSED (ALL BATCHES)');
     final amount = find.bySemanticsLabel('PHP 1,234,567.89');
     final count = find.text('9 batches recorded');
-    final card = find.byType(CardDecorShapes);
-    final labelLeft = tester.getTopLeft(label).dx;
-    expect(labelLeft - tester.getRect(card).left, greaterThanOrEqualTo(20));
-    expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
-    expect(tester.getTopLeft(count).dx, closeTo(labelLeft, 1));
     expect(
       amount,
       findsOneWidget,
@@ -149,17 +144,13 @@ void main() {
           matching: find.byType(AppCard),
         )
         .first;
+    final labelLeft = tester.getTopLeft(label).dx;
+    expect(
+        labelLeft - tester.getRect(summaryCard).left, greaterThanOrEqualTo(20));
+    expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
+    expect(tester.getTopLeft(count).dx, closeTo(labelLeft, 1));
     expectNoForegroundPaint(tester, summaryCard);
-    expectCardDecorShapesLayeredBehindContent(tester, summaryCard);
-    final shapeClip = tester.widget<ClipRRect>(
-      find
-          .descendant(
-            of: summaryCard,
-            matching: find.byType(ClipRRect),
-          )
-          .first,
-    );
-    expect(shapeClip.borderRadius, BorderRadius.circular(28));
+    expect(tester.widget<AppCard>(summaryCard).radius, 28);
     expect(tester.takeException(), isNull);
   });
 }

@@ -57,13 +57,6 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
 
       expect(tester.takeException(), isNull);
-      final shapeClip = tester.widget<ClipRRect>(
-        find.descendant(
-          of: find.byType(CardDecorShapes),
-          matching: find.byType(ClipRRect),
-        ),
-      );
-      expect(shapeClip.borderRadius, BorderRadius.circular(28));
       final label = find.text('DISBURSE ALLOWANCE');
       expect(label, findsOneWidget);
       expect(
@@ -72,12 +65,9 @@ void main() {
         ),
         findsOneWidget,
       );
-      final card = find
-          .ancestor(
-            of: label,
-            matching: find.byType(CardDecorShapes),
-          )
-          .first;
+      final card =
+          find.ancestor(of: label, matching: find.byType(AppCard)).first;
+      expect(tester.widget<AppCard>(card).radius, 28);
       final labelLeft = tester.getTopLeft(label).dx;
       expect(
         labelLeft - tester.getRect(card).left,

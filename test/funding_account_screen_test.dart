@@ -131,30 +131,21 @@ void main() {
     expect(find.text('Allocate Funds'), findsOneWidget);
 
     final label = find.text('AVAILABLE FUND');
+    final summaryCard = find
+        .ancestor(
+          of: label,
+          matching: find.byType(AppCard),
+        )
+        .first;
     final labelLeft = tester.getTopLeft(label).dx;
     expect(
-      labelLeft - tester.getRect(find.byType(CardDecorShapes)).left,
+      labelLeft - tester.getRect(summaryCard).left,
       greaterThanOrEqualTo(20),
     );
     expect(tester.getTopLeft(amount).dx, closeTo(labelLeft, 1));
 
-    final summaryCard = find
-        .ancestor(
-          of: find.text('AVAILABLE FUND'),
-          matching: find.byType(AppCard),
-        )
-        .first;
     expectNoForegroundPaint(tester, summaryCard);
-    expectCardDecorShapesLayeredBehindContent(tester, summaryCard);
-    final shapeClip = tester.widget<ClipRRect>(
-      find
-          .descendant(
-            of: summaryCard,
-            matching: find.byType(ClipRRect),
-          )
-          .first,
-    );
-    expect(shapeClip.borderRadius, BorderRadius.circular(28));
+    expect(tester.widget<AppCard>(summaryCard).radius, 28);
 
     await tester.scrollUntilVisible(find.text('FUND ACTIVITY'), 300);
     await tester.pumpAndSettle();

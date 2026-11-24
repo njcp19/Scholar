@@ -1116,7 +1116,7 @@ class IssuePayoutAmountCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'AMOUNT PER SCHOLAR (FIXED)',
+                  'AMOUNT PER SCHOLAR',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(

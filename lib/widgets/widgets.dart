@@ -2429,9 +2429,7 @@ class ScholarBottomNavigation extends StatelessWidget {
               Expanded(
                 child: _ScholarNavigationItem(
                   label: items[index].label,
-                  icon: currentIndex == index
-                      ? (items[index].activeIcon ?? items[index].icon)
-                      : items[index].icon,
+                  icon: items[index].icon,
                   selected: currentIndex == index,
                   selectedIconPill: selectedIconPill,
                   onTap: () => onTap(index),
@@ -2491,7 +2489,7 @@ class _ScholarNavigationItem extends StatelessWidget {
                 style: TextStyle(
                   color: color,
                   fontSize: 11,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ),
@@ -2716,7 +2714,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
               if (statusOnRight) ...[
                 Expanded(
                   child: Text(
-                    'MONTHLY ALLOWANCE',
+                    'ALLOWANCE',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -2745,7 +2743,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'MONTHLY ALLOWANCE',
+                        'ALLOWANCE',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -2797,7 +2795,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
           const SizedBox(height: 4),
           if (received && (issuedDate != null || receivedDate != null)) ...[
             Divider(height: 1, color: context.colors.borderSoft),
-            const SizedBox(height: 1),
+            const SizedBox(height: 8),
             Row(
               children: [
                 if (issuedDate != null)
@@ -4000,23 +3998,27 @@ void showAppSnackBar(
     ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            Icon(icon, size: 20, color: foregroundColor),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                message,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: foregroundColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+        content: SizedBox(
+          height: 56,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: foregroundColor),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  message,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: foregroundColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         backgroundColor: backgroundColor,
         behavior: SnackBarBehavior.floating,

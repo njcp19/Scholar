@@ -110,7 +110,7 @@ void main() {
     expect(clip.borderRadius, BorderRadius.circular(28));
 
     final amount = tester.widget<Text>(find.text('1,234,567.89'));
-    expect(amount.style?.fontSize, CardNumberStyles.hero.fontSize);
+    expect(amount.style?.fontSize, CardNumberStyles.hero.fontSize! - 4);
 
     final reviewButton = find.text('Review and Withdraw');
     await tester.scrollUntilVisible(

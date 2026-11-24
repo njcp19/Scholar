@@ -9,9 +9,8 @@ import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 
 /// FR-23 — Admin controls who receives an allowance by activating or
-/// deactivating scholar accounts, and can delete accounts (one at a time or
-/// all finished inactive ones). Deactivated scholars are excluded from the
-/// Disburse Allowance recipient list.
+/// deactivating scholar accounts, and can delete accounts one at a time.
+/// Deactivated scholars are excluded from the Disburse Allowance recipient list.
 class ManageScholarsScreen extends StatefulWidget {
   final bool embedded;
 
@@ -25,7 +24,6 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Scholar> _scholars = [];
   final Set<String> _updatingIds = {};
-  bool _loading = true;
   bool _hasLoaded = false;
   String _query = '';
   String? _error;
@@ -76,7 +74,6 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
     }
     if (mounted) {
       setState(() {
-        _loading = false;
         _hasLoaded = true;
       });
     }
@@ -125,21 +122,6 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
     }
   }
 
-  Future<bool> _confirm({
-    required String title,
-    required String body,
-    required String action,
-  }) async {
-    final result = await ConfirmDialog.show(
-      context,
-      title: title,
-      message: body,
-      confirmLabel: action,
-      danger: true,
-    );
-    return result == true;
-  }
-
   Future<void> _delete(Scholar scholar) async {
     final result = await DestructiveConfirmDialog.show(
       context,
@@ -164,42 +146,6 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
     } catch (_) {
       if (mounted) {
         showMsg(context, 'Could not delete the scholar. Please try again.',
-            error: true);
-      }
-    }
-  }
-
-  Future<void> _deleteInactive() async {
-    final count = _scholars
-        .where((scholar) =>
-            !scholar.active &&
-            scholar.balance == 0 &&
-            (scholar.verificationStatus == VerificationStatus.rejected ||
-                scholar.verificationStatus == VerificationStatus.approved))
-        .length;
-    if (count == 0) {
-      showMsg(context, 'No inactive accounts to delete.');
-      return;
-    }
-    final ok = await _confirm(
-      title: 'Delete inactive accounts?',
-      body: '$count inactive scholar account(s) marked Verified or '
-          'Registration rejected, with zero balance, will be permanently '
-          'deleted. Registrations still waiting for a decision are not '
-          'affected. This cannot be undone.',
-      action: 'Delete $count',
-    );
-    if (!ok || !mounted) return;
-    try {
-      final deletedCount =
-          await context.read<AppState>().wallet.deleteInactiveScholars();
-      if (!mounted) return;
-      showMsg(context, '$deletedCount inactive account(s) deleted.');
-      await _load();
-    } catch (e) {
-      if (mounted) {
-        showMsg(
-            context, 'Could not delete inactive accounts. Please try again.',
             error: true);
       }
     }
@@ -236,17 +182,6 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                   onPressed: () => Navigator.maybePop(context),
                 ),
               ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _RoundToolbarButton(
-              icon: AppIcons.delete,
-              tooltip: 'Delete inactive accounts',
-              danger: true,
-              onPressed: _loading ? null : _deleteInactive,
-            ),
-          ),
-        ],
       ),
       body: AppInitialLoadView(
         firstLoadPending: !_hasLoaded,
@@ -521,25 +456,7 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          'PHP ${fmtPhp(scholar.balance)}',
-                          maxLines: 1,
-                          style: TextStyle(
-                            color: context.colors.textPrimary,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
+                  const Spacer(),
                   _deleteButton(scholar),
                 ],
               ),
@@ -737,27 +654,18 @@ class _RoundToolbarButton extends StatelessWidget {
   const _RoundToolbarButton({
     required this.icon,
     required this.onPressed,
-    this.tooltip,
-    this.danger = false,
   });
 
   final IconData icon;
   final VoidCallback? onPressed;
-  final String? tooltip;
-  final bool danger;
 
   @override
   Widget build(BuildContext context) {
-    final background =
-        danger ? context.colors.dangerBg : context.colors.surface;
-    final foreground =
-        danger ? context.colors.dangerText : context.colors.textPrimary;
     return IconButton(
-      tooltip: tooltip,
       onPressed: onPressed,
-      icon: Icon(icon, color: foreground, size: 21),
+      icon: Icon(icon, color: context.colors.textPrimary, size: 21),
       style: IconButton.styleFrom(
-        backgroundColor: background,
+        backgroundColor: context.colors.surface,
         fixedSize: const Size(42, 42),
         side: BorderSide(color: context.colors.borderSoft),
       ),

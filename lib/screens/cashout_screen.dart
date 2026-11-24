@@ -1041,10 +1041,10 @@ class CashoutBalanceHeroCard extends StatelessWidget {
           children: [
             const SizedBox(
               width: double.infinity,
-              height: 110,
+              height: 80,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1090,6 +1090,7 @@ class CashoutBalanceHeroCard extends StatelessWidget {
                                 textAlign: TextAlign.left,
                                 style: CardNumberStyles.hero.copyWith(
                                   color: context.colors.balanceHeroText,
+                                  fontSize: 26,
                                 ),
                               ),
                             ),

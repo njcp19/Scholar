@@ -141,17 +141,17 @@ class AllowanceSettings {
 
   const AllowanceSettings({
     required this.allowanceAmount,
-    this.label = 'Monthly Allowance',
+    this.label = 'Allowance',
     this.updatedAt,
   });
 
   static const AllowanceSettings fallback =
-      AllowanceSettings(allowanceAmount: 5000, label: 'Monthly Allowance');
+      AllowanceSettings(allowanceAmount: 5000, label: 'Allowance');
 
   factory AllowanceSettings.fromMap(Map<String, dynamic> m) =>
       AllowanceSettings(
         allowanceAmount: ((m['allowance_amount'] ?? 5000) as num).toDouble(),
-        label: (m['label'] ?? 'Monthly Allowance') as String,
+        label: (m['label'] ?? 'Allowance') as String,
         updatedAt: m['updated_at'] is String
             ? DateTime.tryParse(m['updated_at'] as String)
             : null,

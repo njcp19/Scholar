@@ -225,7 +225,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
 
-      expect(find.text('PHP 1,000.00'), findsOneWidget);
+      expect(find.text('PHP 1,000.00'), findsNothing);
       _expectCardActionRightEdges(tester, 'Receives allowance');
       expect(tester.takeException(), isNull);
     }
@@ -272,10 +272,7 @@ void main() {
     );
 
     expect(find.text('Receives allowance'), findsOneWidget);
-    expect(find.text('PHP 1,000.00'), findsOneWidget);
-    final amountText = tester.widget<Text>(find.text('PHP 1,000.00'));
-    expect(amountText.maxLines, 1);
-    expect(amountText.overflow, isNot(TextOverflow.ellipsis));
+    expect(find.text('PHP 1,000.00'), findsNothing);
     _expectToggleCaptionInsideCard(tester, 'Receives allowance');
     _expectCardActionRightEdges(tester, 'Receives allowance');
     expect(tester.takeException(), isNull);

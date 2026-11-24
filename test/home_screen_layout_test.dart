@@ -241,7 +241,7 @@ void main() {
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(16),
                 child: MonthlyAllowanceCard(
-                  title: 'Monthly Allowance',
+                  title: 'Allowance',
                   amount: 6000,
                   state: AllowanceCardState.received,
                   issuedDate: 'Nov 1, 2026',
@@ -284,7 +284,7 @@ void main() {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16),
                 child: MonthlyAllowanceCard(
-                  title: 'Monthly Allowance',
+                  title: 'Allowance',
                   amount: 5000,
                   state: AllowanceCardState.notReleased,
                   expectedReleaseDate: expectedDate,
@@ -300,8 +300,8 @@ void main() {
       tester.view.physicalSize = size;
       await tester.pumpWidget(card());
       expect(tester.takeException(), isNull);
-      expect(find.text('MONTHLY ALLOWANCE'), findsOneWidget);
-      expect(find.text('Monthly Allowance'), findsNothing);
+      expect(find.text('ALLOWANCE'), findsOneWidget);
+      expect(find.text('Allowance'), findsNothing);
       expect(find.bySemanticsLabel('PHP 5,000.00'), findsOneWidget);
       expect(find.textContaining('No allowance released yet'), findsOneWidget);
       expect(find.textContaining('Expected release:'), findsOneWidget);

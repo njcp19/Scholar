@@ -839,7 +839,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'MONTHLY ALLOWANCE',
+                      'ALLOWANCE',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

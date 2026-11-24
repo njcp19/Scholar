@@ -42,7 +42,7 @@ AllowanceClaim _claim({
   return AllowanceClaim(
     id: id,
     batchId: 'batch-$id',
-    batchTitle: 'Monthly Allowance',
+    batchTitle: 'Allowance',
     scholarId: 'scholar-$id',
     scholarName: 'Alex Scholar',
     amount: 6000,

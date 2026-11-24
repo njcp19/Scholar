@@ -292,7 +292,7 @@ class _AllowanceSettingsScreenState extends State<AllowanceSettingsScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
-                      hintText: 'e.g. November 2025 Monthly Allowance',
+                      hintText: 'e.g. November 2025 Allowance',
                       isDense: true,
                       filled: true,
                       fillColor: colors.surface,

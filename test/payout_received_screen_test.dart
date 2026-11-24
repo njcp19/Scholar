@@ -17,7 +17,7 @@ void main() {
     final claim = AllowanceClaim(
       id: 'payout-1',
       batchId: 'batch-1',
-      batchTitle: 'Monthly Allowance',
+      batchTitle: 'Allowance',
       scholarId: 'scholar-1',
       scholarName: 'Alex Scholar',
       amount: 6000,

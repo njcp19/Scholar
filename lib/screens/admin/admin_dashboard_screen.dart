@@ -500,9 +500,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               'DISBURSE ALLOWANCE',
               style: TextStyle(
                 color: colors.onHeader.withValues(alpha: .9),
-                fontSize: 12,
+                fontSize: 21,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 1,
               ),
             ),
             const SizedBox(height: 6),
@@ -510,7 +509,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               'Generate a payout batch and scholars scan their QR to receive it.',
               style: TextStyle(
                 color: colors.onHeader.withValues(alpha: .88),
-                fontSize: 14,
+                fontSize: 12,
                 height: 1.45,
               ),
             ),
@@ -543,12 +542,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         children: [
           Row(
             children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: colors.brandTint,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  AppIcons.wallet,
+                  color: colors.brand,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'STANDARD ALLOWANCE',
+                      'ALLOWANCE',
                       style: TextStyle(
                         color: colors.textBody,
                         fontSize: 13,

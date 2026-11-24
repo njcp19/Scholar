@@ -17,6 +17,13 @@ class _LinkedWallet implements WalletService {
           accountName: 'Alex Scholar',
           accountNumber: '123456789012',
         ),
+        LinkedAccount(
+          id: 2,
+          provider: PayoutProvider.gcash,
+          bankName: '',
+          accountName: 'Morgan Scholar',
+          accountNumber: '098765432109',
+        ),
       ];
 
   @override
@@ -41,7 +48,7 @@ class _LinkedAppState extends ChangeNotifier implements AppState {
 }
 
 void main() {
-  testWidgets('linked accounts omit prototype copy and retain account warning',
+  testWidgets('linked accounts omit prototype and account warning copy',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
@@ -67,17 +74,48 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull, reason: 'before opening menu');
 
     expect(find.textContaining('real bank'), findsNothing);
     expect(find.textContaining('No real money'), findsNothing);
     expect(
       find.text('Do not enter real account numbers; use test data.'),
-      findsOneWidget,
+      findsNothing,
     );
     expect(find.text('Alex Scholar'), findsOneWidget);
     expect(find.textContaining('Maya'), findsOneWidget);
     expect(find.textContaining('9012'), findsOneWidget);
     expect(find.text('Link account'), findsOneWidget);
+
+    final menuButton = find.byType(PopupMenuButton<String>).first;
+    await tester.ensureVisible(menuButton);
+    final menuButtonRect = tester.getRect(menuButton);
+    final nextCardName = find.text('Morgan Scholar');
+    final nextCardMenuButton = find.byType(PopupMenuButton<String>).last;
+    await tester.tap(menuButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Remove'), findsOneWidget);
+    final removeItemFinder = find.byType(PopupMenuItem<String>);
+    final removeItem = tester.widget<PopupMenuItem<String>>(removeItemFinder);
+    expect(removeItem.height, 40);
+    expect(removeItem.padding, EdgeInsets.zero);
+    final removeRect = tester.getRect(removeItemFinder);
+    final removePill = find
+        .ancestor(
+          of: find.text('Remove'),
+          matching: find.byType(Container),
+        )
+        .first;
+    expect(tester.getRect(removePill), removeRect);
+    expect(removeRect.height, 40);
+    expect(removeRect.top, closeTo(menuButtonRect.bottom, 1));
+    expect(removeRect.right, closeTo(menuButtonRect.right, 1));
+    expect(removeRect.overlaps(tester.getRect(nextCardName)), isFalse);
+    expect(removeRect.overlaps(tester.getRect(nextCardMenuButton)), isFalse);
+    final popup = tester.widget<PopupMenuButton<String>>(menuButton);
+    expect(popup.constraints, const BoxConstraints(minWidth: 0));
+    expect(popup.menuPadding, EdgeInsets.zero);
     expect(tester.takeException(), isNull);
   });
 }

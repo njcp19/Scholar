@@ -247,29 +247,6 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
           ? context.colors.dangerBg
           : context.colors.warningBg;
 
-  Widget _roundButton({
-    required IconData icon,
-    required String tooltip,
-    required VoidCallback onPressed,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6),
-      child: Material(
-        color: context.colors.surface,
-        shape: CircleBorder(
-          side: BorderSide(color: context.colors.borderSoft),
-        ),
-        child: IconButton(
-          onPressed: onPressed,
-          tooltip: tooltip,
-          constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-          padding: EdgeInsets.zero,
-          icon: Icon(icon, color: context.colors.brand, size: 21),
-        ),
-      ),
-    );
-  }
-
   Widget _hero(int receivedCount, double totalPaid) {
     return Container(
       width: double.infinity,
@@ -754,14 +731,6 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
             fontWeight: FontWeight.w800,
           ),
         ),
-        actions: [
-          _roundButton(
-            icon: AppIcons.refresh,
-            tooltip: 'Refresh payouts',
-            onPressed: _load,
-          ),
-          const SizedBox(width: 4),
-        ],
         backgroundColor: context.colors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,

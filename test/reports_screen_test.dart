@@ -21,9 +21,7 @@ class _TestWalletService implements WalletService {
   Future<List<Map<String, dynamic>>> getDisbursements() async => List.generate(
         batchCount,
         (index) => {
-          'title': index == 0
-              ? 'Monthly Allowance 2026'
-              : 'Monthly Allowance 2026 $index',
+          'title': index == 0 ? 'Allowance 2026' : 'Allowance 2026 $index',
           'created_at': DateTime.utc(2026, 11, 5 + index).toIso8601String(),
           'recipient_count': 1,
           'amount_per_scholar': amountPerScholar,
@@ -75,7 +73,7 @@ void main() {
 
       expect(find.text('TOTAL DISBURSED (ALL BATCHES)'), findsOneWidget);
       expect(find.text('1 batch recorded'), findsOneWidget);
-      expect(find.text('Monthly Allowance 2026'), findsOneWidget);
+      expect(find.text('Allowance 2026'), findsOneWidget);
       expect(
         find.text('Nov 5, 2026 · 1 scholar × PHP 6,000.00'),
         findsOneWidget,
@@ -83,7 +81,7 @@ void main() {
       expect(find.text('PDF'), findsNothing);
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.byTooltip('Export report'));
+      await tester.tap(find.text('Export report'));
       await tester.pumpAndSettle();
 
       expect(find.text('Choose a file format for the disbursement report'),

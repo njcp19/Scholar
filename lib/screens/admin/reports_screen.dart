@@ -113,20 +113,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
             fontWeight: FontWeight.w800,
           ),
         ),
-        actions: [
-          if (canExport)
-            Padding(
-              padding: const EdgeInsets.only(right: 14),
-              child: _roundAction(
-                icon: AppIcons.download,
-                tooltip: 'Export report',
-                size: 44,
-                onPressed: _openExportSheet,
-              ),
-            )
-          else
-            const SizedBox(width: 14),
-        ],
       ),
       body: Column(
         children: [

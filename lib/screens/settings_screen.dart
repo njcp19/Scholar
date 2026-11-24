@@ -8,13 +8,17 @@ import '../widgets/app_icons.dart';
 import '../widgets/shell_tab_controller.dart';
 import '../widgets/widgets.dart';
 import 'admin/admin_dashboard_screen.dart';
+import 'admin/activity_log_screen.dart';
+import 'admin/allowance_settings_screen.dart';
 import 'admin/claims_monitor_screen.dart';
+import 'admin/funding_account_screen.dart';
 import 'admin/manage_scholars_screen.dart';
 import 'admin/scholarship_programs_screen.dart';
 import 'claims_screen.dart';
 import 'fingerprint_screen.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
+import 'linked_accounts_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool embedded;
@@ -617,7 +621,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
           ),
+          Divider(height: 1, color: context.colors.borderSoft),
+          if (isAdmin) ...[
+            _shortcutRow(
+              icon: AppIcons.wallet,
+              title: 'Allowance amount',
+              subtitle: 'Set the allowance for each scholar',
+              screen: const AllowanceSettingsScreen(),
+            ),
+            Divider(height: 1, color: context.colors.borderSoft),
+            _shortcutRow(
+              icon: AppIcons.bankAccount,
+              title: 'Funding account',
+              subtitle: 'Account used to allocate funds',
+              screen: const FundingAccountScreen(),
+            ),
+            Divider(height: 1, color: context.colors.borderSoft),
+            _shortcutRow(
+              icon: AppIcons.clock,
+              title: 'Activity log',
+              subtitle: 'Review what happened in the system',
+              screen: const ActivityLogScreen(),
+            ),
+          ] else
+            _shortcutRow(
+              icon: AppIcons.link,
+              title: 'Linked accounts',
+              subtitle: 'Accounts you withdraw your allowance to',
+              screen: const LinkedAccountsScreen(),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _shortcutRow({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Widget screen,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _openScreen(screen),
+        child: Row(
+          children: [
+            _iconTile(icon, context.colors.brandTint, context.colors.brand),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: context.colors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: context.colors.textBody,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              AppIcons.chevronRight,
+              color: context.colors.textBody,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

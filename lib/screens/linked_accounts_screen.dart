@@ -136,20 +136,6 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
     }
   }
 
-  Widget _infoCard() {
-    return InfoBanner(
-      icon: AppIcons.warning,
-      message: 'Do not enter real account numbers; use test data.',
-      maxLines: 3,
-      backgroundColor: context.colors.warningBg,
-      borderColor: context.colors.warningBorder,
-      iconColor: context.colors.warningText,
-      textColor: context.colors.warningText,
-      borderRadius: 16,
-      overflow: TextOverflow.clip,
-    );
-  }
-
   Widget _accountCard(LinkedAccount account) {
     final color = _providerColor(account.provider);
     return AppCard(
@@ -204,15 +190,15 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
           PopupMenuButton<String>(
             tooltip: 'Account actions',
             position: PopupMenuPosition.under,
-            offset: const Offset(0, 8),
-            color: context.colors.surface,
-            elevation: 10,
-            shadowColor: context.colors.cardShadow,
+            offset: Offset.zero,
+            color: Colors.transparent,
+            elevation: 0,
+            shadowColor: Colors.transparent,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: BorderSide(color: context.colors.borderSoft),
+              borderRadius: BorderRadius.circular(16),
             ),
-            constraints: const BoxConstraints(minWidth: 150),
+            menuPadding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 0),
             child: Container(
               width: 40,
               height: 40,
@@ -229,27 +215,31 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'remove',
-                padding: const EdgeInsets.all(8),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: context.colors.dangerBg,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(AppIcons.delete, color: context.colors.dangerText),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Remove',
-                        style: TextStyle(
-                          color: context.colors.dangerText,
-                          fontWeight: FontWeight.w700,
+                height: 40,
+                padding: EdgeInsets.zero,
+                child: IntrinsicWidth(
+                  stepWidth: 56,
+                  child: Container(
+                    height: 40,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: context.colors.dangerBg,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(AppIcons.delete, color: context.colors.dangerText),
+                        const SizedBox(width: 10),
+                        Text(
+                          'Remove',
+                          style: TextStyle(
+                            color: context.colors.dangerText,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -340,8 +330,6 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  _infoCard(),
-                                  const SizedBox(height: 16),
                                   _accountCard(
                                     LinkedAccount(
                                       id: -1,
@@ -366,8 +354,6 @@ class _LinkedAccountsScreenState extends State<LinkedAccountsScreen> {
                             ),
                           ]
                         : [
-                            _infoCard(),
-                            const SizedBox(height: 16),
                             if (_error != null)
                               _errorCard()
                             else if (_accounts.isEmpty)

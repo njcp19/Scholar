@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -78,8 +79,15 @@ class _LoginScreenState extends State<LoginScreen> {
       // AuthGate rebuilds automatically via authState stream.
     } catch (e) {
       if (mounted) {
-        showMsg(context, context.read<AppState>().auth.friendlyError(e),
-            error: true);
+        final message = e is FirebaseAuthException &&
+                const {
+                  'wrong-password',
+                  'invalid-credential',
+                  'invalid-login-credentials',
+                }.contains(e.code)
+            ? 'The password is incorrect. Try again.'
+            : context.read<AppState>().auth.friendlyError(e);
+        showMsg(context, message, error: true);
       }
     } finally {
       if (mounted) setState(() => _busy = false);

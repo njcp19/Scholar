@@ -348,6 +348,7 @@ class Scholar {
   final String studentId;
   final String name;
   final double balance;
+  final String scholarshipName;
   bool active;
   bool selected;
   final bool fingerprintRegistered;
@@ -358,6 +359,7 @@ class Scholar {
     required this.studentId,
     required this.name,
     required this.balance,
+    this.scholarshipName = '',
     this.active = true,
     this.selected = false,
     this.fingerprintRegistered = false,
@@ -369,6 +371,7 @@ class Scholar {
         studentId: (m['student_number'] ?? m['student_id'] ?? '') as String,
         name: (m['full_name'] ?? '') as String,
         balance: ((m['balance'] ?? 0) as num).toDouble(),
+        scholarshipName: (m['scholarship_name'] ?? '') as String,
         active: m['is_active'] == true,
         verificationStatus: verificationStatusFrom(m['verification_status']),
         fingerprintRegistered: (m['biometric_registered'] as bool?) ?? false,

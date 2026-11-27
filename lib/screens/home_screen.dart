@@ -168,9 +168,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ? colors.surface
                 : colors.background;
 
-        void openPayout(AllowanceClaim claim) {
+        void openPayout() {
           Navigator.pop(sheetContext);
-          showPayoutQrSheet(context, claim);
+          _openScanner();
         }
 
         return AppBottomSheet(
@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => openPayout(_pending[index]),
+                            onTap: openPayout,
                             child: Padding(
                               padding: const EdgeInsets.all(14),
                               child: Row(
@@ -293,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     alignment: Alignment.center,
                                     child: Icon(
-                                      AppIcons.qrCode,
+                                      AppIcons.qrScan,
                                       color: colors.onGold,
                                       size: 22,
                                     ),
@@ -317,11 +317,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _pending[index].issuedAt == null
-                                              ? _pending[index].batchTitle
-                                              : '${_pending[index].batchTitle} · '
-                                                  'Released ${_friendlyDate(_pending[index].issuedAt)}',
-                                          maxLines: 2,
+                                          "Go to the office and scan the admin's QR.",
+                                          maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             color: colors.textBody,
@@ -661,9 +658,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final latestPayout = _latestPayout;
     final displayedPayout = _pending.isNotEmpty ? _pending.first : latestPayout;
     final activity = _recent.take(3).toList();
-    final waitingTotal =
-        _pending.fold<double>(0, (total, payout) => total + payout.amount);
-
     return Scaffold(
       backgroundColor: context.colors.background,
       body: AppInitialLoadView(
@@ -726,6 +720,9 @@ class _HomeScreenState extends State<HomeScreen> {
                             MonthlyAllowanceCard(
                               title: displayedPayout.batchTitle,
                               amount: displayedPayout.amount,
+                              onTap: displayedPayout.isPending
+                                  ? _openScanner
+                                  : null,
                               state: displayedPayout.isPending
                                   ? AllowanceCardState.waiting
                                   : displayedPayout.isReceived
@@ -736,8 +733,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               receivedDate: displayedPayout.isReceived
                                   ? _friendlyDate(displayedPayout.claimedAt)
                                   : null,
-                              waitingCount: _pending.length,
-                              waitingTotal: waitingTotal,
                               statusOnRight: true,
                               radius: HomeActivityRow.recentActivityRadius,
                               iconTileSize: 40,

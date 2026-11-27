@@ -19,6 +19,7 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   static const _recordLimit = 200;
   static const _allFilter = 'all';
   static const _payoutsFilter = 'payouts';
+  static const _cancelledFilter = 'cancelled';
 
   List<AllowanceClaim> _claims = [];
   bool _loading = true;
@@ -122,7 +123,12 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final events = _events;
+    final allEvents = _events;
+    final events = _selectedFilter == _cancelledFilter
+        ? allEvents
+            .where((event) => event.kind == _ActivityKind.cancelled)
+            .toList()
+        : allEvents;
     final groups = _groupEvents(events);
     final hasVoidedRecords = _claims.any((claim) => claim.isVoided);
 
@@ -169,6 +175,11 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                 label: 'Payouts',
                 count: 0,
               ),
+              FilterChipItem(
+                value: _cancelledFilter,
+                label: 'Cancelled',
+                count: 0,
+              ),
             ],
             selectedValue: _selectedFilter,
             onSelected: (value) => setState(() => _selectedFilter = value),
@@ -205,7 +216,11 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
                 : _error != null
                     ? _errorContent()
                     : events.isEmpty
-                        ? _emptyContent()
+                        ? _emptyContent(
+                            message: _selectedFilter == _cancelledFilter
+                                ? 'No cancelled payouts.'
+                                : 'No activity yet.',
+                          )
                         : _activityContent(groups),
           ),
         ],
@@ -284,13 +299,13 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
     );
   }
 
-  Widget _emptyContent() {
+  Widget _emptyContent({required String message}) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-      children: const [
+      children: [
         EmptyState(
           icon: AppIcons.receipt,
-          message: 'No activity yet.',
+          message: message,
         ),
       ],
     );
@@ -337,6 +352,10 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
   }
 
   Widget _eventRow(BuildContext context, _ActivityEvent event) {
+    if (event.kind == _ActivityKind.cancelled) {
+      return _cancelledEventRow(context, event);
+    }
+
     final colors = context.colors;
     final details = event.details;
     final time = event.showTime && event.timestamp != null
@@ -408,6 +427,86 @@ class _ActivityLogScreenState extends State<ActivityLogScreen> {
       ),
     );
   }
+
+  Widget _cancelledEventRow(BuildContext context, _ActivityEvent event) {
+    final colors = context.colors;
+    final date = event.timestamp == null
+        ? 'Original payout date unavailable'
+        : 'Original payout date: '
+            '${DateFormat('MMM d, yyyy').format(event.timestamp!)}';
+
+    return Padding(
+      key: ValueKey('activity-cancelled-${event.claim.id}'),
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colors.dangerBg,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              AppIcons.cancel,
+              color: colors.dangerText,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  event.claim.scholarName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  date,
+                  style: TextStyle(color: colors.textBody, fontSize: 12),
+                ),
+                const SizedBox(height: 7),
+                StatusChip(
+                  'Cancelled',
+                  color: colors.dangerText,
+                  bg: colors.dangerBg,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 90,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                'PHP ${fmtPhp(event.claim.amount)}',
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                  color: colors.textBody,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 enum _ActivityKind { issued, received, cancelled }
@@ -439,12 +538,12 @@ class _ActivityEvent {
         _ActivityKind.cancelled => const _ActivityDetails(
             title: 'Payout cancelled',
             icon: AppIcons.cancel,
-            colorKind: _ActivityColorKind.warning,
+            colorKind: _ActivityColorKind.danger,
           ),
       };
 }
 
-enum _ActivityColorKind { brand, success, warning }
+enum _ActivityColorKind { brand, success, danger }
 
 class _ActivityDetails {
   const _ActivityDetails({
@@ -462,20 +561,20 @@ class _ActivityDetails {
           '${claim.batchTitle} · ${claim.scholarName}',
         _ActivityColorKind.success =>
           '${claim.scholarName} · confirmed with device biometrics',
-        _ActivityColorKind.warning =>
+        _ActivityColorKind.danger =>
           '${claim.scholarName} · ${claim.batchTitle}',
       };
 
   Color backgroundColor(AppColors colors) => switch (colorKind) {
         _ActivityColorKind.brand => colors.brandTint,
         _ActivityColorKind.success => colors.successBg,
-        _ActivityColorKind.warning => colors.warningBg,
+        _ActivityColorKind.danger => colors.dangerBg,
       };
 
   Color foregroundColor(AppColors colors) => switch (colorKind) {
         _ActivityColorKind.brand => colors.brand,
         _ActivityColorKind.success => colors.successText,
-        _ActivityColorKind.warning => colors.warningText,
+        _ActivityColorKind.danger => colors.dangerText,
       };
 }
 

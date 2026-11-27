@@ -47,7 +47,6 @@ class AuthService {
     required String yearLevel,
     required bool declaredScholar,
     required String scholarshipName,
-    required String scholarshipReference,
   }) async {
     if (declaredScholar && scholarshipName.trim().isEmpty) {
       throw ArgumentError('Enter the scholarship you already belong to.');
@@ -77,8 +76,6 @@ class AuthService {
         yearLevel: yearLevel,
         declaredScholar: declaredScholar,
         scholarshipName: declaredScholar ? scholarshipName.trim() : '',
-        scholarshipReference:
-            declaredScholar ? scholarshipReference.trim() : '',
         verificationStatus: VerificationStatus.pending,
         isActive: false,
       );
@@ -101,7 +98,6 @@ class AuthService {
         'year_level': user.yearLevel,
         'declared_scholar': user.declaredScholar,
         'scholarship_name': user.scholarshipName,
-        'scholarship_reference': user.scholarshipReference,
         'verification_status': 'pending',
         'is_active': false,
       });

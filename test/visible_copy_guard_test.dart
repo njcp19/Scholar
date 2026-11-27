@@ -2,6 +2,36 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+final _forbiddenVisibleCopy = RegExp(
+  r'\b(?:top[\s-]?up|cash[\s-]?out|paused|withdrawals?|claims?|application\s+review|register\s+fingerprint|demo|simulated)\b',
+  caseSensitive: false,
+);
+
+const _literalWhitelistByPath = <String, Set<String>>{
+  'lib/models/models.dart': {'simulated'},
+  'lib/services/wallet_service.dart': {
+    'Not enough funds for this payout. Top up the fund first.',
+    'withdrawals',
+    'Only active, admin-verified scholars can cash out.',
+    'The amount is below the minimum cash-out.',
+    'Not enough balance for this cash-out.',
+    'This Cash Out request could not be verified. Please review it and try again.',
+    'This request key is already associated with a different Cash Out. Check your Cash Out history before trying again.',
+    'Cash-out failed: ',
+    'Could not top up the fund. Try again.',
+  },
+  'lib/screens/admin/funding_account_screen.dart': {
+    'Funding account refresh failed after successful top-up.',
+    'Fund summary refresh failed after successful top-up.',
+    'Fund activity refresh failed after successful top-up.',
+  },
+  'lib/widgets/widgets.dart': {
+    'Cash-out to ',
+    'simulated top-up',
+    'cash out to linked account',
+  },
+};
+
 class _DartStringLiteral {
   const _DartStringLiteral(this.content, this.offset);
 
@@ -121,42 +151,52 @@ String _withoutInterpolation(String content) {
   return result.toString();
 }
 
+bool _isForbiddenUnlessWhitelisted(String path, String content) {
+  if (_literalWhitelistByPath[path]?.contains(content) ?? false) {
+    return false;
+  }
+  return _forbiddenVisibleCopy.hasMatch(content);
+}
+
 void main() {
-  test('legacy wording is absent from visible lib copy', () async {
-    final forbiddenVisibleCopy = RegExp(
-      r'\b(?:top[\s-]?up|cash[\s-]?out|paused|withdrawals?|claims?|application\s+review|register\s+fingerprint|demo|simulated)\b',
-      caseSensitive: false,
+  test('copy exceptions match only their path and exact string', () {
+    expect(
+      _isForbiddenUnlessWhitelisted(
+        'lib/services/wallet_service.dart',
+        'withdrawals',
+      ),
+      isFalse,
     );
-    const nonVisibleLiteralWhitelist = {
-      'lib/models/models.dart:503': 'simulated',
-      'lib/services/wallet_service.dart:129':
-          'Not enough funds for this payout. Top up the fund first.',
-      'lib/services/wallet_service.dart:394': 'withdrawals',
-      'lib/services/wallet_service.dart:407':
-          'Only active, admin-verified scholars can cash out.',
-      'lib/services/wallet_service.dart:415':
-          'The amount is below the minimum cash-out.',
-      'lib/services/wallet_service.dart:417':
-          'Not enough balance for this cash-out.',
-      'lib/services/wallet_service.dart:419':
-          'This Cash Out request could not be verified. Please review it and try again.',
-      'lib/services/wallet_service.dart:421':
-          'This request key is already associated with a different Cash Out. Check your Cash Out history before trying again.',
-      'lib/services/wallet_service.dart:426': 'Cash-out failed: ',
-      'lib/services/wallet_service.dart:471':
-          'Could not top up the fund. Try again.',
-      'lib/services/wallet_service.dart:515':
-          'Not enough funds for this payout. Top up the fund first.',
-      'lib/screens/admin/funding_account_screen.dart:136':
-          'Funding account refresh failed after successful top-up.',
-      'lib/screens/admin/funding_account_screen.dart:142':
-          'Fund summary refresh failed after successful top-up.',
-      'lib/screens/admin/funding_account_screen.dart:148':
-          'Fund activity refresh failed after successful top-up.',
-      'lib/widgets/widgets.dart:21': 'Cash-out to ',
-      'lib/widgets/widgets.dart:30': 'simulated top-up',
-      'lib/widgets/widgets.dart:31': 'cash out to linked account',
-    };
+    expect(
+      _isForbiddenUnlessWhitelisted(
+          'lib/screens/scholar_screen.dart', 'withdrawals'),
+      isTrue,
+    );
+    expect(
+      _isForbiddenUnlessWhitelisted(
+        'lib/services/wallet_service.dart',
+        'withdrawals are visible here',
+      ),
+      isTrue,
+    );
+    for (final forbidden in [
+      'Claim',
+      'Withdrawal',
+      'Application Review',
+      'Register fingerprint',
+    ]) {
+      expect(
+        _isForbiddenUnlessWhitelisted(
+          'lib/screens/scholar_screen.dart',
+          'Visible copy: $forbidden',
+        ),
+        isTrue,
+        reason: '$forbidden must be reported outside its exact whitelist entry',
+      );
+    }
+  });
+
+  test('legacy wording is absent from visible lib copy', () async {
     final violations = <String>[];
 
     await for (final entity in Directory('lib').list(recursive: true)) {
@@ -167,9 +207,8 @@ void main() {
         final content = _withoutInterpolation(literal.content);
         final line = source.substring(0, literal.offset).split('\n').length;
         final path = entity.path.replaceAll('\\', '/');
-        if (nonVisibleLiteralWhitelist['$path:$line'] == content) continue;
 
-        if (forbiddenVisibleCopy.hasMatch(content)) {
+        if (_isForbiddenUnlessWhitelisted(path, content)) {
           violations.add('$path:$line: $content');
         }
       }

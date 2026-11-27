@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'scholarship_program_details_screen.dart';
 import '../../services/scholarship_catalog_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_icons.dart';
@@ -102,6 +103,19 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
     if (saved == true && mounted) await _load();
   }
 
+  Future<void> _openDetails(ScholarshipCatalogItem program) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ScholarshipProgramDetailsScreen(
+          program: program,
+          catalogService: _catalogService,
+        ),
+      ),
+    );
+    if (saved == true && mounted) await _load();
+  }
+
   Future<void> _setProgramActive(
     ScholarshipCatalogItem program,
     bool active,
@@ -128,31 +142,38 @@ class _ScholarshipProgramsScreenState extends State<ScholarshipProgramsScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  program.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  softWrap: true,
-                  style: const TextStyle(
-                    color: Color(0xFF1A2530),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+            child: InkWell(
+              onTap: () => _openDetails(program),
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      program.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
+                      style: TextStyle(
+                        color: context.colors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      program.isActive ? 'Shown in Sign up' : 'Hidden',
+                      style: TextStyle(
+                        color: program.isActive
+                            ? context.colors.successText
+                            : context.colors.textBody,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  program.isActive ? 'Shown in Sign up' : 'Hidden',
-                  style: TextStyle(
-                    color: program.isActive
-                        ? context.colors.successText
-                        : context.colors.textBody,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
           const SizedBox(width: 8),

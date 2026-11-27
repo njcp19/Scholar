@@ -14,6 +14,8 @@ class ClaimQrPayload {
   final String scholarId;
   final double amount;
 
+  bool get isProgramEvent => scholarId.isEmpty && claimId.isNotEmpty;
+
   const ClaimQrPayload({
     required this.token,
     this.claimId = '',

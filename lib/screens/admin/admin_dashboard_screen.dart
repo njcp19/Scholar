@@ -4,10 +4,10 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_theme.dart';
 import '../../providers/app_state.dart';
+import '../../services/scholarship_catalog_service.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
 import '../../widgets/shell_tab_controller.dart';
-import 'allowance_settings_screen.dart';
 import 'issue_payout_screen.dart';
 import 'claims_monitor_screen.dart';
 import 'manage_scholars_screen.dart';
@@ -15,20 +15,25 @@ import 'reports_screen.dart';
 import 'activity_log_screen.dart';
 import 'funding_account_screen.dart';
 import 'registration_review_screen.dart';
+import 'scholarship_programs_screen.dart';
 import '../../services/verification_service.dart';
 import '../../models/models.dart';
 import '../payout_events_screen.dart';
 import '../settings_screen.dart';
 
-/// Admin home. Everything the admin can do to the scholar wallet:
-/// set the ONE standard allowance, issue QR payouts, monitor claims.
+/// Admin home for program-based payouts and scholarship management.
 class AdminDashboardScreen extends StatefulWidget {
-  const AdminDashboardScreen({super.key});
+  final ScholarshipCatalogService? catalogService;
+
+  const AdminDashboardScreen({super.key, this.catalogService});
+
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  late final ScholarshipCatalogService _catalogService =
+      widget.catalogService ?? ScholarshipCatalogService();
   final ShellTabController _tabs = ShellTabController();
   int _scholars = 0;
   int _waiting = 0;
@@ -44,6 +49,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _hasLoaded = false;
   String? _loadError;
   bool _offline = false;
+  List<ScholarshipCatalogItem> _activePrograms = [];
+  Map<String, ScholarshipProgramBudget> _programBudgets = {};
+  bool _programSummaryLoading = true;
+  String? _programSummaryError;
 
   @override
   void initState() {
@@ -397,11 +406,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _reserved = claims
           .where((c) => c.isPending)
           .fold<double>(0, (s, c) => s + c.amount);
-      await state.loadAllowanceSettings();
     } catch (e) {
       error = e.toString();
       offline = isOfflineLoadError(e);
     }
+    await _loadProgramSummary();
     await _loadRegistrations(announce: true);
     if (mounted) {
       setState(() {
@@ -416,9 +425,39 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Future<void> _setAllowance() async {
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => const AllowanceSettingsScreen()));
+  Future<void> _loadProgramSummary() async {
+    _programSummaryLoading = true;
+    try {
+      final results = await Future.wait<dynamic>([
+        _catalogService.list(includeInactive: false),
+        _catalogService.getProgramBudgets(),
+      ]);
+      if (!mounted) return;
+      _activePrograms = (results[0] as List<ScholarshipCatalogItem>)
+          .where((program) => program.isActive)
+          .toList(growable: false);
+      _programBudgets = {
+        for (final budget in results[1] as List<ScholarshipProgramBudget>)
+          budget.programName: budget,
+      };
+      _programSummaryError = null;
+    } catch (error) {
+      _programSummaryError = error is ScholarshipCatalogException
+          ? error.message
+          : 'Could not load scholarship program budgets. Please try again.';
+    } finally {
+      _programSummaryLoading = false;
+    }
+  }
+
+  Future<void> _openScholarshipPrograms() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            ScholarshipProgramsScreen(catalogService: _catalogService),
+      ),
+    );
     _load();
   }
 
@@ -532,13 +571,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _overviewCard(BuildContext context, double allowanceAmount) {
+  Widget _programsCard(BuildContext context) {
     final colors = context.colors;
+    final programs = [..._activePrograms]
+      ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    final budgetedPrograms = programs
+        .map((program) => _programBudgets[program.name])
+        .whereType<ScholarshipProgramBudget>()
+        .where((budget) => budget.programBudget != null)
+        .toList(growable: false);
+    final totalBudget = budgetedPrograms.fold<double>(
+      0,
+      (total, budget) => total + budget.programBudget!,
+    );
+    final totalUsed = budgetedPrograms.fold<double>(
+      0,
+      (total, budget) => total + budget.budgetUsed,
+    );
+    final totalRemaining = budgetedPrograms.fold<double>(
+      0,
+      (total, budget) => total + (budget.budgetRemaining ?? 0),
+    );
+
     return AppCard(
+      key: const ValueKey('admin-program-summary-card'),
       radius: 22,
       shadow: true,
       padding: const EdgeInsets.all(16),
+      onTap: _openScholarshipPrograms,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -562,89 +624,304 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ALLOWANCE',
+                      'Scholarship programs',
                       style: TextStyle(
-                        color: colors.textBody,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        color: colors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    StatNumberText(
-                      prefix: 'PHP',
-                      value: fmtPhp(allowanceAmount),
-                      color: colors.textPrimary,
+                    const SizedBox(height: 3),
+                    Text(
+                      '${_activePrograms.length} active '
+                      '${_activePrograms.length == 1 ? 'program' : 'programs'}',
+                      style: TextStyle(
+                        color: colors.textBody,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Tooltip(
-                message: 'Edit allowance',
-                child: Material(
-                  color: colors.brandTint,
-                  shape: const CircleBorder(),
-                  child: InkWell(
-                    onTap: _setAllowance,
-                    customBorder: const CircleBorder(),
-                    child: SizedBox(
-                      width: 42,
-                      height: 42,
-                      child: Icon(
-                        AppIcons.edit,
-                        color: colors.brand,
-                        size: 20,
-                      ),
-                    ),
+              Icon(
+                AppIcons.chevronRight,
+                color: colors.textBody,
+              ),
+            ],
+          ),
+          if (_programSummaryError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _programSummaryError!,
+              style: TextStyle(color: colors.dangerText, fontSize: 12),
+            ),
+          ] else if (_programSummaryLoading) ...[
+            const SizedBox(height: 12),
+            const LinearProgressIndicator(),
+          ] else ...[
+            const SizedBox(height: 14),
+            if (budgetedPrograms.isEmpty)
+              Text(
+                'No budgets set yet',
+                style: TextStyle(color: colors.textBody, fontSize: 12),
+              )
+            else ...[
+              Row(
+                children: [
+                  _programSummaryMetric(
+                    context,
+                    label: 'Total budget',
+                    value: 'PHP ${fmtPhp(totalBudget)}',
+                  ),
+                  _programSummaryMetric(
+                    context,
+                    label: 'Used',
+                    value: 'PHP ${fmtPhp(totalUsed)}',
+                  ),
+                  _programSummaryMetric(
+                    context,
+                    label: 'Remaining',
+                    value: 'PHP ${fmtPhp(totalRemaining)}',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Programs without a budget are not included',
+                style: TextStyle(color: colors.textBody, fontSize: 10),
+              ),
+            ],
+            if (programs.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Divider(height: 1, color: colors.borderSoft),
+              for (final (index, program) in programs.take(3).indexed) ...[
+                if (index > 0) Divider(height: 1, color: colors.borderSoft),
+                _programRow(context, program),
+              ],
+            ],
+            if (programs.length > 3) ...[
+              const SizedBox(height: 6),
+              Center(
+                child: Text(
+                  'View all ${programs.length} programs',
+                  style: TextStyle(
+                    color: colors.brand,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          Divider(height: 1, color: colors.borderSoft),
-          const SizedBox(height: 12),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _programRow(
+    BuildContext context,
+    ScholarshipCatalogItem program,
+  ) {
+    final colors = context.colors;
+    final budget = _programBudgets[program.name];
+    final amount = budget?.programBudget;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: _statColumn(
-                    context,
-                    value: '$_scholars',
-                    label: 'Active scholars',
-                    onTap: _openManageScholars,
+                Text(
+                  program.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                _statDivider(context),
-                Expanded(
-                  child: _statColumn(
-                    context,
-                    value: '$_waiting',
-                    label: 'Waiting for scan',
-                    detail: 'PHP ${fmtPhp(_reserved)} reserved',
-                    onTap: _openPayoutMonitor,
+                if (program.slots != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    '${program.slotsTaken} of ${program.slots} slots',
+                    style: TextStyle(
+                      color: colors.textBody,
+                      fontSize: 11,
+                    ),
                   ),
-                ),
-                _statDivider(context),
-                Expanded(
-                  child: _statColumn(
-                    context,
-                    value: '$_received',
-                    label: 'Received',
-                    onTap: _openPayoutMonitor,
-                  ),
-                ),
+                ],
               ],
             ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 112,
+            child: amount == null
+                ? Align(
+                    alignment: Alignment.centerRight,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: colors.borderSoft,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        child: Text(
+                          'No budget',
+                          style: TextStyle(
+                            color: colors.textBody,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                : _programBudgetStatus(context, budget!),
           ),
         ],
       ),
     );
   }
 
+  Widget _programBudgetStatus(
+    BuildContext context,
+    ScholarshipProgramBudget budget,
+  ) {
+    final colors = context.colors;
+    final amount = budget.programBudget!;
+    final usedRatio = amount > 0
+        ? budget.budgetUsed / amount
+        : budget.budgetUsed > 0
+            ? 1.0
+            : 0.0;
+    final progress = usedRatio.clamp(0.0, 1.0).toDouble();
+    final progressColor = usedRatio > 0.8 ? colors.warning : colors.brand;
+    final remaining = budget.budgetRemaining;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(
+            'PHP ${remaining == null ? '—' : fmtPhp(remaining)} left',
+            maxLines: 1,
+            softWrap: false,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            key: ValueKey('admin-program-progress-${budget.programName}'),
+            value: progress,
+            minHeight: 4,
+            backgroundColor: colors.borderSoft,
+            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _programSummaryMetric(
+    BuildContext context, {
+    required String label,
+    required String value,
+  }) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: context.colors.textBody,
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 3),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  color: context.colors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _statDivider(BuildContext context) =>
       Container(width: 1, color: context.colors.borderSoft);
+
+  Widget _statsCard(BuildContext context) {
+    return AppCard(
+      key: const ValueKey('admin-home-stats-card'),
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.all(16),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: _statColumn(
+                context,
+                value: '$_scholars',
+                label: 'Active scholars',
+                onTap: _openManageScholars,
+              ),
+            ),
+            _statDivider(context),
+            Expanded(
+              child: _statColumn(
+                context,
+                value: '$_waiting',
+                label: 'Waiting for scan',
+                detail: 'PHP ${fmtPhp(_reserved)} reserved',
+                onTap: _openPayoutMonitor,
+              ),
+            ),
+            _statDivider(context),
+            Expanded(
+              child: _statColumn(
+                context,
+                value: '$_received',
+                label: 'Received',
+                onTap: _openPayoutMonitor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _statColumn(
     BuildContext context, {
@@ -671,8 +948,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 2),
               Text(
                 label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: TextStyle(color: context.colors.textBody, fontSize: 12),
               ),
@@ -680,8 +955,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 const SizedBox(height: 2),
                 Text(
                   detail,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style:
                       TextStyle(color: context.colors.textBody, fontSize: 10),
@@ -1174,8 +1447,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           const SizedBox(height: 16),
                           _quickActionTiles(context),
                           const SizedBox(height: 16),
-                          _overviewCard(
-                              context, state.allowance.allowanceAmount),
+                          _programsCard(context),
+                          const SizedBox(height: 12),
+                          _statsCard(context),
                           if (_pendingRegs.isNotEmpty) ...[
                             const SizedBox(height: 16),
                             _registrationsCard(context),

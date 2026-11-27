@@ -7,7 +7,8 @@ import 'package:scholar_wallet/theme/app_theme.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('scan actions fit at compact size and increased text scale',
+  testWidgets(
+      'manual scan action fits at compact size and increased text scale',
       (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
@@ -20,17 +21,12 @@ void main() {
 
       final title = find.text('Device biometrics confirm the payout');
       final description = find.text("You'll be asked right after scanning");
-      final galleryLabel = find.text('From gallery');
       final manualLabel = find.text('Enter code');
       expect(title, findsOneWidget);
       expect(description, findsOneWidget);
-      expect(galleryLabel, findsOneWidget);
+      expect(find.text('From gallery'), findsNothing);
       expect(manualLabel, findsOneWidget);
 
-      expect(
-        tester.renderObject<RenderParagraph>(galleryLabel).didExceedMaxLines,
-        isFalse,
-      );
       expect(
         tester.renderObject<RenderParagraph>(manualLabel).didExceedMaxLines,
         isFalse,
@@ -42,19 +38,16 @@ void main() {
 
       final infoRow =
           find.ancestor(of: title, matching: find.byType(Row)).first;
-      final galleryButton = find
-          .ancestor(of: galleryLabel, matching: find.byType(OutlinedButton))
-          .first;
       final manualButton = find
           .ancestor(of: manualLabel, matching: find.byType(ElevatedButton))
           .first;
       expect(
         tester.getBottomLeft(infoRow).dy,
-        lessThan(tester.getTopLeft(galleryButton).dy),
+        lessThan(tester.getTopLeft(manualButton).dy),
       );
       expect(
-        tester.getSize(galleryButton).height,
-        greaterThanOrEqualTo(48),
+        tester.getSize(manualButton).width,
+        greaterThan(200),
       );
       expect(
         tester.getSize(manualButton).height,
@@ -85,7 +78,6 @@ Widget _app(double textScale) {
               child: ScanQrActionCard(
                 fingerprintRegistered: true,
                 onBiometricTap: () {},
-                onGalleryPressed: () {},
                 onManualPressed: () {},
               ),
             ),

@@ -94,15 +94,25 @@ Future<void> _openSecurityStep(WidgetTester tester) async {
   await tester.tap(find.text('1st Year College').last);
   await tester.pumpAndSettle();
 
-  await tester.ensureVisible(find.byType(Switch));
-  await tester.tap(find.byType(Switch));
+  await tester.ensureVisible(find.text('Scholarship'));
+  await tester.tap(find.byKey(const ValueKey('scholarship-picker-field')));
   await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField).last, 'Test scholarship');
   await tester.tap(find.text('Continue'));
   await tester.pumpAndSettle();
   expect(find.text('Secure your account'), findsOneWidget);
 }
 
 class _EmptyCatalogService implements ScholarshipCatalogService {
+  @override
+  Future<List<ScholarshipProgramBudget>> getProgramBudgets() async => const [];
+
+  @override
+  Future<void> setProgramBudget({
+    required String program,
+    required double? budget,
+  }) async {}
+
   @override
   Future<List<ScholarshipCatalogItem>> list({
     required bool includeInactive,
@@ -117,4 +127,15 @@ class _EmptyCatalogService implements ScholarshipCatalogService {
 
   @override
   Future<void> setActive({required int id, required bool active}) async {}
+
+  @override
+  Future<void> setDetails({
+    required int id,
+    String? description,
+    double? allowanceAmount,
+    String? payoutFrequency,
+    int? supportFromYear,
+    int? supportToYear,
+    int? slots,
+  }) async {}
 }

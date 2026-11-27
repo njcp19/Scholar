@@ -6,6 +6,8 @@ import 'package:scholar_wallet/providers/app_state.dart';
 import 'package:scholar_wallet/screens/admin/activity_log_screen.dart';
 import 'package:scholar_wallet/services/wallet_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
+import 'package:scholar_wallet/widgets/app_icons.dart';
+import 'package:scholar_wallet/widgets/widgets.dart';
 
 class _TestWalletService implements WalletService {
   _TestWalletService(this.loadClaims);
@@ -106,6 +108,7 @@ void main() {
       expect(find.text('Activity Log'), findsOneWidget);
       expect(find.text('All'), findsOneWidget);
       expect(find.text('Payouts'), findsOneWidget);
+      expect(find.text('Cancelled'), findsNWidgets(2));
       expect(
           find.text(
               'Read-only. This list is built from existing payout records.'),
@@ -122,7 +125,7 @@ void main() {
 
       expect(find.text('Payout issued'), findsNWidgets(3));
       expect(find.text('Payout received'), findsOneWidget);
-      expect(find.text('Payout cancelled'), findsOneWidget);
+      expect(find.text('Cancelled'), findsNWidgets(2));
       expect(find.textContaining('confirmed with device biometrics'),
           findsOneWidget);
 
@@ -130,6 +133,55 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Payout received'), findsOneWidget);
       expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Cancelled').first);
+      await tester.pumpAndSettle();
+      final cancelledRow =
+          find.byKey(const ValueKey('activity-cancelled-voided'));
+      expect(cancelledRow, findsOneWidget);
+      expect(find.text('Alex Scholar'), findsOneWidget);
+      expect(find.text('Original payout date: Nov 6, 2026'), findsOneWidget);
+      expect(find.text('PHP 6,000.00'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.text('PHP 6,000.00')).style?.decoration,
+        TextDecoration.lineThrough,
+      );
+      final cancelledChip = find.ancestor(
+        of: find.text('Cancelled'),
+        matching: find.byType(StatusChip),
+      );
+      expect(cancelledChip, findsOneWidget);
+      expect(
+        tester.widget<StatusChip>(cancelledChip).color,
+        theme.extension<AppColors>()!.dangerText,
+      );
+      expect(
+        find.descendant(
+          of: cancelledRow,
+          matching: find.byIcon(AppIcons.qrCode),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: cancelledRow, matching: find.text('Void')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: cancelledRow,
+          matching: find.byType(IconButton),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: cancelledRow, matching: find.byType(TextButton)),
+        findsNothing,
+      );
+      expect(find.textContaining('Cancelled by'), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
     }
   });
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scholar_wallet/screens/admin/issue_payout_screen.dart';
 import 'package:scholar_wallet/screens/cashout_screen.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/receipt_layout.dart';
@@ -18,13 +17,6 @@ void main() {
       const _CardCase(
         CashoutBalanceHeroCard(balance: 1234567.89),
         'AVAILABLE BALANCE',
-      ),
-      const _CardCase(
-        IssuePayoutAmountCard(
-          amount: 1234567.89,
-          onChangeStandardAmount: _noop,
-        ),
-        'AMOUNT PER SCHOLAR (FIXED)',
       ),
       const _CardCase(
         ReceiptHeroCard(
@@ -60,16 +52,6 @@ void main() {
       expect(find.text(cardCase.label), findsOneWidget);
       expect(find.bySemanticsLabel('PHP 1,234,567.89'), findsOneWidget);
 
-      if (cardCase.card is IssuePayoutAmountCard) {
-        expect(
-          find.text(
-            'Set once for everybody. Every selected scholar gets exactly this amount.',
-          ),
-          findsOneWidget,
-        );
-        expect(find.text('Change standard amount'), findsOneWidget);
-      }
-
       expect(tester.takeException(), isNull, reason: cardCase.label);
     }
   });
@@ -81,5 +63,3 @@ class _CardCase {
 
   const _CardCase(this.card, this.label);
 }
-
-void _noop() {}

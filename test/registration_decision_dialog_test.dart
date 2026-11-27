@@ -71,6 +71,16 @@ void main() {
       expect(find.text(prompt.message), findsOneWidget);
       expect(find.text('Jamie Scholar'), findsOneWidget);
       expect(find.text(prompt.confirmLabel), findsOneWidget);
+      if (prompt.status == VerificationStatus.approved) {
+        expect(
+          tester
+              .widget<ElevatedButton>(
+                find.byKey(const ValueKey('decision-confirm')),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      }
       expect(
         find.text('The scholar will also be asked for a new selfie.'),
         prompt.askForNewSelfie ? findsOneWidget : findsNothing,

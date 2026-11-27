@@ -4,16 +4,16 @@ import 'package:provider/provider.dart';
 import '../../data/demo_allowance_repository.dart';
 import '../../models/models.dart';
 import '../../providers/app_state.dart';
+import '../../services/scholarship_catalog_service.dart';
+import '../../services/wallet_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/widgets.dart';
 import '../../widgets/app_icons.dart';
 import '../fingerprint_screen.dart';
-import 'allowance_settings_screen.dart';
 import 'funding_account_screen.dart';
+import 'program_payout_qr_screen.dart';
 
-/// Admin: issue a payout batch. The amount comes from the single standard
-/// allowance setting and is NOT editable here, so every scholar is paid the
-/// same. After generating, the admin gets one single-use QR per scholar.
+/// Admin: issue a payout batch for a selected scholarship program.
 class IssuePayoutScreen extends StatefulWidget {
   const IssuePayoutScreen({super.key});
   @override
@@ -21,17 +21,28 @@ class IssuePayoutScreen extends StatefulWidget {
 }
 
 class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
+  final _catalogService = ScholarshipCatalogService();
   final _batchTitle = TextEditingController();
   final _academicPeriod = TextEditingController();
   final _distributionDate = TextEditingController();
   DateTime? _selectedDistributionDate;
-  List<Scholar> _scholars = [];
+  List<ScholarshipCatalogItem> _programs = [];
+  List<ProgramRosterScholar> _roster = [];
+  List<ProgramRosterScholar> _unassignedScholars = [];
+  Map<String, ScholarshipProgramBudget> _programBudgets = {};
+  ScholarshipCatalogItem? _selectedProgram;
+  final Set<String> _selectedScholarIds = {};
   FundingAccount? _fundingAccount;
   FundSummary? _fundSummary;
   bool _fundingAccountLoaded = false;
   bool _loading = true;
+  bool _rosterLoading = false;
+  bool _fundingAccountLoadFailed = false;
+  bool _showUnassigned = false;
   bool _busy = false;
   bool _generating = false;
+  String? _loadError;
+  String? _rosterError;
 
   @override
   void initState() {
@@ -67,33 +78,91 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     _fundingAccount = null;
     _fundSummary = null;
     _fundingAccountLoaded = false;
+    _fundingAccountLoadFailed = false;
+    _loadError = null;
     try {
       final state = context.read<AppState>();
-      await state.loadAllowanceSettings();
-      final all = await state.wallet.getScholars();
-      // Deactivated scholars cannot receive a payout.
-      _scholars = all
-          .where((s) =>
-              s.active && s.verificationStatus == VerificationStatus.approved)
-          .toList();
-      _batchTitle.text = '${state.allowance.label} • ${DateTime.now().year}';
+      final results = await Future.wait<dynamic>([
+        _catalogService.list(includeInactive: false),
+        _catalogService.getProgramBudgets(),
+        state.wallet.listUnassignedScholars(),
+      ]);
+      _programs = results[0] as List<ScholarshipCatalogItem>;
+      final budgets = results[1] as List<ScholarshipProgramBudget>;
+      _programBudgets = {
+        for (final budget in budgets) budget.programName: budget,
+      };
+      _unassignedScholars = results[2] as List<ProgramRosterScholar>;
+      _batchTitle.text = 'Scholarship payout • ${DateTime.now().year}';
 
       try {
         _fundingAccount = await state.wallet.getFundingAccount();
         _fundingAccountLoaded = true;
-      } catch (_) {
+      } catch (error) {
         _fundingAccount = null;
+        _fundingAccountLoaded = true;
+        _fundingAccountLoadFailed = true;
+        _loadError = error is WalletException
+            ? error.message
+            : 'Could not load the funding account. Please try again.';
       }
 
       try {
         _fundSummary = await state.wallet.getFundSummary();
-      } catch (_) {
+      } catch (error) {
         _fundSummary = null;
+        _loadError ??= error is WalletException
+            ? error.message
+            : 'Could not load available funds. Please try again.';
       }
-    } catch (_) {
-      _scholars = [];
+    } catch (error) {
+      _loadError = error is WalletException
+          ? error.message
+          : error is ScholarshipCatalogException
+              ? error.message
+              : 'Could not load scholarship programs. Please try again.';
     }
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _selectProgram(ScholarshipCatalogItem? program) async {
+    if (program == null) return;
+    setState(() {
+      _selectedProgram = program;
+      _roster = [];
+      _selectedScholarIds.clear();
+      _rosterLoading = true;
+      _rosterError = null;
+    });
+    if (_batchTitle.text.trim().isEmpty ||
+        _batchTitle.text.startsWith('Scholarship payout')) {
+      _batchTitle.text = '${program.name} • ${DateTime.now().year}';
+    }
+    try {
+      final roster =
+          await context.read<AppState>().wallet.listProgramRoster(program.name);
+      if (!mounted || _selectedProgram?.name != program.name) return;
+      setState(() {
+        _roster = roster;
+        _selectedScholarIds.addAll(roster.map((scholar) => scholar.id));
+      });
+    } catch (error) {
+      if (mounted) {
+        final message = error is WalletException
+            ? error.message
+            : 'Could not load this program roster.';
+        setState(() => _rosterError = message);
+        showAppSnackBar(
+          context,
+          message,
+          type: AppSnackBarType.error,
+        );
+      }
+    } finally {
+      if (mounted && _selectedProgram?.name == program.name) {
+        setState(() => _rosterLoading = false);
+      }
+    }
   }
 
   Future<void> _openFundingAccount() async {
@@ -107,9 +176,17 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
   Future<void> _generate() async {
     if (_generating) return;
     final state = context.read<AppState>();
-    final selected = _scholars.where((s) => s.selected).toList();
+    final program = _selectedProgram;
+    final allowance = program?.allowanceAmount;
+    final selected = _roster
+        .where((scholar) => _selectedScholarIds.contains(scholar.id))
+        .toList(growable: false);
     if (selected.isEmpty) {
       showMsg(context, 'Select at least one scholar.', error: true);
+      return;
+    }
+    if (program == null || allowance == null || allowance <= 0) {
+      showMsg(context, 'Set an allowance for this program first.', error: true);
       return;
     }
     final distributionDate = _selectedDistributionDate;
@@ -129,14 +206,14 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
         if (!mounted || !state.fingerprintRegistered) return;
       }
       final selectedCount = selected.length;
-      final total = selectedCount * state.allowance.allowanceAmount;
+      final total = selectedCount * allowance;
       final scholarWord = selectedCount == 1 ? 'scholar' : 'scholars';
       final confirmationMessage =
           'Disburse PHP ${fmtPhp(total)} to $selectedCount $scholarWord?';
       final confirmed = await _confirmDisbursement(
         selectedCount: selectedCount,
         total: total,
-        amountPerScholar: state.allowance.allowanceAmount,
+        amountPerScholar: allowance,
         batchTitle: _batchTitle.text.trim(),
         confirmationMessage: confirmationMessage,
       );
@@ -149,9 +226,10 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
         return;
       }
       setState(() => _busy = true);
-      final claims = await state.wallet.generatePayoutBatch(
-        batchTitle: _batchTitle.text.trim(),
-        recipients: selected,
+      final result = await state.wallet.issueProgramPayout(
+        program: program.name,
+        title: _batchTitle.text.trim(),
+        recipients: selected.map((scholar) => scholar.id).toList(),
         distributionDate: distributionDate,
       );
       DemoAllowanceRepository.instance.setAcademicPeriod(
@@ -159,19 +237,30 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
         _academicPeriod.text,
       );
       if (!mounted) return;
-      await Navigator.pushReplacement(
+      await Navigator.push(
         context,
         MaterialPageRoute(
-            builder: (_) => _QrSheetScreen(
-                  claims: claims,
-                  amount: state.allowance.allowanceAmount,
-                  distributionDate: distributionDate,
-                )),
+          builder: (_) => ProgramPayoutQrScreen(
+            batchId: result.batchId,
+            programName: result.program,
+            title: result.title,
+            amountPerScholar: result.amountPerScholar,
+            recipientNames: result.recipients
+                .map((recipient) => recipient.scholarName)
+                .toList(),
+            eventToken: result.eventToken,
+          ),
+        ),
       );
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
-        showMsg(context, 'Could not issue the Payout. Please try again.',
-            error: true);
+        showMsg(
+          context,
+          error is WalletException
+              ? error.message
+              : 'Could not issue this payout. Please try again.',
+          error: true,
+        );
       }
     } finally {
       if (mounted) {
@@ -329,21 +418,6 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     return confirmed == true;
   }
 
-  Widget _amountCard(AppState state) {
-    return IssuePayoutAmountCard(
-      amount: state.allowance.allowanceAmount,
-      onChangeStandardAmount: () async {
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const AllowanceSettingsScreen(),
-          ),
-        );
-        _load();
-      },
-    );
-  }
-
   InputDecoration _fieldDecoration(
     BuildContext context, {
     String? hintText,
@@ -398,42 +472,6 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
             visualDensity: VisualDensity.compact,
           ),
       ],
-    );
-  }
-
-  Widget _totalBar(int selectedCount, double total) {
-    final colors = context.colors;
-    final scholarLabel =
-        '$selectedCount ${selectedCount == 1 ? 'scholar' : 'scholars'} selected';
-    return AppCard(
-      padding: const EdgeInsets.all(16),
-      radius: 22,
-      backgroundColor: colors.brandTint,
-      borderColor: colors.brandTint,
-      borderWidth: 0,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              scholarLabel,
-              style: TextStyle(
-                color: colors.brand,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'PHP ${fmtPhp(total)}',
-            style: TextStyle(
-              color: colors.brand,
-              fontSize: 17,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -510,10 +548,13 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     required double amountPerScholar,
     required double total,
     required FundSummary summary,
+    required ScholarshipProgramBudget? budget,
+    required bool overBudget,
   }) {
     final colors = context.colors;
     final enoughFunds = summary.available >= total;
-    final finalLabel = enoughFunds ? 'Remaining after payout' : 'Shortfall';
+    final finalLabel =
+        enoughFunds ? 'Remaining fund after payout' : 'Shortfall';
     final finalAmount = enoughFunds
         ? 'PHP ${fmtPhp(summary.available - total)}'
         : 'PHP ${fmtPhp(total - summary.available)}';
@@ -535,7 +576,7 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
           child: Column(
             children: [
               _fundCheckRow(
-                'Available fund',
+                'Bank available fund',
                 'PHP ${fmtPhp(summary.available)}',
               ),
               Divider(height: 1, thickness: 1, color: colors.borderSoft),
@@ -544,6 +585,14 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 '$selectedCount x PHP ${fmtPhp(amountPerScholar)} = '
                     'PHP ${fmtPhp(total)}',
               ),
+              if (budget?.programBudget != null) ...[
+                Divider(height: 1, thickness: 1, color: colors.borderSoft),
+                _fundCheckRow(
+                  'Remaining in program budget',
+                  'PHP ${fmtPhp(budget!.budgetRemaining ?? 0)}',
+                  valueColor: overBudget ? colors.dangerText : null,
+                ),
+              ],
               Divider(height: 1, thickness: 1, color: colors.borderSoft),
               _fundCheckRow(
                 finalLabel,
@@ -555,10 +604,20 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
           ),
         ),
         const SizedBox(height: 12),
-        _fundStatusBanner(
-          enoughFunds: enoughFunds,
-          shortfall: enoughFunds ? 0 : total - summary.available,
-        ),
+        if (overBudget || !enoughFunds)
+          InfoBanner(
+            icon: AppIcons.warning,
+            message: overBudget
+                ? "This payout is over the program's remaining budget."
+                : 'Not enough bank funds are available for this payout.',
+            backgroundColor: colors.dangerBg,
+            iconColor: colors.dangerText,
+            textColor: colors.dangerText,
+            borderRadius: 18,
+            padding: const EdgeInsets.all(14),
+          )
+        else
+          _fundStatusBanner(enoughFunds: true, shortfall: 0),
       ],
     );
   }
@@ -654,18 +713,32 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final selectedCount = _scholars.where((s) => s.selected).length;
-    final total = selectedCount * state.allowance.allowanceAmount;
+    final selectedCount = _selectedScholarIds.length;
+    final amountPerScholar = _selectedProgram?.allowanceAmount ?? 0;
+    final total = selectedCount * amountPerScholar;
     final colors = context.colors;
     final fundingAccountMissing =
         _fundingAccountLoaded && _fundingAccount == null;
-    final shortfall = _fundingAccount != null &&
-            _fundSummary != null &&
-            total > _fundSummary!.available
-        ? total - _fundSummary!.available
-        : 0.0;
-    final insufficientFunds = shortfall > 0;
+    final budget = _selectedProgram == null
+        ? null
+        : _programBudgets[_selectedProgram!.name];
+    final budgetRemaining = budget?.budgetRemaining;
+    final overBudget = budget?.programBudget != null &&
+        budgetRemaining != null &&
+        total > budgetRemaining;
+    final insufficientFunds =
+        _fundSummary != null && total > _fundSummary!.available;
+    final canIssue = !_generating &&
+        _selectedProgram != null &&
+        amountPerScholar > 0 &&
+        _roster.isNotEmpty &&
+        selectedCount > 0 &&
+        !_rosterLoading &&
+        _fundingAccount != null &&
+        !_fundingAccountLoadFailed &&
+        _fundSummary != null &&
+        !overBudget &&
+        !insufficientFunds;
 
     return Scaffold(
       backgroundColor: colors.background,
@@ -705,7 +778,19 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               children: [
-                _amountCard(state),
+                if (_loadError != null) ...[
+                  ErrorCard(
+                    message: _loadError!,
+                    onRetry: _load,
+                    prominent: true,
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                _programPicker(),
+                if (_selectedProgram != null) ...[
+                  const SizedBox(height: 14),
+                  _programAllowanceCard(_selectedProgram!, budget),
+                ],
                 if (_fundingAccount != null) ...[
                   const SizedBox(height: 20),
                   SectionLabel(
@@ -720,9 +805,11 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                     const SizedBox(height: 18),
                     _fundCheckCard(
                       selectedCount: selectedCount,
-                      amountPerScholar: state.allowance.allowanceAmount,
+                      amountPerScholar: amountPerScholar,
                       total: total,
                       summary: _fundSummary!,
+                      budget: budget,
+                      overBudget: overBudget,
                     ),
                   ],
                 ] else if (fundingAccountMissing) ...[
@@ -804,8 +891,8 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'This date is saved with the payout event. QR codes can be '
-                  'generated and scanned immediately.',
+                  'This date is saved with the payout event. Its event QR '
+                  'can be scanned immediately.',
                   style: TextStyle(
                     color: colors.textBody,
                     fontSize: 12,
@@ -814,24 +901,30 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 ),
                 const SizedBox(height: 24),
                 SectionLabel(
-                  'RECIPIENTS',
+                  'PROGRAM ROSTER',
                   labelColor: colors.textBody,
                   fontSize: 11.5,
                   letterSpacing: 1.2,
                   trailing: TextButton(
-                    onPressed: () => setState(() {
-                      final all = selectedCount != _scholars.length;
-                      for (final scholar in _scholars) {
-                        scholar.selected = all;
-                      }
-                    }),
+                    onPressed: _roster.isEmpty
+                        ? null
+                        : () => setState(() {
+                              if (selectedCount == _roster.length) {
+                                _selectedScholarIds.clear();
+                              } else {
+                                _selectedScholarIds
+                                  ..clear()
+                                  ..addAll(
+                                      _roster.map((scholar) => scholar.id));
+                              }
+                            }),
                     style: TextButton.styleFrom(
                       foregroundColor: colors.brand,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       minimumSize: const Size(0, 40),
                     ),
                     child: Text(
-                      selectedCount == _scholars.length
+                      selectedCount == _roster.length && _roster.isNotEmpty
                           ? 'Clear all'
                           : 'Select all',
                       style: TextStyle(
@@ -843,18 +936,30 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                if (_scholars.isEmpty)
-                  const EmptyState(
-                    icon: AppIcons.users,
-                    title: 'No active scholars yet',
-                    message: 'Activate scholars in Manage Scholars first.',
+                if (_rosterError != null)
+                  ErrorCard(
+                    message: _rosterError!,
+                    onRetry: () => _selectProgram(_selectedProgram),
                   )
                 else
-                  ..._scholars.map(_scholarTile),
-                const SizedBox(height: 16),
-                _totalBar(selectedCount, total),
-                if (insufficientFunds) ...[
+                  ProgramRosterChecklist(
+                    roster: _selectedProgram == null ? const [] : _roster,
+                    selectedIds: _selectedScholarIds,
+                    loading: _rosterLoading,
+                    hasProgram: _selectedProgram != null,
+                    onToggle: (id) => setState(() {
+                      if (!_selectedScholarIds.add(id)) {
+                        _selectedScholarIds.remove(id);
+                      }
+                    }),
+                  ),
+                if (_unassignedScholars.isNotEmpty) ...[
                   const SizedBox(height: 12),
+                  _unassignedSection(),
+                ],
+                const SizedBox(height: 16),
+                if (insufficientFunds && _fundingAccount != null) ...[
+                  const SizedBox(height: 10),
                   SecondaryButton(
                     label: 'Allocate Funds',
                     onPressed: _openFundingAccount,
@@ -863,26 +968,17 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                   ),
                 ],
                 const SizedBox(height: 18),
-                PrimaryButton(
-                  label: 'Generate QR Codes',
-                  onPressed:
-                      _generating || fundingAccountMissing || insufficientFunds
-                          ? null
-                          : _generate,
-                  icon: AppIcons.qrCode,
+                ProgramPayoutIssueAction(
+                  canIssue: canIssue,
+                  overBudget: overBudget,
+                  insufficientFunds: insufficientFunds,
                   loading: _busy,
-                  loadingLabel: 'Generate QR Codes',
-                  minHeight: 56,
-                  borderRadius: 18,
-                  shadow: true,
-                  iconSize: 20,
-                  iconSpacing: 10,
+                  onPressed: _generate,
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Generating reserves the amount for each selected scholar. '
-                  'The money is only released once the scholar scans their QR '
-                  'code and verifies with device biometrics.',
+                  'Issuing reserves the program allowance for each selected '
+                  'scholar. Receipt is confirmed when a scholar scans the event QR.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: colors.textBody,
@@ -895,102 +991,95 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
     );
   }
 
-  Widget _scholarTile(Scholar s) {
-    final colors = context.colors;
-    final parts = s.name.trim().split(RegExp(r'\s+'));
-    final initials = parts
-        .where((part) => part.isNotEmpty)
-        .take(2)
-        .map((part) => part[0].toUpperCase())
-        .join();
-    final avatarTextColor = Theme.of(context).brightness == Brightness.dark
-        ? colors.textPrimary
-        : colors.onGold;
+  Widget _programPicker() {
+    return ProgramPayoutPicker(
+      programs: _programs,
+      selectedProgram: _selectedProgram,
+      onChanged: _generating ? null : _selectProgram,
+    );
+  }
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: ListRowCard(
-        onTap: () => setState(() => s.selected = !s.selected),
-        minHeight: 68,
-        padding: const EdgeInsets.all(16),
-        radius: 22,
-        backgroundColor: colors.surface,
-        borderColor: s.selected ? colors.brand : colors.border,
-        borderWidth: s.selected ? 2 : 1,
-        child: Row(
-          children: [
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: s.selected ? colors.brand : colors.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: s.selected ? colors.brand : colors.border,
-                  width: 1.5,
+  Widget _programAllowanceCard(
+    ScholarshipCatalogItem program,
+    ScholarshipProgramBudget? budget,
+  ) {
+    final colors = context.colors;
+    final allowance = program.allowanceAmount;
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _fundCheckRow(
+            'Allowance per scholar',
+            allowance == null || allowance <= 0
+                ? 'Not set'
+                : 'PHP ${fmtPhp(allowance)}',
+          ),
+          Divider(height: 1, thickness: 1, color: colors.borderSoft),
+          _fundCheckRow(
+            'Program budget',
+            budget?.programBudget == null
+                ? 'No budget set'
+                : 'PHP ${fmtPhp(budget!.programBudget!)}',
+          ),
+          Divider(height: 1, thickness: 1, color: colors.borderSoft),
+          _fundCheckRow(
+            'Used',
+            'PHP ${fmtPhp(budget?.budgetUsed ?? 0)}',
+          ),
+          Divider(height: 1, thickness: 1, color: colors.borderSoft),
+          _fundCheckRow(
+            'Remaining',
+            budget?.budgetRemaining == null
+                ? 'No budget set'
+                : 'PHP ${fmtPhp(budget!.budgetRemaining!)}',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _unassignedSection() {
+    final colors = context.colors;
+    return AppCard(
+      radius: 18,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextButton(
+            onPressed: () => setState(() => _showUnassigned = !_showUnassigned),
+            style: TextButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+            ),
+            child: Text(
+              'Scholars without a matching program · '
+              '${_unassignedScholars.length}',
+              style: TextStyle(
+                color: colors.brand,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (_showUnassigned)
+            ..._unassignedScholars.map(
+              (scholar) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  scholar.fullName,
+                  style: TextStyle(
+                    color: colors.textBody,
+                    fontSize: 13,
+                  ),
                 ),
               ),
-              alignment: Alignment.center,
-              child: s.selected
-                  ? Icon(AppIcons.check, size: 16, color: colors.onHeader)
-                  : null,
             ),
-            const SizedBox(width: 12),
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: colors.avatarBackground,
-              child: Text(
-                initials.isEmpty ? '?' : initials,
-                style: TextStyle(
-                  color: avatarTextColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    s.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textPrimary,
-                      fontSize: 14.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'ID: ${s.studentId}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: colors.textBody,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Tooltip(
-              message: s.fingerprintRegistered
-                  ? 'Device biometrics registered'
-                  : 'Device biometrics not registered',
-              child: Icon(
-                AppIcons.fingerprint,
-                size: 18,
-                color:
-                    s.fingerprintRegistered ? colors.successText : colors.hint,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -1003,6 +1092,235 @@ class _IssuePayoutScreenState extends State<IssuePayoutScreen> {
                 fontWeight: FontWeight.w700,
                 color: context.colors.textLabel)),
       );
+}
+
+class ProgramPayoutPicker extends StatelessWidget {
+  final List<ScholarshipCatalogItem> programs;
+  final ScholarshipCatalogItem? selectedProgram;
+  final ValueChanged<ScholarshipCatalogItem?>? onChanged;
+
+  const ProgramPayoutPicker({
+    super.key,
+    required this.programs,
+    required this.selectedProgram,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(16),
+      borderSide: BorderSide(color: colors.border),
+    );
+    return AppCard(
+      radius: 22,
+      shadow: true,
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Scholarship program',
+            style: TextStyle(
+              color: colors.textLabel,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<ScholarshipCatalogItem>(
+            key: const ValueKey('program-payout-picker'),
+            initialValue: selectedProgram,
+            isExpanded: true,
+            decoration: InputDecoration(
+              hintText: 'Choose a program',
+              filled: true,
+              fillColor: colors.surface,
+              isDense: true,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              border: border,
+              enabledBorder: border,
+              focusedBorder: border,
+            ),
+            items: programs
+                .map(
+                  (program) => DropdownMenuItem(
+                    value: program,
+                    child: Text(
+                      program.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ProgramRosterChecklist extends StatelessWidget {
+  final List<ProgramRosterScholar> roster;
+  final Set<String> selectedIds;
+  final bool loading;
+  final bool hasProgram;
+  final ValueChanged<String> onToggle;
+
+  const ProgramRosterChecklist({
+    super.key,
+    required this.roster,
+    required this.selectedIds,
+    required this.loading,
+    required this.hasProgram,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final selectedCount =
+        roster.where((scholar) => selectedIds.contains(scholar.id)).length;
+    if (loading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    if (roster.isEmpty) {
+      return EmptyState(
+        icon: AppIcons.users,
+        title: hasProgram
+            ? 'No verified scholars in this program'
+            : 'Choose a program',
+        message: hasProgram
+            ? 'There are no recipients available for this program.'
+            : 'Select a program to load its verified roster.',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: Text(
+            '$selectedCount of ${roster.length} selected',
+            key: const ValueKey('program-roster-selection-count'),
+            style: TextStyle(
+              color: colors.textBody,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        for (final scholar in roster)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: ListRowCard(
+              onTap: () => onToggle(scholar.id),
+              minHeight: 68,
+              padding: const EdgeInsets.all(16),
+              radius: 22,
+              backgroundColor: colors.surface,
+              borderColor: selectedIds.contains(scholar.id)
+                  ? colors.brand
+                  : colors.border,
+              borderWidth: selectedIds.contains(scholar.id) ? 2 : 1,
+              child: Row(
+                children: [
+                  Icon(
+                    selectedIds.contains(scholar.id)
+                        ? AppIcons.check
+                        : Icons.radio_button_unchecked,
+                    size: 22,
+                    color: selectedIds.contains(scholar.id)
+                        ? colors.brand
+                        : colors.border,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      scholar.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class ProgramPayoutIssueAction extends StatelessWidget {
+  final bool canIssue;
+  final bool overBudget;
+  final bool insufficientFunds;
+  final bool loading;
+  final VoidCallback onPressed;
+
+  const ProgramPayoutIssueAction({
+    super.key,
+    required this.canIssue,
+    required this.overBudget,
+    required this.insufficientFunds,
+    required this.loading,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final warning = overBudget
+        ? "This payout is over the program's remaining budget."
+        : insufficientFunds
+            ? 'Not enough bank funds are available for this payout.'
+            : null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (warning != null) ...[
+          InfoBanner(
+            icon: AppIcons.warning,
+            message: warning,
+            backgroundColor: colors.dangerBg,
+            iconColor: colors.dangerText,
+            textColor: colors.dangerText,
+            borderRadius: 18,
+            padding: const EdgeInsets.all(14),
+          ),
+          const SizedBox(height: 18),
+        ],
+        PrimaryButton(
+          key: const ValueKey('issue-program-payout'),
+          label: 'Issue payout',
+          onPressed: canIssue ? onPressed : null,
+          icon: AppIcons.qrCode,
+          loading: loading,
+          loadingLabel: 'Issuing payout',
+          minHeight: 56,
+          borderRadius: 18,
+          shadow: true,
+          iconSize: 20,
+          iconSpacing: 10,
+        ),
+      ],
+    );
+  }
 }
 
 class IssuePayoutFundStatusBanner extends StatelessWidget {
@@ -1084,115 +1402,13 @@ class IssuePayoutFundStatusBanner extends StatelessWidget {
   }
 }
 
-class IssuePayoutAmountCard extends StatelessWidget {
-  final double amount;
-  final VoidCallback onChangeStandardAmount;
-
-  const IssuePayoutAmountCard({
-    super.key,
-    required this.amount,
-    required this.onChangeStandardAmount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
-      radius: 28,
-      gradient: LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [colors.balanceHeroStart, colors.balanceHeroEnd],
-      ),
-      borderColor: colors.balanceHeroStart,
-      borderWidth: 0,
-      clipBehavior: Clip.hardEdge,
-      child: Stack(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 30),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'AMOUNT PER SCHOLAR',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.balanceHeroText,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.3,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                HeroAmountText(
-                  prefix: 'PHP ',
-                  amount: fmtPhp(amount),
-                  color: colors.balanceHeroText,
-                  letterSpacing: -.8,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Set once for everybody. Every selected scholar gets exactly this amount.',
-                  style: TextStyle(
-                    color: colors.balanceHeroText,
-                    fontSize: 12,
-                    height: 1.45,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Material(
-                  color: colors.onHeader.withValues(alpha: .5),
-                  borderRadius: BorderRadius.circular(18),
-                  child: InkWell(
-                    onTap: onChangeStandardAmount,
-                    borderRadius: BorderRadius.circular(18),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 9,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            AppIcons.sliders,
-                            size: 16,
-                            color: colors.balanceHeroText,
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              'Change standard amount',
-                              style: TextStyle(
-                                color: colors.balanceHeroText,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Shows the freshly generated single-use QR codes, one card per scholar.
-class _QrSheetScreen extends StatelessWidget {
+/// Legacy QR display retained for existing external references.
+class LegacyPayoutQrSheetScreen extends StatelessWidget {
   final List<AllowanceClaim> claims;
   final double amount;
   final DateTime distributionDate;
-  const _QrSheetScreen({
+  const LegacyPayoutQrSheetScreen({
+    super.key,
     required this.claims,
     required this.amount,
     required this.distributionDate,

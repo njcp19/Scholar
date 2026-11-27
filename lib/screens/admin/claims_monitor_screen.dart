@@ -11,6 +11,7 @@ import '../../widgets/destructive_confirm_dialog.dart';
 import '../../widgets/shell_tab_controller.dart';
 import '../../widgets/widgets.dart';
 import '../fingerprint_screen.dart';
+import 'program_payout_qr_screen.dart';
 
 /// Admin: every payout QR ever issued, with its live status.
 class ClaimsMonitorScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class ClaimsMonitorScreen extends StatefulWidget {
 
 class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
   List<AllowanceClaim> _claims = [];
+  Map<String, String> _programNames = {};
   bool _hasLoaded = false;
   String? _error;
   bool _offline = false;
@@ -62,10 +64,22 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
 
   Future<void> _load() async {
     try {
-      final claims = await context.read<AppState>().wallet.getAllClaims();
+      final wallet = context.read<AppState>().wallet;
+      final results = await Future.wait<dynamic>([
+        wallet.getAllClaims(),
+        wallet.getDisbursements(),
+      ]);
+      final claims = results[0] as List<AllowanceClaim>;
+      final events = results[1] as List<Map<String, dynamic>>;
       if (!mounted) return;
       setState(() {
         _claims = claims;
+        _programNames = {
+          for (final event in events)
+            if (event['program_name'] is String &&
+                (event['program_name'] as String).trim().isNotEmpty)
+              event['id'].toString(): event['program_name'] as String,
+        };
         _error = null;
         _offline = false;
         _hasLoaded = true;
@@ -92,10 +106,10 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     final query = _query.trim().toLowerCase();
     return _claims.where((claim) {
       final matchesFilter = switch (_filter) {
+        'all' => !claim.isVoided,
         'waiting' => claim.isPending,
         'received' => claim.isReceived,
-        'cancelled' => claim.isVoided,
-        _ => true,
+        _ => !claim.isVoided,
       };
       return matchesFilter &&
           (query.isEmpty || claim.scholarName.toLowerCase().contains(query));
@@ -227,6 +241,42 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showProgramEventQr(AllowanceClaim claim) async {
+    final programName = _programNames[claim.batchId];
+    if (programName == null) return;
+    try {
+      final wallet = context.read<AppState>().wallet;
+      final token = await wallet.getPayoutEventToken(claim.batchId);
+      if (!mounted) return;
+      final recipients =
+          _claims.where((item) => item.batchId == claim.batchId).toList();
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProgramPayoutQrScreen(
+            batchId: claim.batchId,
+            programName: programName,
+            title: claim.batchTitle,
+            amountPerScholar: claim.amount,
+            recipientNames:
+                recipients.map((recipient) => recipient.scholarName).toList(),
+            eventToken: token,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        showMsg(
+          context,
+          error is WalletException
+              ? error.message
+              : 'Could not load this payout event QR.',
+          error: true,
+        );
+      }
+    }
   }
 
   String _statusLabel(AllowanceClaim claim) => claim.isReceived
@@ -427,7 +477,10 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     return groups;
   }
 
-  Widget _claimCard(List<AllowanceClaim> claims) {
+  Widget _claimCard(
+    List<AllowanceClaim> claims,
+    Set<String> eventQrClaimIds,
+  ) {
     return AppCard(
       radius: 22,
       shadow: true,
@@ -436,14 +489,20 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         children: [
           for (var index = 0; index < claims.length; index++) ...[
             if (index > 0) Divider(height: 1, color: context.colors.borderSoft),
-            _claimRow(claims[index]),
+            _claimRow(
+              claims[index],
+              showProgramEventQr: eventQrClaimIds.contains(claims[index].id),
+            ),
           ],
         ],
       ),
     );
   }
 
-  Widget _claimRow(AllowanceClaim claim) {
+  Widget _claimRow(
+    AllowanceClaim claim, {
+    required bool showProgramEventQr,
+  }) {
     final received = claim.isReceived;
     final cancelled = claim.isVoided;
     final foreground = received
@@ -459,112 +518,158 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
     final displayDate = _dateFor(claim).millisecondsSinceEpoch == 0
         ? null
         : DateFormat('MMM d, h:mm a').format(_dateFor(claim).toLocal());
+    final programName = _programNames[claim.batchId];
 
     return Padding(
+      key: ValueKey('payout-row-${claim.id}'),
       padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: background,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              claim.scholarName.trim().isNotEmpty
-                  ? claim.scholarName.trim()[0].toUpperCase()
-                  : '?',
-              style: TextStyle(
-                color: foreground,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  claim.scholarName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: background,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  claim.scholarName.trim().isNotEmpty
+                      ? claim.scholarName.trim()[0].toUpperCase()
+                      : '?',
                   style: TextStyle(
-                    color: context.colors.textPrimary,
-                    fontSize: 15,
+                    color: foreground,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
-                const SizedBox(height: 3),
-                if (displayDate != null)
-                  Text(
-                    displayDate,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: context.colors.textBody,
-                      fontSize: 12,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          SizedBox(
-            width: 96,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'PHP ${fmtPhp(claim.amount)}',
-                      maxLines: 1,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      claim.scholarName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: true,
                       style: TextStyle(
-                        color: cancelled
-                            ? context.colors.textBody
-                            : context.colors.textPrimary,
+                        color: context.colors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        decoration: cancelled
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
                       ),
                     ),
+                    const SizedBox(height: 3),
+                    if (displayDate != null)
+                      Text(
+                        displayDate,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: context.colors.textBody,
+                          fontSize: 12,
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      children: [
+                        StatusChip(
+                          _statusLabel(claim),
+                          color: claim.isVoided
+                              ? context.colors.dangerText
+                              : _statusColor(claim),
+                          bg: claim.isVoided
+                              ? context.colors.dangerBg
+                              : _statusBackground(claim),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 78,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          'PHP ${fmtPhp(claim.amount)}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            color: cancelled
+                                ? context.colors.textBody
+                                : context.colors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            decoration: cancelled
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (programName == null && claim.isPending) ...[
+                      const SizedBox(height: 5),
+                      Material(
+                        color: context.colors.brandTint,
+                        borderRadius: BorderRadius.circular(14),
+                        child: IconButton(
+                          onPressed: () => _showQr(claim),
+                          tooltip: 'View QR',
+                          constraints: const BoxConstraints.tightFor(
+                            width: 40,
+                            height: 40,
+                          ),
+                          padding: EdgeInsets.zero,
+                          icon: Icon(
+                            AppIcons.qrCode,
+                            color: context.colors.brand,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (programName != null && (showProgramEventQr || claim.isPending))
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 4,
+              children: [
+                if (showProgramEventQr)
+                  TextButton.icon(
+                    onPressed: () => _showProgramEventQr(claim),
+                    icon: const Icon(AppIcons.qrCode, size: 17),
+                    label: const Text('Show event QR'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: context.colors.brand,
+                      minimumSize: const Size(0, 40),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 5),
-                StatusChip(
-                  _statusLabel(claim),
-                  color: claim.isVoided
-                      ? context.colors.dangerText
-                      : _statusColor(claim),
-                  bg: claim.isVoided
-                      ? context.colors.dangerBg
-                      : _statusBackground(claim),
-                ),
+                if (claim.isPending)
+                  TextButton(
+                    onPressed: () => _void(claim),
+                    style: TextButton.styleFrom(
+                      foregroundColor: context.colors.dangerText,
+                      minimumSize: const Size(0, 40),
+                    ),
+                    child: const Text('Void'),
+                  ),
               ],
-            ),
-          ),
-          const SizedBox(width: 6),
-          Material(
-            color: context.colors.brandTint,
-            borderRadius: BorderRadius.circular(14),
-            child: IconButton(
-              onPressed: () => _showQr(claim),
-              tooltip: 'View QR',
-              constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-              padding: EdgeInsets.zero,
-              icon: Icon(AppIcons.qrCode, color: context.colors.brand),
-            ),
-          ),
+            )
         ],
       ),
     );
@@ -708,11 +813,25 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
         .fold<double>(0, (sum, claim) => sum + claim.amount);
     final visible = _visible;
     final grouped = _groupedClaims(visible);
+    final waitingProgramBatches = _claims
+        .where(
+          (claim) =>
+              claim.isPending && _programNames.containsKey(claim.batchId),
+        )
+        .map((claim) => claim.batchId)
+        .toSet();
+    final eventQrClaimIds = <String>{};
+    final seenProgramBatches = <String>{};
+    for (final claim in visible) {
+      if (waitingProgramBatches.contains(claim.batchId) &&
+          seenProgramBatches.add(claim.batchId)) {
+        eventQrClaimIds.add(claim.id);
+      }
+    }
     final filterOptions = [
       ('all', 'All'),
       ('waiting', 'Waiting'),
       ('received', 'Received'),
-      ('cancelled', 'Cancelled'),
     ];
 
     return Scaffold(
@@ -858,7 +977,7 @@ class _ClaimsMonitorScreenState extends State<ClaimsMonitorScreen> {
                           '${entry.value.length == 1 ? 'PAYOUT' : 'PAYOUTS'}',
                         ),
                       ),
-                      _claimCard(entry.value),
+                      _claimCard(entry.value, eventQrClaimIds),
                     ],
                 ],
               ],

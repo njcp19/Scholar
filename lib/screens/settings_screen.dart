@@ -9,7 +9,6 @@ import '../widgets/shell_tab_controller.dart';
 import '../widgets/widgets.dart';
 import 'admin/admin_dashboard_screen.dart';
 import 'admin/activity_log_screen.dart';
-import 'admin/allowance_settings_screen.dart';
 import 'admin/claims_monitor_screen.dart';
 import 'admin/funding_account_screen.dart';
 import 'admin/manage_scholars_screen.dart';
@@ -623,13 +622,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           Divider(height: 1, color: context.colors.borderSoft),
           if (isAdmin) ...[
-            _shortcutRow(
-              icon: AppIcons.wallet,
-              title: 'Allowance amount',
-              subtitle: 'Set the allowance for each scholar',
-              screen: const AllowanceSettingsScreen(),
-            ),
-            Divider(height: 1, color: context.colors.borderSoft),
             _shortcutRow(
               icon: AppIcons.bankAccount,
               title: 'Funding account',

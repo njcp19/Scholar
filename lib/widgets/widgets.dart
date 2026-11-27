@@ -2625,14 +2625,13 @@ class MonthlyAllowanceCard extends StatelessWidget {
   final String title;
   final double amount;
   final AllowanceCardState state;
+  final VoidCallback? onTap;
   final String? issuedDate;
   final String? receivedDate;
   final DateTime? distributionDate;
   final DateTime? expectedReleaseDate;
   final String? academicPeriod;
   final VoidCallback? onPrimaryAction;
-  final int waitingCount;
-  final double? waitingTotal;
   final bool statusOnRight;
   final double radius;
   final double iconTileSize;
@@ -2642,14 +2641,13 @@ class MonthlyAllowanceCard extends StatelessWidget {
     required this.title,
     required this.amount,
     required this.state,
+    this.onTap,
     this.issuedDate,
     this.receivedDate,
     this.distributionDate,
     this.expectedReleaseDate,
     this.academicPeriod,
     this.onPrimaryAction,
-    this.waitingCount = 1,
-    this.waitingTotal,
     this.statusOnRight = false,
     this.radius = 22,
     this.iconTileSize = 44,
@@ -2693,6 +2691,7 @@ class MonthlyAllowanceCard extends StatelessWidget {
       radius: radius,
       shadow: true,
       padding: const EdgeInsets.all(16),
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2817,22 +2816,11 @@ class MonthlyAllowanceCard extends StatelessWidget {
               ],
             ),
           ] else if (waiting) ...[
-            if (issuedDate != null)
-              _AllowanceDateRow(label: 'Released', date: issuedDate),
-            if (waitingCount > 1) ...[
-              const SizedBox(height: 6),
-              Text(
-                '$waitingCount payouts waiting • Total PHP '
-                '${fmtPhp(waitingTotal ?? amount)}',
-                style: TextStyle(
-                  color: context.colors.textBody,
-                  fontSize: 12,
-                ),
-              ),
-            ],
             const SizedBox(height: 8),
             Text(
-              'Scan the QR from the admin to receive it.',
+              "Go to the office and scan the admin's QR.",
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(color: context.colors.textBody, fontSize: 12),
             ),
           ] else if (cancelled) ...[
@@ -3909,7 +3897,13 @@ class StatusChip extends StatelessWidget {
 class ClaimQrPanel extends StatelessWidget {
   final AllowanceClaim claim;
   final double size;
-  const ClaimQrPanel({super.key, required this.claim, this.size = 190});
+  final bool showToken;
+  const ClaimQrPanel({
+    super.key,
+    required this.claim,
+    this.size = 190,
+    this.showToken = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -3945,16 +3939,18 @@ class ClaimQrPanel extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          SelectableText(
-            claim.token,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 10,
-                letterSpacing: .5,
-                color: AppTheme.textMuted,
-                fontFamily: 'monospace'),
-          ),
+          if (showToken) ...[
+            const SizedBox(height: 8),
+            SelectableText(
+              claim.token,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 10,
+                  letterSpacing: .5,
+                  color: AppTheme.textMuted,
+                  fontFamily: 'monospace'),
+            ),
+          ],
         ],
       ),
     );
@@ -4213,43 +4209,4 @@ class ThemeToggleButton extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Scholar: shows the Payout QR issued to them. They can screenshot it and
-/// later choose the image from the gallery inside the scanner. The QR alone
-/// is not proof of identity: the server still checks the signed-in scholar,
-/// the payout status, and that the QR was not used before.
-Future<void> showPayoutQrSheet(BuildContext context, AllowanceClaim claim) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Allowance ready: PHP ${fmtPhp(claim.amount)}',
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 4),
-            Text(claim.batchTitle,
-                textAlign: TextAlign.center,
-                style:
-                    const TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-            const SizedBox(height: 14),
-            ClaimQrPanel(claim: claim, size: 220),
-            const SizedBox(height: 12),
-            const Text(
-              'Take a screenshot of this QR, then open Scan QR from Home or My Payouts and choose it from your gallery. It can only be used once.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }

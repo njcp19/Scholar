@@ -33,11 +33,12 @@ class VerificationService {
         notes.trim().isEmpty) {
       throw ArgumentError('Explain the reason or information required.');
     }
+    final trimmedNotes = notes.trim();
     await _db.rpc('review_registration', params: {
       'p_scholar_id': registration.id,
       'p_expected_status': registration.verificationStatus.databaseValue,
       'p_decision': decision.databaseValue,
-      'p_notes': notes.trim(),
+      'p_notes': trimmedNotes.isEmpty ? null : trimmedNotes,
       'p_roster_checked': decision == VerificationStatus.approved,
     });
   }
@@ -45,7 +46,6 @@ class VerificationService {
   Future<void> resubmit(
       {required bool declaredScholar,
       required String scholarshipName,
-      required String scholarshipReference,
       required String? studentNumber,
       required String? university,
       required String? program,
@@ -54,7 +54,7 @@ class VerificationService {
       await _db.rpc('resubmit_registration', params: {
         'p_declared_scholar': declaredScholar,
         'p_scholarship_name': scholarshipName.trim(),
-        'p_scholarship_reference': scholarshipReference.trim(),
+        'p_scholarship_reference': null,
         'p_student_number': studentNumber?.trim(),
         'p_university': university?.trim(),
         'p_program': program?.trim(),

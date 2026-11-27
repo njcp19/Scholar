@@ -14,13 +14,18 @@ import 'helpers/card_layering_test_utils.dart';
 
 class _AdminHeroWallet implements WalletService {
   final List<AllowanceClaim> payouts;
+  final List<Map<String, dynamic>> disbursements;
 
   _AdminHeroWallet({
     this.payouts = const [],
+    this.disbursements = const [],
   });
 
   @override
   Future<List<AllowanceClaim>> getAllClaims({int limit = 200}) async => payouts;
+
+  @override
+  Future<List<Map<String, dynamic>>> getDisbursements() async => disbursements;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
@@ -187,6 +192,65 @@ void main() {
     await tester.pumpAndSettle();
     expect(wallet.deletedIds, ['test-scholar']);
     expect(find.text('Test Scholar'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Manage Scholars shows scholarship chips only when named',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final longScholarshipName =
+        '${List.filled(12, 'Scholarship').join(' ')} Award';
+    final wallet = _ManageScholarsWallet([
+      Scholar(
+        id: 'named-scholar',
+        studentId: 'NAMED-1',
+        name: 'Named Scholar',
+        balance: 0,
+        scholarshipName: longScholarshipName,
+        verificationStatus: VerificationStatus.approved,
+      ),
+      Scholar(
+        id: 'unnamed-scholar',
+        studentId: 'EMPTY-1',
+        name: 'Unnamed Scholar',
+        balance: 0,
+        scholarshipName: '',
+        verificationStatus: VerificationStatus.approved,
+      ),
+    ]);
+    final state = _AdminHeroState(wallet);
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ManageScholarsScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('Named Scholar'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+
+    expect(find.text(longScholarshipName), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('scholarship-chip-named-scholar')),
+      findsOneWidget,
+    );
+    expect(find.text('Verified'), findsNWidgets(2));
+    await tester.scrollUntilVisible(
+      find.text('Unnamed Scholar'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Unnamed Scholar'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('scholarship-chip-unnamed-scholar')),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -580,7 +644,261 @@ void main() {
     expect(tester.getSize(received).height, tester.getSize(reserved).height);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Payout Monitor wraps a long scholar name to two lines',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const name = 'Kuro Marie Cuadro Penera';
+    final claim = _monitorClaim(id: 'long-name', name: name);
+    final state = _AdminHeroState(_AdminHeroWallet(payouts: [claim]));
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ClaimsMonitorScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+
+    final nameFinder = find.text(name);
+    final nameText = tester.widget<Text>(nameFinder);
+    expect(nameText.maxLines, 2);
+    expect(nameText.softWrap, isTrue);
+    expect(nameText.overflow, TextOverflow.ellipsis);
+    expect(tester.getSize(nameFinder).height, greaterThan(30));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Payout Monitor status chip shows its full text', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final state = _AdminHeroState(
+      _AdminHeroWallet(
+        payouts: [_monitorClaim(id: 'status-chip', name: 'Jordan Lee')],
+      ),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ClaimsMonitorScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+
+    final statusFinder = find.text('Waiting for scan');
+    expect(statusFinder, findsOneWidget);
+    expect(
+      find.ancestor(of: statusFinder, matching: find.byType(Wrap)),
+      findsOneWidget,
+    );
+    expect(tester.getSize(statusFinder).width, greaterThan(90));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('legacy payout row shows its QR button below the amount',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final claim = _monitorClaim(id: 'legacy-qr', name: 'Jordan Lee');
+    final state = _AdminHeroState(_AdminHeroWallet(payouts: [claim]));
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ClaimsMonitorScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+
+    final qrButton = find.byTooltip('View QR');
+    expect(qrButton, findsOneWidget);
+    expect(
+      tester.getTopLeft(qrButton).dy,
+      greaterThan(tester.getBottomLeft(find.text('PHP 1,000.00')).dy),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'Payout Monitor All excludes cancelled rows and QR follows status',
+      (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final state = _AdminHeroState(
+      _AdminHeroWallet(
+        payouts: [
+          _monitorClaim(id: 'legacy-waiting', name: 'Legacy Waiting'),
+          _monitorClaim(
+            id: 'legacy-received',
+            name: 'Legacy Received',
+            status: ClaimStatus.received,
+          ),
+          _monitorClaim(
+            id: 'legacy-cancelled',
+            name: 'Legacy Cancelled',
+            status: ClaimStatus.voided,
+          ),
+        ],
+      ),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ClaimsMonitorScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+
+    expect(find.text('Cancelled'), findsNothing);
+    expect(find.text('Legacy Cancelled'), findsNothing);
+    expect(find.text('Legacy Waiting'), findsOneWidget);
+    expect(find.text('Legacy Received'), findsOneWidget);
+    expect(find.text('AUGUST 2026 · 2 PAYOUTS'), findsOneWidget);
+    expect(find.byTooltip('View QR'), findsOneWidget);
+
+    await _showMonitorFilters(tester);
+    final receivedFilter = find.ancestor(
+      of: find.text('Received'),
+      matching: find.byType(ChoiceChip),
+    );
+    await tester.tap(receivedFilter);
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+    expect(find.text('Legacy Received'), findsOneWidget);
+    expect(find.byTooltip('View QR'), findsNothing);
+
+    await _showMonitorFilters(tester);
+    final waitingFilter = find.ancestor(
+      of: find.text('Waiting'),
+      matching: find.byType(ChoiceChip),
+    );
+    await tester.tap(waitingFilter);
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+    expect(find.text('Legacy Waiting'), findsOneWidget);
+    expect(find.byTooltip('View QR'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('program payout row hides the per-row QR button', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final claim = _monitorClaim(
+      id: 'program-row',
+      name: 'Jordan Lee',
+      batchId: 'program-batch',
+    );
+    final state = _AdminHeroState(
+      _AdminHeroWallet(
+        payouts: [
+          claim,
+          _monitorClaim(
+            id: 'program-row-second',
+            name: 'Taylor Kim',
+            batchId: 'program-batch',
+          ),
+          _monitorClaim(
+            id: 'program-row-received',
+            name: 'Casey Park',
+            batchId: 'program-batch',
+            status: ClaimStatus.received,
+          ),
+          _monitorClaim(
+            id: 'program-received-only',
+            name: 'Received Program Scholar',
+            batchId: 'received-program-batch',
+            status: ClaimStatus.received,
+          ),
+        ],
+        disbursements: const [
+          {'id': 'program-batch', 'program_name': 'STEM Scholars'},
+          {
+            'id': 'received-program-batch',
+            'program_name': 'Arts Scholars',
+          },
+        ],
+      ),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      _app(state, const ClaimsMonitorScreen(), textScale: 1.3),
+    );
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+
+    expect(find.byTooltip('View QR'), findsNothing);
+    expect(find.text('Show event QR'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('payout-row-program-received-only')),
+        matching: find.text('Show event QR'),
+      ),
+      findsNothing,
+    );
+    await _showMonitorFilters(tester);
+    final receivedFilter = find.ancestor(
+      of: find.text('Received'),
+      matching: find.byType(ChoiceChip),
+    );
+    await tester.tap(receivedFilter);
+    await tester.pumpAndSettle();
+    await _showMonitorRows(tester);
+    expect(find.text('Show event QR'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('payout-row-program-received-only')),
+        matching: find.text('Show event QR'),
+      ),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
+
+Future<void> _showMonitorRows(WidgetTester tester) async {
+  await tester.drag(find.byType(ListView).last, const Offset(0, -900));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _showMonitorFilters(WidgetTester tester) async {
+  await tester.drag(find.byType(ListView).last, const Offset(0, 900));
+  await tester.pumpAndSettle();
+}
+
+AllowanceClaim _monitorClaim({
+  required String id,
+  required String name,
+  String batchId = 'legacy-batch',
+  ClaimStatus status = ClaimStatus.issued,
+  DateTime? claimedAt,
+}) =>
+    AllowanceClaim(
+      id: id,
+      batchId: batchId,
+      batchTitle: 'Payout event',
+      scholarId: 'scholar-1',
+      scholarName: name,
+      amount: 1000,
+      token: 'token-$id',
+      status: status,
+      issuedAt: DateTime(2026, 8, 15, 10),
+      claimedAt: claimedAt,
+    );
 
 void _expectToggleCaptionInsideCard(WidgetTester tester, String caption) {
   final captionFinder = find.text(caption);

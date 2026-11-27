@@ -572,31 +572,20 @@ class _ClaimsScreenState extends State<ClaimsScreen> {
             ],
             if (pending) ...[
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: SecondaryButton(
-                      label: 'Show my QR',
-                      icon: AppIcons.qrCode,
-                      minHeight: 46,
-                      borderRadius: 16,
-                      onPressed: () => showPayoutQrSheet(
-                        context,
-                        claim,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: PrimaryButton(
-                      label: 'Scan QR',
-                      icon: AppIcons.qrScan,
-                      minHeight: 46,
-                      borderRadius: 16,
-                      onPressed: _openScanner,
-                    ),
-                  ),
-                ],
+              Text(
+                "Go to the office and scan the admin's QR.",
+                style: TextStyle(
+                  color: context.colors.textBody,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PrimaryButton(
+                label: 'Scan QR',
+                icon: AppIcons.qrScan,
+                minHeight: 46,
+                borderRadius: 16,
+                onPressed: _openScanner,
               ),
             ],
           ],

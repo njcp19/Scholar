@@ -14,6 +14,7 @@ import 'package:scholar_wallet/providers/app_state.dart';
 import 'package:scholar_wallet/screens/claims_screen.dart';
 import 'package:scholar_wallet/screens/cashout_screen.dart';
 import 'package:scholar_wallet/screens/home_screen.dart';
+import 'package:scholar_wallet/screens/scan_claim_screen.dart';
 import 'package:scholar_wallet/services/wallet_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
 import 'package:scholar_wallet/widgets/shell_tab_controller.dart';
@@ -131,6 +132,67 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
+  });
+
+  testWidgets('pending payout card and notification open the scanner',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final payout = AllowanceClaim(
+      id: 'waiting-home',
+      batchId: 'batch-home',
+      batchTitle: 'Private batch title',
+      scholarId: 'test-scholar-id',
+      scholarName: 'Test Scholar',
+      amount: 2500,
+      token: 'test-token',
+      issuedAt: DateTime(2026, 11, 18),
+    );
+
+    for (final fromNotification in [true, false]) {
+      final state = _HomeFixtureAppState(
+        _HomeFixtureWallet(payouts: [payout]),
+      );
+      await tester.pumpWidget(_homeApp(state));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text("Go to the office and scan the admin's QR."),
+        findsOneWidget,
+      );
+      expect(find.text('Private batch title'), findsNothing);
+
+      if (fromNotification) {
+        await tester.tap(find.byTooltip('Notifications'));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.descendant(
+            of: find.byType(AppBottomSheet),
+            matching: find.text("Go to the office and scan the admin's QR."),
+          ),
+        );
+      } else {
+        final payoutCard = find.byType(MonthlyAllowanceCard);
+        await tester.ensureVisible(payoutCard);
+        await tester.tap(payoutCard);
+      }
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(find.byType(ScanClaimScreen), findsOneWidget);
+      expect(find.byType(ClaimQrPanel), findsNothing);
+      expect(
+        find.text('Point the camera at the QR shown by the admin.'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      state.dispose();
+    }
   });
 
   testWidgets('Scholar Home shows allowance only for a loaded payout',
@@ -406,7 +468,7 @@ void main() {
   });
 
   testWidgets(
-    'My Payouts keeps two cards visible and handles large amounts at narrow scale',
+    'My Payouts shows payout actions and large amounts at narrow scale',
     (tester) async {
       final payouts = _samplePayouts();
       tester.view.physicalSize = const Size(360, 780);
@@ -439,14 +501,9 @@ void main() {
 
       final section = find.text('PAYOUTS (3)');
       final firstCard = find.byKey(const ValueKey('payout-card-waiting-1'));
-      final secondCard = find.byKey(const ValueKey('payout-card-waiting-2'));
       expect(
         tester.getRect(firstCard).top,
         greaterThan(tester.getRect(section).bottom),
-      );
-      expect(
-        tester.getRect(secondCard).bottom,
-        lessThanOrEqualTo(780),
       );
 
       tester.view.physicalSize = const Size(320, 640);
@@ -496,6 +553,15 @@ void main() {
         if (payout.isPending) {
           expect(
             find.descendant(of: card, matching: find.text('Show my QR')),
+            findsNothing,
+          );
+          expect(
+            find.descendant(
+              of: card,
+              matching: find.text(
+                "Go to the office and scan the admin's QR.",
+              ),
+            ),
             findsOneWidget,
           );
           expect(

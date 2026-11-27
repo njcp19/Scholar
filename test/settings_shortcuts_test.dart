@@ -11,7 +11,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:scholar_wallet/models/models.dart';
 import 'package:scholar_wallet/providers/app_state.dart';
 import 'package:scholar_wallet/screens/admin/activity_log_screen.dart';
-import 'package:scholar_wallet/screens/admin/allowance_settings_screen.dart';
 import 'package:scholar_wallet/screens/admin/funding_account_screen.dart';
 import 'package:scholar_wallet/screens/linked_accounts_screen.dart';
 import 'package:scholar_wallet/screens/settings_screen.dart';
@@ -66,14 +65,12 @@ void main() {
     await _pumpProfile(tester, state);
 
     expect(find.text('Linked accounts'), findsNothing);
-    expect(find.text('Allowance amount'), findsOneWidget);
-    expect(find.text('Set the allowance for each scholar'), findsOneWidget);
+    expect(find.text('Allowance amount'), findsNothing);
     expect(find.text('Funding account'), findsOneWidget);
     expect(find.text('Account used to allocate funds'), findsOneWidget);
     expect(find.text('Activity log'), findsOneWidget);
     expect(find.text('Review what happened in the system'), findsOneWidget);
 
-    await _openShortcut<AllowanceSettingsScreen>(tester, 'Allowance amount');
     await _openShortcut<FundingAccountScreen>(tester, 'Funding account');
     await _openShortcut<ActivityLogScreen>(tester, 'Activity log');
   });

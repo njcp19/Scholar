@@ -17,6 +17,81 @@ class ClaimNotPendingException extends WalletException {
       : super("This payout is no longer waiting and can't be cancelled.");
 }
 
+class ProgramRosterScholar {
+  final String id;
+  final String fullName;
+  final String scholarshipName;
+
+  const ProgramRosterScholar({
+    required this.id,
+    required this.fullName,
+    required this.scholarshipName,
+  });
+
+  factory ProgramRosterScholar.fromMap(Map<String, dynamic> map) =>
+      ProgramRosterScholar(
+        id: map['id'].toString(),
+        fullName: (map['full_name'] ?? '').toString(),
+        scholarshipName: (map['scholarship_name'] ?? '').toString(),
+      );
+}
+
+class ProgramPayoutRecipient {
+  final String scholarId;
+  final String scholarName;
+  final double amount;
+  final String status;
+
+  const ProgramPayoutRecipient({
+    required this.scholarId,
+    required this.scholarName,
+    required this.amount,
+    required this.status,
+  });
+
+  factory ProgramPayoutRecipient.fromMap(Map<String, dynamic> map) =>
+      ProgramPayoutRecipient(
+        scholarId: (map['scholar_id'] ?? '').toString(),
+        scholarName: (map['scholar_name'] ?? '').toString(),
+        amount: ((map['amount'] ?? 0) as num).toDouble(),
+        status: (map['status'] ?? '').toString(),
+      );
+}
+
+class ProgramPayoutResult {
+  final String batchId;
+  final String program;
+  final String title;
+  final double amountPerScholar;
+  final int recipientCount;
+  final String eventToken;
+  final List<ProgramPayoutRecipient> recipients;
+
+  const ProgramPayoutResult({
+    required this.batchId,
+    required this.program,
+    required this.title,
+    required this.amountPerScholar,
+    required this.recipientCount,
+    required this.eventToken,
+    required this.recipients,
+  });
+
+  factory ProgramPayoutResult.fromMap(Map<String, dynamic> map) =>
+      ProgramPayoutResult(
+        batchId: (map['batch_id'] ?? '').toString(),
+        program: (map['program'] ?? '').toString(),
+        title: (map['title'] ?? '').toString(),
+        amountPerScholar: ((map['amount_per_scholar'] ?? 0) as num).toDouble(),
+        recipientCount: ((map['recipient_count'] ?? 0) as num).toInt(),
+        eventToken: (map['event_token'] ?? '').toString(),
+        recipients: ((map['recipients'] ?? const []) as List)
+            .map((row) => ProgramPayoutRecipient.fromMap(
+                Map<String, dynamic>.from(row as Map)))
+            .toList(growable: false),
+      );
+}
+
 /// ALL money movement lives here.
 ///
 /// v2 rules (scholar wallet only):
@@ -96,58 +171,169 @@ class WalletService {
   }
 
   // -------------------------------------------------------- payout batches
-  /// Admin: create a payout batch. The amount is NOT an argument — it is
-  /// always the single global allowance, so one scholar can never be paid
-  /// more or less than another. Returns the generated claims (each carrying
-  /// its own single-use QR token).
-  Future<List<AllowanceClaim>> generatePayoutBatch({
-    required String batchTitle,
-    required List<Scholar> recipients,
+  Future<List<ProgramRosterScholar>> listProgramRoster(String program) async {
+    try {
+      final rows = await _db.rpc(
+        'list_program_roster',
+        params: {'p_program': program},
+      );
+      if (rows is! List) {
+        throw const FormatException('Invalid program roster response.');
+      }
+      return rows
+          .map((row) => ProgramRosterScholar.fromMap(
+              Map<String, dynamic>.from(row as Map)))
+          .toList(growable: false);
+    } on PostgrestException catch (error) {
+      throw WalletException(
+          WalletService.programPayoutErrorMessage(error.message));
+    }
+  }
+
+  Future<List<ProgramRosterScholar>> listUnassignedScholars() async {
+    try {
+      final rows = await _db.rpc('list_unassigned_scholars');
+      if (rows is! List) {
+        throw const FormatException('Invalid unassigned scholars response.');
+      }
+      return rows
+          .map((row) => ProgramRosterScholar.fromMap(
+              Map<String, dynamic>.from(row as Map)))
+          .toList(growable: false);
+    } on PostgrestException catch (error) {
+      throw WalletException(
+          WalletService.programPayoutErrorMessage(error.message));
+    }
+  }
+
+  Future<ProgramPayoutResult> issueProgramPayout({
+    required String program,
+    required String title,
+    required List<String> recipients,
     required DateTime distributionDate,
   }) async {
-    if (recipients.isEmpty ||
-        recipients.any((s) =>
-            !s.active || s.verificationStatus != VerificationStatus.approved)) {
-      throw WalletException('Select only active, verified scholars.');
-    }
-    final dynamic result;
     try {
-      result = await _db.rpc('issue_verified_payout', params: {
-        'p_title': batchTitle.trim(),
-        'p_recipients': recipients.map((s) => s.id).toList(),
-        'p_distribution_date':
-            '${distributionDate.year.toString().padLeft(4, '0')}-'
-                '${distributionDate.month.toString().padLeft(2, '0')}-'
-                '${distributionDate.day.toString().padLeft(2, '0')}',
-      });
-    } on PostgrestException catch (e) {
-      if (e.message.contains('FUNDING_ACCOUNT_REQUIRED')) {
-        throw WalletException('Link a funding account first.');
+      final result = await _db.rpc(
+        'issue_program_payout',
+        params: {
+          'p_program': program,
+          'p_title': title.trim(),
+          'p_recipients': recipients,
+          'p_distribution_date':
+              '${distributionDate.year.toString().padLeft(4, '0')}-'
+                  '${distributionDate.month.toString().padLeft(2, '0')}-'
+                  '${distributionDate.day.toString().padLeft(2, '0')}',
+        },
+      );
+      if (result is! Map) {
+        throw const FormatException('Invalid program payout response.');
       }
-      if (e.message.contains('INSUFFICIENT_FUNDS')) {
-        throw WalletException(
-            'Not enough funds for this payout. Top up the fund first.');
-      }
-      if (e.message.contains('ADMIN_REQUIRED')) {
-        throw WalletException('Only an admin can issue payouts.');
-      }
-      if (e.message.contains('RECIPIENTS_REQUIRED')) {
-        throw WalletException('Select at least one scholar for the payout.');
-      }
-      if (e.message.contains('INVALID_ALLOWANCE')) {
-        throw WalletException(
-            'The standard allowance is invalid. Update it and try again.');
-      }
-      if (e.message.contains('SCHOLAR_NOT_VERIFIED')) {
-        throw WalletException(
-            'A selected scholar is no longer active and verified. Refresh the list and try again.');
-      }
-      rethrow;
+      return ProgramPayoutResult.fromMap(Map<String, dynamic>.from(result));
+    } on PostgrestException catch (error) {
+      throw WalletException(
+          WalletService.programPayoutErrorMessage(error.message));
     }
-    return (result as List)
-        .map((row) =>
-            AllowanceClaim.fromMap(Map<String, dynamic>.from(row as Map)))
-        .toList();
+  }
+
+  Future<String> getPayoutEventToken(String batchId) async {
+    try {
+      final result = await _db.rpc(
+        'get_payout_event_token',
+        params: {'p_batch_id': batchId},
+      );
+      if (result is! String || result.isEmpty) {
+        throw const FormatException('Invalid payout event token response.');
+      }
+      return result;
+    } on PostgrestException catch (error) {
+      if (error.message.contains('EVENT_NOT_FOUND')) {
+        throw WalletException('The payout event QR could not be found.');
+      }
+      throw WalletException(
+          WalletService.programPayoutErrorMessage(error.message));
+    }
+  }
+
+  Future<AllowanceClaim?> previewProgramPayout({
+    required String batchId,
+    required String scholarId,
+  }) async {
+    final row = await _db
+        .from('allowance_claims')
+        .select('*, profiles(full_name)')
+        .eq('batch_id', batchId)
+        .eq('scholar_id', scholarId)
+        .maybeSingle();
+    if (row == null) return null;
+    return AllowanceClaim.fromMap(Map<String, dynamic>.from(row));
+  }
+
+  Future<double> claimProgramPayout({
+    required String eventToken,
+    required String scholarId,
+  }) async {
+    try {
+      final result = await _db.rpc(
+        'claim_event_allowance',
+        params: {
+          'p_event_token': eventToken,
+          'p_scholar_id': scholarId,
+        },
+      );
+      if (result is! num) {
+        throw const FormatException('Invalid payout receipt response.');
+      }
+      return result.toDouble();
+    } on PostgrestException catch (error) {
+      throw WalletException(
+          WalletService.programPayoutErrorMessage(error.message));
+    }
+  }
+
+  static String programPayoutErrorMessage(String raw) {
+    if (raw.contains('CLAIM_NOT_IN_ROSTER')) {
+      return 'You are not on this payout list. Please check with the office.';
+    }
+    if (raw.contains('CLAIM_ALREADY_RECEIVED')) {
+      return 'You already received this allowance.';
+    }
+    if (raw.contains('CLAIM_VOIDED')) {
+      return 'This payout was cancelled.';
+    }
+    if (raw.contains('CLAIM_NOT_FOUND')) {
+      return 'This QR code is not valid.';
+    }
+    if (raw.contains('PROGRAM_NOT_FOUND')) {
+      return 'This scholarship program could not be found.';
+    }
+    if (raw.contains('PROGRAM_ALLOWANCE_NOT_SET')) {
+      return 'Set an allowance for this program before issuing a payout.';
+    }
+    if (raw.contains('PROGRAM_BUDGET_EXCEEDED')) {
+      return "This payout is over the program's remaining budget.";
+    }
+    if (raw.contains('INSUFFICIENT_FUNDS')) {
+      return 'There are not enough funds available for this payout.';
+    }
+    if (raw.contains('FUNDING_ACCOUNT_REQUIRED')) {
+      return 'Link a funding account before issuing a payout.';
+    }
+    if (raw.contains('SCHOLAR_NOT_IN_PROGRAM')) {
+      return 'A selected scholar is not in this program. Refresh the roster and try again.';
+    }
+    if (raw.contains('SCHOLAR_NOT_VERIFIED')) {
+      return 'A selected scholar is no longer active and verified. Refresh the roster and try again.';
+    }
+    if (raw.contains('RECIPIENTS_REQUIRED')) {
+      return 'Select at least one scholar for the payout.';
+    }
+    if (raw.contains('INVALID_BUDGET')) {
+      return 'Enter a valid budget greater than or equal to zero.';
+    }
+    if (raw.contains('ADMIN_REQUIRED')) {
+      return 'Only an admin can perform this action.';
+    }
+    return 'Could not complete the program payout. Please try again.';
   }
 
   /// Claims that are still waiting for the scholar to scan their QR.

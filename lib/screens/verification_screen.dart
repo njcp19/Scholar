@@ -223,7 +223,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
           scholarshipName: user.scholarshipName.isEmpty
               ? 'Existing scholarship'
               : user.scholarshipName,
-          scholarshipReference: user.scholarshipReference,
           studentNumber: changedValue(studentNumberValue, user.studentNumber),
           university: changedValue(universityValue, user.university),
           program: changedValue(programValue, user.program),
@@ -286,8 +285,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
         'Existing scholarship',
         u.scholarshipName.isEmpty ? 'Not provided' : u.scholarshipName,
       ),
-      if (u.scholarshipReference.isNotEmpty)
-        MapEntry('Reference', u.scholarshipReference),
     ];
 
     return Scaffold(
@@ -423,7 +420,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   ],
                 ),
               ),
-              if (u.reviewNotes.isNotEmpty) ...[
+              if (u.reviewNotes.trim().isNotEmpty) ...[
                 const SizedBox(height: 16),
                 _AdministratorFeedback(
                   status: status,

@@ -653,12 +653,6 @@ List<MapEntry<String, String>> registrationDetailRows(AppUser user) => [
         'Scholarship',
         user.scholarshipName.isEmpty ? 'Not provided' : user.scholarshipName,
       ),
-      MapEntry(
-        'Award reference',
-        user.scholarshipReference.isEmpty
-            ? 'Not provided'
-            : user.scholarshipReference,
-      ),
     ];
 
 class _RegistrationDetailState extends State<_RegistrationDetail> {
@@ -1081,7 +1075,7 @@ class _RegistrationDetailState extends State<_RegistrationDetail> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Review notes / reason',
+                  'Notes (optional)',
                   style: TextStyle(
                     color: context.colors.textLabel,
                     fontSize: 14,

@@ -7,6 +7,7 @@ import '../services/scholarship_catalog_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_icons.dart';
 import '../widgets/widgets.dart';
+import 'scholarship_details_screen.dart';
 import 'selfie_flow_screen.dart';
 
 String normalizeNamePart(String value) =>
@@ -74,7 +75,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _university = TextEditingController();
   final _program = TextEditingController();
   final _scholarshipName = TextEditingController();
-  final _scholarshipReference = TextEditingController();
   final _email = TextEditingController();
   final _confirmEmail = TextEditingController();
   final _password = TextEditingController();
@@ -90,7 +90,6 @@ class _SignupScreenState extends State<SignupScreen> {
 
   String? _yearLevel;
   DateTime? _birthdate;
-  bool _declaredScholar = true;
   bool _obscurePw = true;
   bool _obscureConfirm = true;
   bool _agreed = false;
@@ -115,7 +114,6 @@ class _SignupScreenState extends State<SignupScreen> {
     _university.dispose();
     _program.dispose();
     _scholarshipName.dispose();
-    _scholarshipReference.dispose();
     _email.dispose();
     _confirmEmail.dispose();
     _password.dispose();
@@ -157,7 +155,7 @@ class _SignupScreenState extends State<SignupScreen> {
       errors['program'] = 'This field is required.';
     }
     if (_yearLevel == null) errors['yearLevel'] = 'Select your year level.';
-    if (_declaredScholar && _scholarshipName.text.trim().isEmpty) {
+    if (_scholarshipName.text.trim().isEmpty) {
       errors['scholarshipName'] = 'This field is required.';
     }
     return errors;
@@ -387,9 +385,8 @@ class _SignupScreenState extends State<SignupScreen> {
         university: _university.text,
         program: _program.text,
         yearLevel: _yearLevel!,
-        declaredScholar: _declaredScholar,
+        declaredScholar: true,
         scholarshipName: _scholarshipName.text,
-        scholarshipReference: _scholarshipReference.text,
       );
       if (mounted) {
         await Navigator.push<bool>(
@@ -694,71 +691,8 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             fieldKey: 'yearLevel',
           ),
-          const SizedBox(height: 2),
-          Text(
-            'EXISTING SCHOLARSHIP',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: colors.textLabel,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('I am already a scholar', style: _label(context)),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Scholar Wallet is only for existing scholarship beneficiaries.',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        height: 1.4,
-                        color: colors.textBody,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Switch.adaptive(
-                value: _declaredScholar,
-                onChanged: (value) {
-                  setState(() {
-                    _declaredScholar = value;
-                    if (!value) _fieldErrors.remove('scholarshipName');
-                  });
-                },
-              ),
-            ],
-          ),
-          if (!_declaredScholar) ...[
-            const SizedBox(height: 8),
-            const InfoBanner(
-              icon: AppIcons.info,
-              message:
-                  'Scholar Wallet verifies existing scholars only. You can still register, but you cannot receive allowance until you are verified.',
-              maxLines: 10,
-            ),
-          ],
-          if (_declaredScholar) ...[
-            const SizedBox(height: 12),
-            _scholarshipField(context),
-            _text(
-              context,
-              'Award reference or ID',
-              'scholarshipReference',
-              _scholarshipReference,
-              'Optional',
-              AppIcons.idCard,
-              action: TextInputAction.done,
-              bottomPadding: false,
-            ),
-          ],
+          const SizedBox(height: 12),
+          _scholarshipField(context),
         ],
       ),
     );
@@ -768,7 +702,7 @@ class _SignupScreenState extends State<SignupScreen> {
     if (_scholarshipTextFallback) {
       return _text(
         context,
-        'Scholarship name',
+        'Scholarship',
         'scholarshipName',
         _scholarshipName,
         'e.g. CHED Merit Scholarship',
@@ -1351,7 +1285,17 @@ class _ScholarshipPickerSheetState extends State<_ScholarshipPickerSheet> {
       borderRadius: BorderRadius.circular(16),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => setState(() => _selectedName = program.name),
+        onTap: () async {
+          final selectedName = await Navigator.push<String>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ScholarshipDetailsScreen(program: program),
+            ),
+          );
+          if (selectedName != null && mounted) {
+            setState(() => _selectedName = selectedName);
+          }
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
           decoration: BoxDecoration(

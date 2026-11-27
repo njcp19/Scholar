@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import '../models/models.dart';
 import '../providers/app_state.dart';
 import '../services/qr_service.dart';
 import '../services/wallet_service.dart';
@@ -25,6 +25,26 @@ class ScanClaimScreen extends StatefulWidget {
 
   @override
   State<ScanClaimScreen> createState() => _ScanClaimScreenState();
+}
+
+Future<AllowanceClaim> loadScannedPayoutPreview({
+  required WalletService wallet,
+  required String token,
+  required String scholarId,
+  String? eventBatchId,
+}) async {
+  final preview = eventBatchId == null
+      ? await wallet.previewClaim(token)
+      : await wallet.previewProgramPayout(
+          batchId: eventBatchId,
+          scholarId: scholarId,
+        );
+  if (preview == null) {
+    throw WalletException(eventBatchId == null
+        ? 'This is not a valid payout QR.'
+        : 'You are not on this payout list. Please check with the office.');
+  }
+  return preview;
 }
 
 class _ScanClaimScreenState extends State<ScanClaimScreen>
@@ -90,14 +110,17 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
     if (raw == null) return;
     final payload = ClaimQrPayload.tryParse(raw);
     if (payload == null) {
-      setState(() => _message =
-          'Not a payout QR. Attendance/event QR codes cannot release allowance.');
+      setState(() =>
+          _message = 'Not a payout QR. Scan a payout QR or enter its code.');
       return;
     }
-    await _handleToken(payload.token);
+    await _handleToken(
+      payload.token,
+      eventBatchId: payload.isProgramEvent ? payload.claimId : null,
+    );
   }
 
-  Future<void> _handleToken(String token) async {
+  Future<void> _handleToken(String token, {String? eventBatchId}) async {
     if (_handling) return;
     _scanLine.stop();
     setState(() {
@@ -117,19 +140,21 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
         throw WalletException(
             'Only active, admin-verified scholars can receive allowance.');
       }
-      final preview = await state.wallet.previewClaim(token);
+      final preview = await loadScannedPayoutPreview(
+        wallet: state.wallet,
+        token: token,
+        scholarId: state.user!.id,
+        eventBatchId: eventBatchId,
+      );
       if (!mounted) return;
-      if (preview == null) {
-        throw WalletException('This is not a valid payout QR.');
-      }
       if (preview.scholarId != state.user!.id) {
         throw WalletException(
             'This payout QR does not belong to your account.');
       }
       if (!preview.isPending) {
         throw WalletException(preview.isReceived
-            ? 'Already received — each payout QR can only be used once.'
-            : 'This payout was cancelled by the administrator.');
+            ? 'You already received this allowance.'
+            : 'This payout was cancelled.');
       }
       // Amount is reviewed BEFORE either biometric setup or confirmation.
       final confirmed = await Navigator.push<bool>(
@@ -153,8 +178,15 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
         throw WalletException(
             'Biometrics not verified. Allowance receipt was not recorded.');
       }
-      final receivedAmount = await state.wallet
-          .claimAllowance(token: token, scholarId: state.user!.id);
+      final receivedAmount = eventBatchId == null
+          ? await state.wallet.claimAllowance(
+              token: token,
+              scholarId: state.user!.id,
+            )
+          : await state.wallet.claimProgramPayout(
+              eventToken: token,
+              scholarId: state.user!.id,
+            );
       // Receipt already succeeded: a refresh failure must not imply it failed.
       try {
         await state.refreshBalance();
@@ -174,13 +206,9 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
         ),
         result: true,
       );
-    } on WalletException {
+    } on WalletException catch (error) {
       if (mounted) {
-        showMsg(
-          context,
-          'Could not receive this Payout. Refresh My Payouts and try again.',
-          error: true,
-        );
+        showMsg(context, error.message, error: true);
       }
     } catch (_) {
       if (mounted) {
@@ -197,27 +225,6 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
             await _controller.start();
           } catch (_) {}
         }
-      }
-    }
-  }
-
-  /// Pick a saved/screenshotted Payout QR image from the gallery and read it.
-  Future<void> _pickFromGallery() async {
-    if (_handling) return;
-    final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (picked == null || !mounted) return;
-    try {
-      final capture = await _controller.analyzeImage(picked.path);
-      if (!mounted) return;
-      if (capture == null || capture.barcodes.isEmpty) {
-        setState(() => _message = 'No QR code found in that image.');
-        return;
-      }
-      await _onDetect(capture);
-    } catch (_) {
-      if (mounted) {
-        setState(
-            () => _message = 'Could not read that image. Try another one.');
       }
     }
   }
@@ -255,12 +262,14 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
     if (!mounted || code == null || code.isEmpty) return;
     final parsed = ClaimQrPayload.tryParse(code);
     if (parsed == null) {
-      showMsg(context,
-          'Invalid payout code. Event or attendance QR codes are not supported here.',
+      showMsg(context, 'Invalid payout code. Check the code and try again.',
           error: true);
       return;
     }
-    await _handleToken(parsed.token);
+    await _handleToken(
+      parsed.token,
+      eventBatchId: parsed.isProgramEvent ? parsed.claimId : null,
+    );
   }
 
   Future<void> _toggleTorch() async {
@@ -352,7 +361,7 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
             if (!_cameraReady || _cameraError)
               Center(
                 child: Icon(
-                  _cameraError ? AppIcons.cameraOff : AppIcons.qrCode,
+                  _cameraError ? AppIcons.cameraOff : AppIcons.qrScan,
                   size: 88,
                   color: context.colors.onHeader.withValues(alpha: .38),
                 ),
@@ -499,7 +508,7 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
                                 child: Column(
                                   children: [
                                     Text(
-                                      'Scan your payout QR',
+                                      "Scan the admin's QR",
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: context.colors.onHeader,
@@ -509,7 +518,7 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Hold your phone over the QR code your admin generated for you.',
+                                      'Point the camera at the QR shown by the admin.',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         color: context.colors.onHeader
@@ -526,7 +535,7 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
                                       InfoBanner(
                                         icon: AppIcons.cameraOff,
                                         message:
-                                            'Camera is not available on this device. Enter your payout code or choose a QR image below.',
+                                            'Camera is not available on this device. Enter your payout code below.',
                                         backgroundColor:
                                             context.colors.dangerBg,
                                         iconColor: context.colors.dangerText,
@@ -557,8 +566,6 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
                           child: ScanQrActionCard(
                             fingerprintRegistered: state.fingerprintRegistered,
                             onBiometricTap: _openBiometricSetup,
-                            onGalleryPressed:
-                                _handling ? null : _pickFromGallery,
                             onManualPressed: _handling ? null : _manualEntry,
                           ),
                         ),
@@ -578,14 +585,12 @@ class _ScanClaimScreenState extends State<ScanClaimScreen>
 class ScanQrActionCard extends StatelessWidget {
   final bool fingerprintRegistered;
   final VoidCallback onBiometricTap;
-  final VoidCallback? onGalleryPressed;
   final VoidCallback? onManualPressed;
 
   const ScanQrActionCard({
     super.key,
     required this.fingerprintRegistered,
     required this.onBiometricTap,
-    required this.onGalleryPressed,
     required this.onManualPressed,
   });
 
@@ -653,13 +658,6 @@ class ScanQrActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final galleryButton = _actionButton(
-      context,
-      label: 'From gallery',
-      icon: AppIcons.image,
-      onPressed: onGalleryPressed,
-      primary: false,
-    );
     final manualButton = _actionButton(
       context,
       label: 'Enter code',
@@ -667,7 +665,6 @@ class ScanQrActionCard extends StatelessWidget {
       onPressed: onManualPressed,
       primary: true,
     );
-    final stackActions = MediaQuery.sizeOf(context).width < 440;
 
     return AppCard(
       radius: 22,
@@ -729,23 +726,7 @@ class ScanQrActionCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (stackActions)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                galleryButton,
-                const SizedBox(height: 8),
-                manualButton,
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: galleryButton),
-                const SizedBox(width: 12),
-                Expanded(child: manualButton),
-              ],
-            ),
+          manualButton,
         ],
       ),
     );

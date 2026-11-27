@@ -57,6 +57,30 @@ void main() {
     );
   });
 
+  test('admin detail omits scholarship reference whether present or absent',
+      () {
+    final users = [
+      AppUser(
+        id: 'with-reference',
+        fullName: 'Juan Dela Cruz',
+        email: 'juan@example.edu',
+        scholarshipReference: 'AWARD-2026-123',
+      ),
+      AppUser(
+        id: 'without-reference',
+        fullName: 'Juan Dela Cruz',
+        email: 'juan@example.edu',
+      ),
+    ];
+
+    for (final user in users) {
+      expect(
+        registrationDetailRows(user).map((row) => row.key),
+        isNot(contains('Award reference')),
+      );
+    }
+  });
+
   test('admin detail includes a formatted date only when present', () {
     AppUser user(DateTime? date) => AppUser(
           id: 'student-1',
@@ -133,9 +157,34 @@ void main() {
     await tester.tap(find.text('1st Year College').last);
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.byType(Switch));
-    await tester.tap(find.byType(Switch));
+    expect(find.text('EXISTING SCHOLARSHIP'), findsNothing);
+    expect(find.text('I am already a scholar'), findsNothing);
+    expect(
+      find.text(
+        'Scholar Wallet is only for existing scholarship beneficiaries.',
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            (widget.data?.toLowerCase().contains('reference') == true ||
+                widget.data?.toLowerCase().contains('award id') == true),
+      ),
+      findsNothing,
+    );
+    expect(find.byType(Switch), findsNothing);
+
+    await tester.ensureVisible(find.text('Scholarship'));
+    await tester.tap(find.byKey(const ValueKey('scholarship-picker-field')));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('This field is required.'), findsOneWidget);
+    expect(find.text('Secure your account'), findsNothing);
+
+    await tester.enterText(find.byType(TextField).last, 'Test scholarship');
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
@@ -146,6 +195,15 @@ void main() {
 }
 
 class _TestCatalogService implements ScholarshipCatalogService {
+  @override
+  Future<List<ScholarshipProgramBudget>> getProgramBudgets() async => const [];
+
+  @override
+  Future<void> setProgramBudget({
+    required String program,
+    required double? budget,
+  }) async {}
+
   @override
   Future<List<ScholarshipCatalogItem>> list({
     required bool includeInactive,
@@ -160,4 +218,15 @@ class _TestCatalogService implements ScholarshipCatalogService {
 
   @override
   Future<void> setActive({required int id, required bool active}) async {}
+
+  @override
+  Future<void> setDetails({
+    required int id,
+    String? description,
+    double? allowanceAmount,
+    String? payoutFrequency,
+    int? supportFromYear,
+    int? supportToYear,
+    int? slots,
+  }) async {}
 }

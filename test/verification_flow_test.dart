@@ -305,6 +305,52 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('needs-info screen and resubmit omit scholarship reference',
+      (tester) async {
+    final referenceText = find.byWidgetPredicate(
+      (widget) =>
+          widget is Text &&
+          (widget.data?.toLowerCase().contains('reference') == true ||
+              widget.data?.toLowerCase().contains('award id') == true),
+    );
+    final state = _VerificationFixtureAppState(
+      AppUser.fromMap({
+        ...profile(status: 'needs_info'),
+        'scholarship_reference': 'AWARD-2026-123',
+      }),
+    );
+    addTearDown(state.dispose);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: AppTheme.light,
+          home: const VerificationScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(referenceText, findsNothing);
+    expect(find.text('AWARD-2026-123'), findsNothing);
+    await tester.scrollUntilVisible(
+      find.text('Update requested information'),
+      200,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Update requested information'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Update verification details'), findsOneWidget);
+    expect(referenceText, findsNothing);
+    expect(find.text('AWARD-2026-123'), findsNothing);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('inactive approved scholar sees inactive payout access',
       (tester) async {
     final state = _VerificationFixtureAppState(

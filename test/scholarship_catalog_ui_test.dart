@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:scholar_wallet/screens/admin/scholarship_programs_screen.dart';
+import 'package:scholar_wallet/screens/scholarship_details_screen.dart';
 import 'package:scholar_wallet/screens/signup_screen.dart';
 import 'package:scholar_wallet/services/scholarship_catalog_service.dart';
 import 'package:scholar_wallet/theme/app_theme.dart';
@@ -17,6 +18,13 @@ void main() {
           id: 1,
           name: 'Test-only selectable program',
           isActive: true,
+          description: 'Description for test scholarship',
+          allowanceAmount: 1250.5,
+          payoutFrequency: 'monthly',
+          supportFromYear: 1,
+          supportToYear: 4,
+          slots: 12,
+          slotsTaken: 5,
         ),
       ],
     );
@@ -27,14 +35,79 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Choose your scholarship'), findsOneWidget);
+    await tester.tap(find.text('Test-only selectable program'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scholarship details'), findsOneWidget);
+    expect(find.text('Description for test scholarship'), findsOneWidget);
+    expect(find.text('PHP 1,250.50'), findsOneWidget);
+    expect(find.text('Every month'), findsOneWidget);
+    expect(find.text('1st year to 4th year'), findsOneWidget);
+    expect(find.text('7 of 12 slots left'), findsOneWidget);
+    await tester.tap(find.text('Select this scholarship'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose your scholarship'), findsOneWidget);
     expect(find.text('Pick the one you already belong to.'), findsOneWidget);
     expect(find.text('Test-only selectable program'), findsOneWidget);
-    await tester.tap(find.text('Test-only selectable program'));
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     expect(find.text('Test-only selectable program'), findsOneWidget);
     expect(service.includeInactiveValues, [false]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('signup scholarship details show unset values and no slot limit',
+      (tester) async {
+    _setViewport(tester);
+    await tester.pumpWidget(
+      _app(
+        const ScholarshipDetailsScreen(
+          program: ScholarshipCatalogItem(
+            id: 2,
+            name: 'Unspecified scholarship',
+            isActive: true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.scrollUntilVisible(
+      find.text('No description yet.'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('No description yet.'), findsOneWidget);
+    expect(find.text('Not set yet'), findsNWidgets(3));
+    expect(find.text('No slot limit set'), findsOneWidget);
+    expect(
+      find.text(
+        'Slots are shown for information. The admin decides on approval.',
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('signup scholarship slots never show a negative remainder',
+      (tester) async {
+    _setViewport(tester);
+    await tester.pumpWidget(
+      _app(
+        const ScholarshipDetailsScreen(
+          program: ScholarshipCatalogItem(
+            id: 3,
+            name: 'Filled scholarship',
+            isActive: true,
+            slots: 5,
+            slotsTaken: 8,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('0 of 5 slots left'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -51,7 +124,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('scholarship-picker-field')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Scholarship name'), findsOneWidget);
+      expect(find.text('Scholarship'), findsOneWidget);
       expect(find.text('Choose your scholarship'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
@@ -106,6 +179,167 @@ void main() {
     expect(find.text('Hidden'), findsOneWidget);
     expect(service.activeChanges, [false]);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('admin validates and saves program details with the catalog',
+      (tester) async {
+    _setViewport(tester, height: 800);
+    final service = _FakeScholarshipCatalogService(
+      programs: [
+        const ScholarshipCatalogItem(
+          id: 8,
+          name: 'Details test program',
+          isActive: true,
+          slots: 12,
+          slotsTaken: 2,
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      _app(ScholarshipProgramsScreen(catalogService: service)),
+    );
+    await tester.pumpAndSettle();
+    expect(service.listCalls, 1);
+
+    await tester.tap(find.text('Details test program'));
+    await tester.pumpAndSettle();
+    expect(find.text('Program details'), findsOneWidget);
+
+    final description = List.filled(601, 'D').join();
+    final descriptionField = find.byKey(const ValueKey('program-description'));
+    await tester.scrollUntilVisible(
+      descriptionField,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(descriptionField, description);
+    expect(
+      tester.widget<TextField>(descriptionField).controller!.text.length,
+      600,
+    );
+
+    final allowanceField = find.byKey(const ValueKey('program-allowance'));
+    await tester.scrollUntilVisible(
+      allowanceField,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(allowanceField, '1250.50');
+
+    final frequency = find.byKey(
+      const ValueKey('program-frequency-semester'),
+    );
+    await tester.scrollUntilVisible(
+      frequency,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(frequency);
+    await tester.pumpAndSettle();
+
+    final supportFrom = find.byKey(const ValueKey('program-support-from'));
+    await tester.scrollUntilVisible(
+      supportFrom,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(supportFrom);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4th year').last);
+    await tester.pumpAndSettle();
+
+    final supportTo = find.byKey(const ValueKey('program-support-to'));
+    await tester.scrollUntilVisible(
+      supportTo,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(supportTo);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3rd year'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('End year cannot be before start year.'),
+      findsOneWidget,
+    );
+    expect(service.detailUpdates, isEmpty);
+
+    await tester.scrollUntilVisible(
+      supportTo,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(supportTo);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('4th year').last);
+    await tester.pumpAndSettle();
+
+    final slotsField = find.byKey(const ValueKey('program-slots'));
+    await tester.scrollUntilVisible(
+      slotsField,
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.enterText(slotsField, '20');
+    await tester.scrollUntilVisible(
+      find.text('2 of 12 slots used'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('2 of 12 slots used'), findsOneWidget);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(service.detailUpdates, hasLength(1));
+    expect(service.detailUpdates.single, {
+      'id': 8,
+      'description': List.filled(600, 'D').join(),
+      'allowanceAmount': 1250.5,
+      'payoutFrequency': 'semester',
+      'supportFromYear': 4,
+      'supportToYear': 4,
+      'slots': 20,
+    });
+    expect(service.listCalls, 2);
+    expect(tester.takeException(), isNull);
+  });
+
+  test('catalog items accept responses without optional details', () {
+    final item = ScholarshipCatalogItem.fromMap({
+      'id': 9,
+      'name': 'Legacy program',
+      'is_active': true,
+    });
+
+    expect(item.description, isNull);
+    expect(item.allowanceAmount, isNull);
+    expect(item.payoutFrequency, isNull);
+    expect(item.supportFromYear, isNull);
+    expect(item.supportToYear, isNull);
+    expect(item.slots, isNull);
+    expect(item.slotsTaken, 0);
+
+    final detailedItem = ScholarshipCatalogItem.fromMap({
+      'id': 10,
+      'name': 'Detailed program',
+      'is_active': true,
+      'description': 'Program details',
+      'allowance_amount': 1250.5,
+      'payout_frequency': 'semester',
+      'support_from_year': 1,
+      'support_to_year': 4,
+      'slots': 20,
+      'slots_taken': 7,
+    });
+    expect(detailedItem.description, 'Program details');
+    expect(detailedItem.allowanceAmount, 1250.5);
+    expect(detailedItem.payoutFrequency, 'semester');
+    expect(detailedItem.supportFromYear, 1);
+    expect(detailedItem.supportToYear, 4);
+    expect(detailedItem.slots, 20);
+    expect(detailedItem.slotsTaken, 7);
   });
 
   testWidgets('long program names stay clear of controls at compact size',
@@ -240,12 +474,24 @@ class _FakeScholarshipCatalogService implements ScholarshipCatalogService {
   final List<String> addedNames = [];
   final List<String> renamedNames = [];
   final List<bool> activeChanges = [];
+  final List<Map<String, Object?>> detailUpdates = [];
+  int listCalls = 0;
   int _nextId = 2;
+
+  @override
+  Future<List<ScholarshipProgramBudget>> getProgramBudgets() async => const [];
+
+  @override
+  Future<void> setProgramBudget({
+    required String program,
+    required double? budget,
+  }) async {}
 
   @override
   Future<List<ScholarshipCatalogItem>> list({
     required bool includeInactive,
   }) async {
+    listCalls++;
     includeInactiveValues.add(includeInactive);
     if (failList) throw StateError('test list failure');
     return List.of(programs);
@@ -284,6 +530,41 @@ class _FakeScholarshipCatalogService implements ScholarshipCatalogService {
       id: id,
       name: programs[index].name,
       isActive: active,
+    );
+  }
+
+  @override
+  Future<void> setDetails({
+    required int id,
+    String? description,
+    double? allowanceAmount,
+    String? payoutFrequency,
+    int? supportFromYear,
+    int? supportToYear,
+    int? slots,
+  }) async {
+    detailUpdates.add({
+      'id': id,
+      'description': description,
+      'allowanceAmount': allowanceAmount,
+      'payoutFrequency': payoutFrequency,
+      'supportFromYear': supportFromYear,
+      'supportToYear': supportToYear,
+      'slots': slots,
+    });
+    final index = programs.indexWhere((program) => program.id == id);
+    final program = programs[index];
+    programs[index] = ScholarshipCatalogItem(
+      id: program.id,
+      name: program.name,
+      isActive: program.isActive,
+      description: description,
+      allowanceAmount: allowanceAmount,
+      payoutFrequency: payoutFrequency,
+      supportFromYear: supportFromYear,
+      supportToYear: supportToYear,
+      slots: slots,
+      slotsTaken: program.slotsTaken,
     );
   }
 }

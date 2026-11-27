@@ -441,25 +441,36 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
             const SizedBox(height: 14),
             Divider(height: 1, color: context.colors.borderSoft),
             const SizedBox(height: 12),
-            LayoutBuilder(
-              builder: (context, constraints) => Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxWidth: constraints.maxWidth - 116,
-                    ),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: _verificationChip(scholar.verificationStatus),
-                    ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: _verificationChip(
+                            scholar.verificationStatus,
+                          ),
+                        ),
+                      ),
+                      if (scholar.scholarshipName.trim().isNotEmpty) ...[
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _scholarshipChip(
+                            scholar.scholarshipName.trim(),
+                            scholar.id,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  const Spacer(),
-                  _deleteButton(scholar),
-                ],
-              ),
+                ),
+                const SizedBox(width: 10),
+                _deleteButton(scholar),
+              ],
             ),
           ],
         ),
@@ -491,6 +502,38 @@ class _ManageScholarsScreenState extends State<ManageScholarsScreen> {
         ),
     };
     return StatusChip(label, color: color, bg: background);
+  }
+
+  Widget _scholarshipChip(String name, String scholarId) {
+    final colors = context.colors;
+    return Container(
+      key: ValueKey('scholarship-chip-$scholarId'),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.borderSoft),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(AppIcons.award, size: 14, color: colors.textBody),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textBody,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _deleteButton(Scholar scholar) {
